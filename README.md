@@ -18,6 +18,8 @@ Ver `ROADMAP.md` para la bitácora de avance detallada: checklist por fase, qué
 probó, qué funcionó y qué falta — ese es el documento vivo que se va actualizando a
 medida que probamos cosas en la máquina Windows; este README se actualiza en base a
 esa bitácora cuando el estado general del proyecto cambia.
+Ver `docs/feedback_sesiones.md` para el resumen ejecutivo de las charlas de feedback
+con Pato (una tabla por sesión, lista para mandar por Slack).
 
 ## 0. Estado actual (resumen — ver `ROADMAP.md` para el detalle completo)
 
@@ -54,8 +56,19 @@ esa bitácora cuando el estado general del proyecto cambia.
 - **Fase 3 (velocidad relativa precisa vía OCR/calibración) y Fase 6 (giro por
   rumbo) — aún no iniciadas.**
 - Ver `ROADMAP.md` para el detalle de cada checklist, incluyendo la Fase 7
-  (evaluación de feedback externo sobre la arquitectura de IA, sin cambios de
-  código resultantes).
+  (evaluación de feedback externo sobre la arquitectura de IA).
+- 📋 **`docs/feedback_sesiones.md`** — resumen ejecutivo de las charlas de
+  feedback con Pato (quien lidera el proyecto), estimadas semanalmente los
+  viernes: qué se sugirió en cada una, si ya lo teníamos, y qué se hizo o por
+  qué se descartó. Pensado para copiar/pegar en Slack.
+- 💡 **`WISHLIST.md`** — ideas a futuro todavía no comprometidas (ej. encadenar
+  varios comandos en una sola orden), con el análisis técnico ya hecho.
+
+**Próximos pasos acordados, en orden:** (1) probar y estabilizar en vivo lo que
+ya está implementado (STT nuevo, latencia, precisión con micrófono real);
+(2) atacar el direccionamiento/rumbo de la nave (Fase 6, requiere control por
+mouse sobre la vista táctica); (3) recién después, encadenar comandos
+(ver `WISHLIST.md`).
 
 ## 1. Escenarios de despliegue considerados
 
@@ -386,10 +399,11 @@ micrófono para la Windows y no hizo falta el Escenario B.
 7. **Fase 6 – Giro por rumbo** *(evaluada, no implementada)*: girar la nave un
    ángulo determinado por voz vía cálculo trigonométrico + click en la vista
    táctica. Ver `ROADMAP.md` para el detalle de las opciones consideradas.
-8. **Fase 7 – Feedback externo sobre arquitectura de IA** *(evaluada, sin cambios
-   de código)*: se analizó feedback de un tercero sobre el enfoque de LLM/STT
-   usado; queda documentado en `ROADMAP.md` qué se adoptó (nada nuevo, ya estaba
-   cubierto) y qué se descartó y por qué.
+8. **Fase 7 – Feedback sobre arquitectura de IA (sesiones con Pato)** *(en curso,
+   recurrente)*: charlas de feedback con quien lidera el proyecto, estimadas
+   semanalmente los viernes. De la primera salieron dos mejoras aplicadas al STT
+   (modelo `gpt-4o-mini-transcribe` + vocabulary biasing). Resumen ejecutivo por
+   sesión en `docs/feedback_sesiones.md`; detalle técnico en `ROADMAP.md`.
 
 ## 5. Preguntas abiertas / decisiones pendientes
 

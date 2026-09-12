@@ -4,6 +4,16 @@ Documento vivo para ir marcando qué se probó, qué funcionó, qué no, y las p
 acciones. Se actualiza a medida que avanzamos. Ver `README.md` para la teoría y
 arquitectura completa, y `docs/hotkeys_sfc2.md` para la lista de hotkeys del juego.
 
+💡 Para **ideas a futuro todavía no comprometidas** (ej. encadenar varios comandos
+en una sola orden), ver **`WISHLIST.md`**. Este ROADMAP es lo que se está
+ejecutando; la wishlist es el "algún día".
+
+📋 Para el **resumen ejecutivo de las charlas de feedback con Pato** (quien lidera
+el proyecto; charlas estimadas semanalmente los viernes), ver
+**`docs/feedback_sesiones.md`** — una tabla por sesión con qué se sugirió, si ya
+lo teníamos y qué se hizo, lista para copiar/pegar en Slack. Acá en el ROADMAP
+queda el detalle técnico largo de cada decisión.
+
 Convención de estado: `[ ]` pendiente, `[~]` en progreso / parcialmente validado,
 `[x]` confirmado funcionando, `[!]` bloqueado / falló, necesita revisión.
 
@@ -559,6 +569,10 @@ esta fase hasta consolidar y probar bien en uso real lo ya construido (Fases
   ninguna dependencia nueva para esto, la complejidad es de cálculo/
   calibración, no de herramientas.
 
+**Prioridad acordada:** esta es la **próxima fase a atacar** una vez que se
+terminen de probar en vivo las Fases 0-2 + el STT nuevo. El encadenado de
+comandos (ver `WISHLIST.md`) queda DESPUÉS de esto.
+
 ### Checklist (para cuando se retome)
 - [ ] Confirmar con el usuario si seguir con Opción A o ir directo a Opción B
 - [ ] Calibrar centro de pantalla táctica y radio de click en la máquina real
@@ -569,11 +583,15 @@ esta fase hasta consolidar y probar bien en uso real lo ya construido (Fases
 
 ---
 
-## Fase 7 (evaluada, no implementada) — Feedback externo sobre arquitectura de IA
+## Fase 7 — Feedback sobre arquitectura de IA (sesiones con Pato)
 
-Un compañero del usuario, con experiencia en IA, dio feedback sobre el enfoque
-de LLM usado en el proyecto. Se analizó cada punto; queda documentado acá qué
-se adoptó, qué se descartó (y por qué), y qué queda anotado para el futuro.
+**Pato** (quien lidera/controla el proyecto, con experiencia en IA) dio feedback
+sobre el enfoque de LLM/STT usado. Se analizó cada punto; queda documentado acá
+qué se adoptó, qué se descartó (y por qué), y qué queda anotado para el futuro.
+
+> 📋 **Resumen ejecutivo en formato tabla (para Slack):**
+> ver `docs/feedback_sesiones.md` → **Sesión #1**. Esta sección del ROADMAP es
+> el detalle técnico largo de esa misma charla.
 
 ### Feedback recibido (resumen)
 1. Usar la guía oficial de "Speech-to-Text" de OpenAI
@@ -649,11 +667,11 @@ aprovechando** y que se aplicaron:
 
 - [x] **Modelo de STT actualizado: `whisper-1` → `gpt-4o-mini-transcribe`**
       (`stt_openai.py`). La guía oficial ya recomienda los modelos
-      `gpt-4o-transcribe` / `gpt-4o-mini-transcribe` por sobre el viejo
-      `whisper-1`: son más precisos, más baratos y más rápidos. El proyecto
-      seguía usando `whisper-1` simplemente por ser el que existía cuando se
-      escribió el script. Cambio de una línea, sin impacto en el resto del
-      pipeline (la firma de `transcribir_openai()` no cambió).
+      `gpt-4o-transcribe` / `gpt-4o-mini-transcribe` por sobre `whisper-1`:
+      son más precisos, más baratos y más rápidos. Veníamos usando `whisper-1`
+      porque era el modelo vigente cuando se escribió el script. Cambio de una
+      línea, sin impacto en el resto del pipeline (la firma de
+      `transcribir_openai()` no cambió).
 - [x] **Vocabulary biasing con el parámetro `prompt`** (`stt_openai.py`,
       constante `PROMPT_VOCABULARIO`). La guía documenta que se le puede
       pasar un `prompt` con vocabulario del dominio para sesgar la
