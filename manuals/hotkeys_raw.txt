@@ -1,0 +1,181 @@
+=== PAGE 154 ===
+Mizia Using short bursts of weapon fire over a longer period
+of time. The opposite of an Alpha Strike. Mizia attacks
+cause more damage to weapons and critical systems,
+but take longer to achieve. To Mizia, you fire one
+weapon, wait 1/20 of a turn, fire another weapon and
+repeat.
+Move Cost How much energy it takes to move a starship 10,000
+km per turn. Small ships have move costs from .25
+and up. Heavy Cruisers usually have a move cost of 1
+point of energy per 10,000km per turn. Dreadnoughts
+usually have a move cost of 1.5.
+NCA New Heavy Cruiser: A ship nearly as capable as a
+heavy cruiser, but with a cost and build time similar to
+a light cruiser.
+NCL New Light Cruiser: The next generation of light
+cruisers. The Federation NCL matches the firepower
+of the heavy cruiser and is in many ways a superior ship.
+Orions Orion Pirates: A loose collection of pirate cartels that
+plague each of the empires in the game.
+Ph–1 Phaser, Type–1: An offensive phaser.
+Ph–2 Phaser, Type–2: An offensive/defensive phaser.
+Ph–3 Phaser, Type–3: A defensive phaser.
+Ph–4 Phaser, Type–4: A large phaser found only on bases.
+The most powerful phaser in the game.
+Ph–G Phaser, Gatling: A Hydran weapon that can fire four
+ph–3 shots.
+Pl–F Plasma, Type–F: The smallest plasma torpedo.
+Pl–G Plasma, Type–G: An early medium plasma torpedo.
+Pl–R Plasma, Type–R: The largest plasma torpedo.
+Pl–S Plasma, Type–S: An improved version of the Type–G
+plasma torpedoes. Not as large as the Type–R.
+PPT Pseudo Plasma Torpedo: A decoy plasma torp that can
+be used to fool the enemy into thinking that you are
+recharging your plasmas.
+Prestige A representation of how well the player’s character is
+doing. Prestige can be reputation, honor, or any
+number of different characteristics. The higher the
+prestige, the more the player’s character can do.
+Prestige can be spent to requisition ships, repairs,
+refits, and more. The lifetime prestige, the total amount
+of prestige earned, ignoring your purchases, is used to
+determine your captain’s rank.
+Race In this game (and in this manual), it is
+sometimes used as another word for empire. 155
+=== PAGE 155 ===
+Range The distance from one unit to another, in 10,000 km
+increments. This matches the range in hexes in SFB.
+1.0 – 1.9 = 1 hex.
+Rank Rank is the officer level. Higher ranked officers
+command larger ships but have more responsibility. In
+SFC, higher ranks allow the player more ships as well
+as larger ships to control.
+RSE Romulan Star Empire
+SFB Star Fleet Battles: A board game of starship combat
+set in the Star Trek universe.
+SFC Starfleet Command: A computer game of tactical
+starship combat set in the Star Trek universe.
+Ship Starship: A type of unit in the game Starfleet Command.
+Usually outfitted with weapons, shields, systems and
+engines. They don’t maneuver like fighters.
+SP Scatterpack Shuttle
+Speed The distance a starship travels in one turn, in
+10,000km increments. All combat in SFC takes place
+at sub–light speeds.
+SS Suicide Shuttle: A shuttlecraft loaded with anti–matter
+and they target enemies like a seeking weapon.
+ST–1 Stinger–1 Fighter: The basic Hydran fighter.
+ST–2 Stinger–2 Fighter: The Hydran space superiority fighter.
+ST–H Stinger–H Fighter: The Hellbore–armed variant of the
+Stinger fighter.
+Turn A period of time equal to the setting of the game speed
+slider in the preferences panel. One turn is the
+standard amount of time between actions (firing a
+phaser, use of a transporter). Some actions can take
+more time (charging a plasma torpedo...) or less time
+(the delay before you can move again after an
+emergency deceleration...).
+Turn Class A statistic that describes how good a starship is at
+making turns. AA is the best (fastest turns), F is the
+worst (the slowest turns). The faster a ship is going,
+the more turn class will affect the turn rate of that
+ship.
+UFP United Federation of Planets
+Unit Either a ship, shuttle, fighter, or base.
+WW Wild Weasel: A shuttlecraft modified to emit the same
+sensor return as the ship that launches it. It is a
+defensive item that will attract seeking weapons
+launched at the ship that the WW is pretending to be.
+156
+=== PAGE 156 ===
+COMPREHENSIVE HOTKEY LIST
+This is a list of the default game key bindings:
+ESC End Mission
+F1 Overhead Camera
+F2 Chase Camera
+F3 Follow Camera (Default)
+F4 Enemy Camera
+F5 Toggle Target Padlock
+F6 Jump to ship #1
+F7 Jump to ship #2
+F8 Jump to ship #3
+F9 HUD Minimal Information
+F10 HUD Normal Information
+F11 HUD Maximum Information
+` Target Nearest Enemy
+1 – 4 Select Weapon Group #
+CTRL+ 1 – 4 Set Weapon Group #
+5 – 8 Select Target from Memory
+CTRL+ 5 – 8 Set Target to Memory
+9 Fleet Control Panel
+0 Communications Panel
+– Zoom In
++ Zoom Out
+BACKSPACE Quickjump to Target Player Ship
+TAB Tactical Map Panel
+Q Launch Suicide Shuttle
+W Launch Wild Weasel
+E Launch Scatterpack
+R Red Alert!
+T Target (cycles)
+SHIFT – T Target (reverse order)
+Y Target Enemy (cycles)
+SHIFT – Y Target Enemy (reverse order)
+I Toggle Deep Scan
+157
+=== PAGE 157 ===
+O Switch Schematic Displays
+P Fire Probe
+[ Game Speed Slower
+] Game Speed Faster
+\ Deselect Target
+A Slow Down
+S Speed Up
+D Slide Interface Bar
+F Max ECM
+G Max ECCM
+H Sensors Panel (ECM and ECCM)
+J Tractor Panel
+K Shield Panel
+L Defense Panel
+; Repair Panel
+‘ Helm Panel
+ENTER Chat Toggle
+CTRL– ENTER Chat Toggle (Team Message)
+Z Fire (Fire one weapon on each hardpoint)
+SHIFT – Z Alpha Strike! (Fire all)
+X Toggle Cloak
+C Max Defensive Tractor
+V Max Point Defense
+B Transporter Bomb
+N Transport Panel
+M Drop Mine
+SHIFT – M Drop NSM (Romulans only)
+, Shuttle Panel
+. Energy Panel
+/ Preferences Panel
+SPACE Target Nearest Hostile Seeking Weapon
+PAUSE Pause & Issue Orders (single–player only)
+HOME Move Camera Right
+END Move Camera Left
+158
+=== PAGE 158 ===
+PGUP Tilt Camera Up
+PGDN Tilt Camera Down
+Number Pad
+1 Reinforce Aft Left Shield
+2 Reinforce Aft Shield
+3 Reinforce Aft Right Shield
+4 Reinforce Left Shield
+5 Start HET
+6 Reinforce Right Shield
+7 Reinforce Forward Left Shield
+8 Reinforce Forward Shield
+9 Reinforce Forward Right Shield
+0 Emergency Deceleration
+– Orbit Target
+/ Erratic Maneuvers
+* Follow Target
+Use the Options screen on the main menu to change the hotkey bindings.
+159
