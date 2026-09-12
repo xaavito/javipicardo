@@ -639,6 +639,54 @@ Agents SDK quedan evaluados y pospuestos, con la justificación de por qué,
 documentada arriba, para no tener que re-analizarlo si se vuelve a plantear
 más adelante).
 
+### Segunda pasada sobre el mismo feedback (con lectura de la guía oficial)
+
+Se volvió a plantear el mismo feedback, esta vez leyendo a fondo la guía
+oficial de Speech-to-Text linkeada. Confirmado que la parte de "tools /
+tool_calls" **ya estaba implementada** (ver análisis arriba), pero la
+lectura de la guía sí reveló **dos mejoras concretas que NO estábamos
+aprovechando** y que se aplicaron:
+
+- [x] **Modelo de STT actualizado: `whisper-1` → `gpt-4o-mini-transcribe`**
+      (`stt_openai.py`). La guía oficial ya recomienda los modelos
+      `gpt-4o-transcribe` / `gpt-4o-mini-transcribe` por sobre el viejo
+      `whisper-1`: son más precisos, más baratos y más rápidos. El proyecto
+      seguía usando `whisper-1` simplemente por ser el que existía cuando se
+      escribió el script. Cambio de una línea, sin impacto en el resto del
+      pipeline (la firma de `transcribir_openai()` no cambió).
+- [x] **Vocabulary biasing con el parámetro `prompt`** (`stt_openai.py`,
+      constante `PROMPT_VOCABULARIO`). La guía documenta que se le puede
+      pasar un `prompt` con vocabulario del dominio para sesgar la
+      transcripción. Esto ataca directamente el riesgo #1 de la Fase 2 (que
+      Whisper transcriba mal la jerga específica: "media máquina" → "media
+      manzana", "ECCM" → "eceeme"), que estaba anotado como pendiente de
+      probar en vivo. Se cargó una lista acotada con los términos más
+      propensos a confundirse (la ventana de prompt del STT es de ~224
+      tokens, no entra el catálogo completo ni tiene sentido meterlo).
+- [x] **`temperature=0` en la transcripción**: para que el STT sea lo más
+      determinista posible y no "improvise" palabras cuando el audio es
+      ambiguo — deseable en un caso de uso de comandos cerrados como este.
+- [x] Validado localmente con mocks (el SDK de `openai` y `pydirectinput` no
+      están instalados en la Mac): el módulo importa bien, `MODELO_STT` es el
+      nuevo, y la llamada a la API incluye `prompt=` y `temperature=0`.
+      Confirmado también que `catalogo_comandos.generar_tools_openai()` sigue
+      generando las 16 tools correctamente.
+- [ ] **Pendiente de probar en vivo en la Windows:** medir si el cambio de
+      modelo mejora la latencia real, y si el `prompt` de vocabulario
+      efectivamente reduce los errores de transcripción de la jerga del
+      juego. Ajustar `PROMPT_VOCABULARIO` con los términos que en la práctica
+      se sigan transcribiendo mal.
+
+**Lo que se mantiene descartado (sin cambios respecto al análisis de arriba):**
+mandar el audio directo al LLM sin STT separado (rompería el camino rápido/
+gratis del parser de reglas) y el Agents SDK (`openai-agents`) — sigue siendo
+complejidad innecesaria para una clasificación de un solo paso. El
+"diccionario de desambiguación" que mencionó el compañero en su ejemplo es,
+en nuestro caso, exactamente lo que ya hace `catalogo_comandos.py`: generar
+dinámicamente el mapa de comandos válidos, con la ventaja adicional de que se
+deriva de los mismos diccionarios del parser de reglas y por lo tanto nunca
+queda desincronizado.
+
 ---
 
 ## Log general de sesiones de prueba

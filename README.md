@@ -1,4 +1,6 @@
-# SFC Voice Commander (teorización)
+# SFC Voice Commander
+
+![alt text](image.png)
 
 Proyecto para controlar por voz **Star Fleet Command (1) / Star Fleet Command II**
 (juego de Windows 10, i7/16GB), simulando ser el capitán: "Incrementar velocidad a
@@ -6,12 +8,54 @@ media máquina" → el sistema traduce la orden a pulsaciones de teclado reales
 (`S` para acelerar) hasta alcanzar el valor deseado. Se contemplan dos escenarios
 de despliegue (una sola máquina vs. dos máquinas en red) — ver sección 1.
 
-Este documento es solo teoría/arquitectura, sin código todavía. Ver `docs/hotkeys_sfc2.md`
-para la lista completa de hotkeys extraída de los manuales oficiales de la Gold
-Edition (`SFCfullMan.pdf`, `Supplemental Manual.pdf`, `SFCquick.pdf`).
-Ver `ROADMAP.md` para la bitácora de avance: checklist por fase, qué se probó, qué
-funcionó y qué falta — ese es el documento a ir actualizando a medida que probemos
-cosas en la máquina Windows.
+Este documento describe la teoría/arquitectura general del proyecto. **El código ya
+existe y las Fases 0, 1 y 2 del plan (más abajo) están completas y validadas en la
+máquina Windows real** — ver `scripts/` para la implementación y la sección
+"Estado actual" más abajo para un resumen. Ver `docs/hotkeys_sfc2.md` para la lista
+completa de hotkeys extraída de los manuales oficiales de la Gold Edition
+(`SFCfullMan.pdf`, `Supplemental Manual.pdf`, `SFCquick.pdf`).
+Ver `ROADMAP.md` para la bitácora de avance detallada: checklist por fase, qué se
+probó, qué funcionó y qué falta — ese es el documento vivo que se va actualizando a
+medida que probamos cosas en la máquina Windows; este README se actualiza en base a
+esa bitácora cuando el estado general del proyecto cambia.
+
+## 0. Estado actual (resumen — ver `ROADMAP.md` para el detalle completo)
+
+- **Fase 0 (validación de input) — ✅ completa.** El juego identificado es
+  **Star Trek: Starfleet Command Gold Edition** (SFC1 + expansiones). Corre en
+  pantalla completa exclusiva; se resolvió el modo ventana con **DxWnd** (no
+  alcanzó con `SFC.INI` solo). Confirmado que `pydirectinput` sí logra que el
+  juego reaccione a teclas simuladas, **corriendo la consola de Python como
+  Administrador** (imprescindible, si no el input no llega por UIPI de Windows).
+  Script: `scripts/fase0_test_key.py`.
+- **Fase 1 (comandos por texto, sin voz) — ✅ completa.** Parser de reglas
+  completo en `scripts/fase1_text_commands.py`: velocidad relativa, alerta
+  roja/amarilla, disparo, escudos, ECM/ECCM, cámaras, selección/seguimiento de
+  objetivos, comando de ayuda (lista todos los comandos disponibles) y
+  **combos** (una frase → varias teclas en secuencia, ej. "ataquen con todo",
+  "aléjense a máxima velocidad"). Reenfoque automático de la ventana del juego
+  tras cada acción.
+- **Fase 2 (voz) — ✅ implementada, pendiente de más pruebas en vivo con
+  micrófono real.** `scripts/fase2_voice_commands.py` agrega captura de audio
+  por **push-to-talk** (tecla `F12` por defecto) + STT, reusando el mismo
+  parser/ejecutor de la Fase 1. Soporta dos backends de STT intercambiables:
+  - `openai` (`scripts/stt_openai.py`, API de transcripción de OpenAI con el
+    modelo `gpt-4o-mini-transcribe` + vocabulary biasing vía parámetro
+    `prompt`, siguiendo la guía oficial de Speech-to-Text) — backend por
+    defecto actual, requiere internet + `OPENAI_API_KEY`.
+  - `local` (`faster-whisper` en CPU) — sin internet ni costo.
+- **Fase 4 (LLM como fallback) — adelantada e implementada,** aunque en el plan
+  original era opcional/posterior: `scripts/catalogo_comandos.py` genera
+  dinámicamente el catálogo de comandos disponibles a partir de los mismos
+  diccionarios del parser de reglas (para que nunca queden desincronizados), y
+  `scripts/llm_fallback.py` lo usa para interpretar frases que el parser no
+  reconoce, con dos backends: Ollama local (JSON libre) u **OpenAI con function
+  calling nativo** (`tools=[...]`, más confiable que pedir JSON libre).
+- **Fase 3 (velocidad relativa precisa vía OCR/calibración) y Fase 6 (giro por
+  rumbo) — aún no iniciadas.**
+- Ver `ROADMAP.md` para el detalle de cada checklist, incluyendo la Fase 7
+  (evaluación de feedback externo sobre la arquitectura de IA, sin cambios de
+  código resultantes).
 
 ## 1. Escenarios de despliegue considerados
 
@@ -35,6 +79,8 @@ donde está el juego. No hace falta red, sockets, ni un segundo equipo.
 - Internet solo se usaría opcionalmente si en el futuro se prefiere un STT o LLM
   cloud en vez de local (por ejemplo, si la precisión del modelo local en español no
   convence). No es un requisito de la arquitectura, es una mejora opcional.
+
+![alt text](image-1.png)
 
 ### Escenario B — Dos máquinas (respaldo, por si no se consigue mic en la Windows)
 El juego corre en la PC Windows, pero la captura de voz y/o la interpretación ocurren
@@ -107,6 +153,8 @@ lógica de programación normal. Se compone de:
    no depender de una frase exacta.
 3. **Reglas/regex** simples que buscan esas palabras clave en el texto y arman la
    acción estructurada correspondiente.
+
+![alt text](image-2.png)
 
 Ejemplo de implementación mínima:
 
@@ -302,39 +350,61 @@ proceso Python corriendo en la Windows.
                                                   Ventana del juego (SFC/SFC2)
 ```
 
-## 4. Plan de fases sugerido
+## 4. Plan de fases (estado real — ver `ROADMAP.md` para el detalle día a día)
 
 El plan es el mismo conceptualmente para ambos escenarios; lo único que cambia es
-si la Fase 1/2 incluyen o no la parte de red (cliente/servidor). Se detalla pensando
-primero en el **Escenario A (una sola máquina)**, con nota de qué cambia si se termina
-necesitando el Escenario B.
+si la Fase 1/2 incluyen o no la parte de red (cliente/servidor). En la práctica se
+implementó directo el **Escenario A (una sola máquina)**, ya que se consiguió
+micrófono para la Windows y no hizo falta el Escenario B.
 
-1. **Fase 0 – Validación de input**: script mínimo en la PC Windows que, al recibir
-   una tecla por parámetro de línea de comandos, la simule contra el juego (probar
-   que `pydirectinput` realmente funciona con SFC/SFC2 antes de construir nada más).
-   Esta fase es idéntica en ambos escenarios.
-2. **Fase 1 – Comandos por texto (sin voz)**: script en la misma PC Windows que reciba
-   comandos en texto plano ("velocidad media") por consola/input y los traduzca con
-   el parser de reglas. Esto valida el mapeo "intención → teclas" sin la complejidad
-   de STT ni de red.
-   - *Si se necesitara el Escenario B*: acá se agregaría el mini-servidor en Windows
-     + cliente CLI en la otra máquina, comunicados por WebSocket/HTTP.
-3. **Fase 2 – Voz**: agregar captura de micrófono (ya en la misma máquina) + STT
-   local, alimentando el mismo parser de la Fase 1.
-4. **Fase 3 – Velocidad relativa precisa**: agregar OCR del HUD (o calibración
-   manual de pasos) para que "media máquina" sea preciso según la nave actual.
-5. **Fase 4 (opcional) – LLM function calling**: como fallback para comandos que el
-   parser de reglas no reconozca, para lenguaje más natural/libre. Puede usarse un
-   modelo local (Ollama) aprovechando el i7/16GB, o uno cloud vía internet.
-6. **Fase 5 (opcional) – Más comandos**: escudos, alerta roja/amarilla, disparo,
-   ECM/ECCM, cámaras, etc., reusando la lista completa de `docs/hotkeys_sfc2.md`.
+1. **Fase 0 – Validación de input ✅ completa**: script mínimo en la PC Windows que,
+   al recibir una tecla por parámetro de línea de comandos, la simula contra el
+   juego. Confirmado que `pydirectinput` funciona contra el juego real (corriendo
+   como Administrador). Script: `scripts/fase0_test_key.py`.
+2. **Fase 1 – Comandos por texto (sin voz) ✅ completa**: `scripts/fase1_text_commands.py`
+   recibe comandos en texto plano ("velocidad media") por consola y los traduce con
+   el parser de reglas, incluyendo combos y comando de ayuda. Esto validó el mapeo
+   "intención → teclas" sin la complejidad de STT ni de red.
+   - No se necesitó el Escenario B, así que no se implementó el mini-servidor/cliente
+     por red.
+3. **Fase 2 – Voz ✅ implementada** (pendiente más pruebas en vivo con micrófono
+   real): `scripts/fase2_voice_commands.py` agrega captura de micrófono (push-to-talk)
+   + STT (OpenAI o `faster-whisper` local, intercambiable), alimentando el mismo
+   parser de la Fase 1.
+4. **Fase 3 – Velocidad relativa precisa** *(pendiente, no iniciada)*: agregar OCR
+   del HUD (o calibración manual de pasos) para que "media máquina" sea preciso
+   según la nave actual.
+5. **Fase 4 – LLM function calling ✅ implementada** (adelantada respecto al plan
+   original, que la marcaba opcional/posterior): `scripts/llm_fallback.py` +
+   `scripts/catalogo_comandos.py` cubren como fallback los comandos que el parser
+   de reglas no reconoce, para lenguaje más natural/libre. Soporta Ollama local y
+   OpenAI (function calling nativo).
+6. **Fase 5 – Más comandos ✅ completa**: escudos, alerta roja/amarilla, disparo,
+   ECM/ECCM, cámaras, selección/seguimiento de objetivos, etc., ya cubiertos en
+   `scripts/fase1_text_commands.py` reusando la lista completa de
+   `docs/hotkeys_sfc2.md`.
+7. **Fase 6 – Giro por rumbo** *(evaluada, no implementada)*: girar la nave un
+   ángulo determinado por voz vía cálculo trigonométrico + click en la vista
+   táctica. Ver `ROADMAP.md` para el detalle de las opciones consideradas.
+8. **Fase 7 – Feedback externo sobre arquitectura de IA** *(evaluada, sin cambios
+   de código)*: se analizó feedback de un tercero sobre el enfoque de LLM/STT
+   usado; queda documentado en `ROADMAP.md` qué se adoptó (nada nuevo, ya estaba
+   cubierto) y qué se descartó y por qué.
 
 ## 5. Preguntas abiertas / decisiones pendientes
-- ¿Se consigue el micrófono para la Windows? (de confirmarse, el proyecto arranca
-  directo con el Escenario A, más simple).
-- ¿SFC1 o SFC2 corriendo hoy en esa máquina? (hotkeys son casi idénticas, pero hay
-  pequeñas diferencias, ej. "Fleet Control Panel" en tecla 9 solo en SFC1).
-- ¿El juego corre en ventana o pantalla completa exclusiva? (afecta qué método de
-  inyección de input funciona).
-- ¿Vale la pena arrancar directo con OCR del HUD, o preferís el enfoque simplificado
-  por conteo de pulsaciones para el MVP?
+
+Ya resueltas (dejadas acá con su respuesta, a modo de historial):
+- ✅ ¿Se consigue el micrófono para la Windows? → Sí, se consiguió; el proyecto usa
+  el Escenario A (una sola máquina).
+- ✅ ¿SFC1 o SFC2 corriendo hoy en esa máquina? → **SFC1**: Star Trek: Starfleet
+  Command Gold Edition (con expansiones Empires at War / Neutral Zone integradas).
+- ✅ ¿El juego corre en ventana o pantalla completa exclusiva? → Pantalla completa
+  exclusiva de origen; se fuerza modo ventana con **DxWnd** (ver `ROADMAP.md`).
+
+Todavía pendientes:
+- ¿Vale la pena arrancar directo con OCR del HUD, o seguir con el enfoque
+  simplificado por conteo de pulsaciones para la Fase 3 (velocidad relativa
+  precisa)? Aún no iniciada.
+- Fase 6 (giro por rumbo): ¿ir directo con la Opción B (OCR del rumbo real) o
+  empezar con la Opción A (asumir cámara centrada + trigonometría simple)? Ver
+  `ROADMAP.md` sección Fase 6.
