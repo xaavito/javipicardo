@@ -4,8 +4,15 @@ Whisper local (faster-whisper) usado por defecto en fase2_voice_commands.py.
 
 Ventaja principal: corre en los servidores de OpenAI (GPU), generalmente mas
 rapido que un modelo local en CPU, ademas de mas preciso. Desventaja: requiere
-internet y tiene un costo por uso (bajo - la API de Whisper cobra centavos de
-dolar por minuto de audio transcripto).
+internet y tiene un costo por uso (bajo - cobra centavos de dolar por minuto
+de audio transcripto).
+
+Alineado con la guia oficial de Speech-to-Text de OpenAI
+(https://developers.openai.com/api/docs/guides/speech-to-text):
+- usa el modelo `gpt-4o-mini-transcribe` (mas nuevo/preciso/barato que
+  `whisper-1`), ver MODELO_STT.
+- usa el parametro `prompt` para sesgar la transcripcion hacia el vocabulario
+  especifico del juego, ver PROMPT_VOCABULARIO.
 
 ------------------------------------------------------------------------
 COMO CONFIGURAR LA API KEY (nunca hardcodear la key en el codigo):
@@ -36,10 +43,34 @@ import os
 import soundfile as sf
 from openai import OpenAI
 
-# Modelo de transcripcion de OpenAI. "whisper-1" es el clasico; tambien
-# existe "gpt-4o-transcribe" y "gpt-4o-mini-transcribe" (mas nuevos, revisar
-# precios/disponibilidad en la documentacion de OpenAI si se quiere probar).
-MODELO_STT = "whisper-1"
+# Modelo de transcripcion de OpenAI.
+# - "gpt-4o-mini-transcribe" (ACTUAL): mas nuevo, mas preciso y mas barato que
+#   whisper-1, y es el que recomienda la guia oficial de Speech-to-Text de
+#   OpenAI. Para comandos cortos como los de este proyecto es la mejor
+#   relacion precision/latencia/costo.
+# - "gpt-4o-transcribe": misma familia, mas preciso todavia pero mas caro y
+#   algo mas lento. Probar solo si el mini se queda corto.
+# - "whisper-1": el clasico (era el que usaba este script antes). Se deja
+#   documentado como fallback por si hiciera falta volver atras.
+MODELO_STT = "gpt-4o-mini-transcribe"
+
+# Vocabulario del dominio para sesgar la transcripcion (parametro `prompt` de
+# la API, documentado en la guia oficial de Speech-to-Text como "prompting" /
+# vocabulary biasing). Sirve para que el STT no destroce terminos propios del
+# juego y la jerga naval/Star Trek que usamos como comandos: sin esto, es
+# comun que "media maquina" salga como "media manzana", o que "ECM" salga
+# como "eceeme".
+#
+# Limite: la ventana de prompt del STT es de ~224 tokens - no meter la lista
+# completa de comandos, solo los terminos que MAS se confunden al transcribir.
+PROMPT_VOCABULARIO = (
+    "Comandos de nave de Star Trek: Starfleet Command. "
+    "alerta roja, alerta amarilla, media maquina, cuarto de maquina, "
+    "tres cuartos de maquina, toda maquina avante, alto total, "
+    "fuego a discrecion, disparar, alpha strike, escudos al maximo, "
+    "camuflaje, deep scan, ECM, ECCM, seguir a esa nave, "
+    "siguiente objetivo, objetivo mas cercano, ataquen con todo."
+)
 
 
 def _cliente():
@@ -74,6 +105,14 @@ def transcribir_openai(audio, sample_rate, language="es"):
             model=MODELO_STT,
             file=buffer,
             language=language,
+            # Sesga la transcripcion hacia el vocabulario del juego (ver
+            # PROMPT_VOCABULARIO). Mejora notablemente el reconocimiento de
+            # terminos como "media maquina" o "ECCM" sin costo extra de
+            # latencia.
+            prompt=PROMPT_VOCABULARIO,
+            # temperature=0 -> transcripcion lo mas determinista posible, sin
+            # que el modelo "improvise" palabras cuando el audio es ambiguo.
+            temperature=0,
         )
         return respuesta.text.strip()
     except Exception as e:
