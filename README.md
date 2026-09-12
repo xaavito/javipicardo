@@ -1,6 +1,6 @@
 # SFC Voice Commander
 
-![alt text](image.png)
+![alt text](images/image.png)
 
 Proyecto para controlar por voz **Star Fleet Command (1) / Star Fleet Command II**
 (juego de Windows 10, i7/16GB), simulando ser el capitán: "Incrementar velocidad a
@@ -80,7 +80,7 @@ donde está el juego. No hace falta red, sockets, ni un segundo equipo.
   cloud en vez de local (por ejemplo, si la precisión del modelo local en español no
   convence). No es un requisito de la arquitectura, es una mejora opcional.
 
-![alt text](image-1.png)
+![alt text](images/image-1.png)
 
 ### Escenario B — Dos máquinas (respaldo, por si no se consigue mic en la Windows)
 El juego corre en la PC Windows, pero la captura de voz y/o la interpretación ocurren
@@ -154,7 +154,7 @@ lógica de programación normal. Se compone de:
 3. **Reglas/regex** simples que buscan esas palabras clave en el texto y arman la
    acción estructurada correspondiente.
 
-![alt text](image-2.png)
+![alt text](images/image-2.png)
 
 Ejemplo de implementación mínima:
 
