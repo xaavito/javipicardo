@@ -73,14 +73,53 @@ PROMPT_VOCABULARIO = (
 )
 
 
+# Cliente OpenAI cacheado a nivel de modulo.
+#
+# IMPORTANTE (fix de latencia): antes se creaba un cliente NUEVO en cada
+# transcripcion. Crear el cliente es caro la primera vez (inicializa el SDK,
+# el pool de conexiones HTTP, y sobre todo hace el handshake TLS + resolucion
+# DNS contra la API de OpenAI la primera vez que se usa). Eso hacia que el
+# PRIMER comando tuviera un delay notablemente mayor que los siguientes.
+# Ahora se crea una sola vez y se reusa, y ademas se puede "precalentar" al
+# arrancar el programa con precalentar() (ver mas abajo).
+_cliente_cacheado = None
+
+
 def _cliente():
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "No se encontro la variable de entorno OPENAI_API_KEY. Ver "
-            "docstring de este archivo para como configurarla."
-        )
-    return OpenAI(api_key=api_key)
+    global _cliente_cacheado
+    if _cliente_cacheado is None:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "No se encontro la variable de entorno OPENAI_API_KEY. Ver "
+                "docstring de este archivo para como configurarla."
+            )
+        _cliente_cacheado = OpenAI(api_key=api_key)
+    return _cliente_cacheado
+
+
+def precalentar():
+    """Inicializa el cliente y abre la conexion HTTPS con la API ANTES de que
+    el usuario diga el primer comando, para que ese primer comando no pague
+    el costo de inicializacion (handshake TLS, DNS, arranque del SDK).
+
+    Se llama una sola vez al arrancar el script. Manda un audio minimo de
+    silencio: es la forma de forzar que la conexion quede realmente
+    establecida (crear el cliente solo no abre la conexion, el SDK es lazy).
+    El costo de este audio es despreciable (~0.1 seg de silencio).
+
+    Devuelve True si el precalentado funciono, False si fallo (no es
+    critico: si falla, el programa sigue andando igual, solo que el primer
+    comando volvera a ser mas lento).
+    """
+    try:
+        import numpy as np
+        silencio = np.zeros(int(16000 * 0.1), dtype=np.float32)
+        transcribir_openai(silencio, 16000, language="es")
+        return True
+    except Exception as e:
+        print(f"  [!] No se pudo precalentar la conexion con OpenAI: {e}")
+        return False
 
 
 def transcribir_openai(audio, sample_rate, language="es"):

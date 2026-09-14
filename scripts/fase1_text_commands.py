@@ -128,7 +128,28 @@ def contiene_frase(texto_normalizado, frase):
 # manualmente en el juego (la consola tiene el foco mientras se escribe).
 # ---------------------------------------------------------------------------
 
-def encontrar_ventana_juego():
+# Cache de la ventana del juego (fix de latencia).
+#
+# gw.getAllWindows() enumera TODAS las ventanas abiertas de Windows y arma un
+# objeto por cada una. Es la parte mas lenta del envio de un comando, y se
+# estaba haciendo de cero en CADA comando. Como la ventana del juego no
+# cambia mientras el juego sigue abierto, se cachea el objeto encontrado y se
+# reusa; si el handle dejo de ser valido (se cerro o se reabrio el juego), se
+# vuelve a buscar automaticamente.
+_ventana_cacheada = None
+
+
+def _ventana_sigue_viva(ventana):
+    """True si la ventana cacheada todavia existe segun Windows."""
+    if ventana is None:
+        return False
+    try:
+        return bool(ctypes.windll.user32.IsWindow(ventana._hWnd))
+    except Exception:
+        return False
+
+
+def encontrar_ventana_juego(usar_cache=True):
     """Busca la ventana del juego. Primero intenta por titulo EXACTO
     (case-insensitive y con strip de espacios, mas tolerante que
     getWindowsWithTitle "a pelo"). Si no encuentra nada asi, cae a la busqueda
@@ -140,7 +161,16 @@ def encontrar_ventana_juego():
     este script, getWindowsWithTitle() con el titulo exacto dejo de encontrar
     la ventana en la practica (posible sensibilidad a mayusculas/espacios en
     esa funcion especifica de pygetwindow), rompiendo el enfoque que antes
-    funcionaba con la busqueda laxa por substring."""
+    funcionaba con la busqueda laxa por substring.
+
+    Si usar_cache=True (default) y ya se encontro la ventana antes, se
+    devuelve la cacheada sin volver a enumerar todas las ventanas de Windows
+    (ver comentario de _ventana_cacheada)."""
+    global _ventana_cacheada
+
+    if usar_cache and _ventana_sigue_viva(_ventana_cacheada):
+        return _ventana_cacheada
+
     todas = gw.getAllWindows()
 
     # Intento 1: titulo exacto (case-insensitive, con strip)
@@ -148,6 +178,7 @@ def encontrar_ventana_juego():
     for ventana in todas:
         titulo = (ventana.title or "").strip().lower()
         if titulo == objetivo:
+            _ventana_cacheada = ventana
             return ventana
 
     # Intento 2 (respaldo): palabras clave, busqueda laxa por substring
@@ -156,7 +187,10 @@ def encontrar_ventana_juego():
         if not titulo:
             continue
         if any(kw in titulo for kw in WINDOW_TITLE_KEYWORDS):
+            _ventana_cacheada = ventana
             return ventana
+
+    _ventana_cacheada = None
     return None
 
 

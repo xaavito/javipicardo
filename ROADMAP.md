@@ -507,6 +507,44 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     el rumbo **no está verificado**, sugiriendo "orbitar" si lo que se quiere
     es que la nave efectivamente se mueva.
 
+- **[12/09] Delay excesivo SOLO en el primer comando.** Reportado en prueba
+  real: el primer comando tardaba notablemente más que los siguientes, que
+  iban bien. Diagnóstico: **inicialización perezosa** — varias cosas caras se
+  hacían recién la primera vez que se usaban, y ese costo se lo comía el
+  primer comando. Se encontraron 3 causas, todas arregladas:
+  1. **Cliente de OpenAI creado de cero en CADA transcripción**
+     (`stt_openai._cliente()`). La primera vez incluye arranque del SDK,
+     resolución DNS y **handshake TLS** contra la API. → Ahora el cliente se
+     **cachea a nivel de módulo** y se reusa.
+  2. **Micrófono inicializado al apretar F12 por primera vez.** Windows tarda
+     bastante en abrir el primer `InputStream` (inicializa el driver, negocia
+     formato, reserva el dispositivo). Peor aún: ese delay **se comía los
+     primeros milisegundos de lo que se decía**. → Se abre y cierra un stream
+     al arrancar (`precalentar_microfono()`).
+  3. **`gw.getAllWindows()` en cada comando** para encontrar la ventana del
+     juego: enumera TODAS las ventanas de Windows y crea un objeto por cada
+     una. Era la parte más lenta del envío, y se repetía siempre. → Se
+     **cachea la ventana** encontrada (`_ventana_cacheada`), con
+     auto-invalidación vía `IsWindow()` si el juego se cierra o se reabre.
+     Esto mejora **todos** los comandos, no solo el primero.
+  - **Solución integral:** nueva función `precalentar_todo()` que corre al
+    arrancar el script y hace las 3 inicializaciones (+ parser y catálogo),
+    mostrando cuánto tardó cada una. El precalentado de la API manda 0.1s de
+    silencio (costo despreciable) porque crear el cliente no abre la conexión
+    por sí solo — el SDK es lazy.
+  - **Bonus para diagnosticar:** ahora cada comando imprime un desglose
+    `[tiempos] STT: Xs | ejecucion: Ys | TOTAL: Zs`, para poder ver si la
+    latencia restante está en la transcripción o en el enfoque de ventana.
+  - Validado con mocks: 5 búsquedas seguidas de ventana → **1 sola** llamada
+    real a `getAllWindows()` (antes 5), y se confirmó que re-busca
+    correctamente si la ventana deja de existir.
+  - [ ] **Pendiente de medir en vivo:** con esto, el primer comando debería
+        tardar casi lo mismo que el resto. Si sigue habiendo diferencia,
+        mirar el desglose de tiempos para ver en qué etapa está.
+  - Nota: la `PAUSA_POST_ENFOQUE` de 1.0s sigue afectando a **todos** los
+    comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
+    a 0.5s, ver el ítem correspondiente en la Fase 2.
+
 - **[12/09] Combos nuevos: "buscar objetivo + rumbo + velocidad" en una orden.**
   Pedido concreto: un comando que busque un objetivo (el más cercano o
   cualquiera), le ponga rumbo y acelere hacia él, sin tener que encadenar tres

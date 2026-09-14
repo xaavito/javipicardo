@@ -97,6 +97,9 @@ STT_BACKEND = "openai"
 if STT_BACKEND == "local":
     from faster_whisper import WhisperModel
 elif STT_BACKEND == "openai":
+    # Se importa el modulo entero (ademas de la funcion) para poder llamar a
+    # stt_openai_mod.precalentar() al arrancar - ver precalentar_todo().
+    import stt_openai as stt_openai_mod
     from stt_openai import transcribir_openai
 
 # Reusa TODA la logica ya validada de la Fase 1: normalizacion, diccionarios,
@@ -222,12 +225,78 @@ def transcribir(modelo, audio):
 # Loop principal
 # ---------------------------------------------------------------------------
 
+def precalentar_microfono():
+    """Abre y cierra el stream de audio una vez al arrancar.
+
+    Fix de latencia: la PRIMERA vez que se abre el microfono, Windows tarda
+    bastante mas (inicializa el driver de audio, negocia el formato, reserva
+    el dispositivo). Si eso pasa recien cuando el usuario aprieta F12 por
+    primera vez, ese delay se lo come el primer comando - y peor aun, se
+    pierden los primeros milisegundos de lo que dijo. Abriendolo aca, el
+    driver ya queda listo.
+    """
+    try:
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
+                            dtype='float32'):
+            pass
+        return True
+    except Exception as e:
+        print(f"  [!] No se pudo precalentar el microfono: {e}")
+        return False
+
+
+def precalentar_todo():
+    """Hace todas las inicializaciones costosas ANTES de que el usuario diga
+    el primer comando, para que ese primero no sea mas lento que el resto.
+    Ver comentarios en cada funcion de precalentado para el detalle."""
+    print("Precalentando (para que el primer comando no tenga delay extra)...")
+
+    t0 = time.time()
+    ok_mic = precalentar_microfono()
+    print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} "
+          f"({time.time() - t0:.2f}s)")
+
+    if STT_BACKEND == "openai":
+        t0 = time.time()
+        ok_api = stt_openai_mod.precalentar()
+        print(f"  - Conexion con la API de OpenAI: "
+              f"{'OK' if ok_api else 'FALLO'} ({time.time() - t0:.2f}s)")
+
+    # El parser y el catalogo de comandos tambien se "tocan" una vez aca,
+    # para que Python termine de importar/compilar todo lo que haga falta.
+    t0 = time.time()
+    fase1.parsear_comando("precalentar")
+    if USAR_LLM_FALLBACK:
+        try:
+            import catalogo_comandos
+            catalogo_comandos.generar_tools_openai()
+        except Exception:
+            pass
+    print(f"  - Parser y catalogo de comandos: OK ({time.time() - t0:.2f}s)")
+
+    # Busqueda de la ventana del juego: enumerar todas las ventanas de
+    # Windows es lento la primera vez. Se hace aca para que quede cacheada
+    # (ver _ventana_cacheada en fase1_text_commands.py) y el primer comando
+    # no tenga que pagarlo.
+    t0 = time.time()
+    ventana = fase1.encontrar_ventana_juego()
+    if ventana is not None:
+        print(f"  - Ventana del juego: OK, encontrada y cacheada "
+              f"({time.time() - t0:.2f}s)")
+    else:
+        print(f"  - Ventana del juego: NO ENCONTRADA ({time.time() - t0:.2f}s)")
+        print("    OJO: abri el juego DESDE DxWnd antes de dar comandos, o el")
+        print("    primer comando va a tardar mas mientras la busca de nuevo.")
+
+
 def main():
     print("=== SFC Voice Commander - Fase 2: comandos por VOZ ===")
     print(f"Push-to-talk: mantené apretada '{PUSH_TO_TALK_KEY}' mientras hablás.")
     print(f"Presioná '{EXIT_KEY}' para salir.\n")
 
     modelo = cargar_modelo()
+
+    precalentar_todo()
 
     print("\nListo. Esperando comandos por voz...\n")
 
@@ -259,7 +328,15 @@ def main():
                 t_llm1 = time.time()
                 print(f"  [LLM: {t_llm1 - t_llm0:.2f}s]")
 
+            t_exec0 = time.time()
             fase1.ejecutar_accion(accion)
+            t_exec1 = time.time()
+
+            # Desglose de tiempos: sirve para ver DONDE se va la latencia
+            # (transcripcion vs. enfoque de ventana + envio de teclas).
+            print(f"  [tiempos] STT: {t1 - t0:.2f}s | "
+                  f"ejecucion: {t_exec1 - t_exec0:.2f}s | "
+                  f"TOTAL: {t_exec1 - t0:.2f}s")
             print()  # linea en blanco para separar cada comando en consola
 
         time.sleep(0.02)
