@@ -32,7 +32,7 @@ con Pato (una tabla por sesión, lista para mandar por Slack).
   Script: `scripts/fase0_test_key.py`.
 - **Fase 1 (comandos por texto, sin voz) — ✅ completa.** Parser de reglas
   completo en `scripts/fase1_text_commands.py`: velocidad relativa, alerta
-  roja/amarilla, disparo, escudos, ECM/ECCM, cámaras, selección/seguimiento de
+  roja, disparo, escudos, ECM/ECCM, cámaras, selección/seguimiento de
   objetivos, comando de ayuda (lista todos los comandos disponibles) y
   **combos** (una frase → varias teclas en secuencia, ej. "ataquen con todo",
   "aléjense a máxima velocidad"). Reenfoque automático de la ventana del juego
@@ -200,8 +200,10 @@ def parsear_comando(texto):
 
     if 'alerta roja' in t:
         return {"action": "key", "key": "R"}
-    if 'alerta amarilla' in t:
-        return {"action": "key", "key": "Y"}
+    # OJO: este era un ejemplo teórico inicial. En la práctica se comprobó que
+    # la Gold Edition NO tiene tecla de Yellow Alert (ver docs/hotkeys_sfc2.md),
+    # así que "alerta amarilla" hoy se responde con un mensaje explicativo en
+    # vez de mandar una tecla (ver NO_SOPORTADO en fase1_text_commands.py).
     if any(w in t for w in ['disparar', 'fuego', 'ataquen']):
         return {"action": "key", "key": "Z"}
 
@@ -392,7 +394,7 @@ micrófono para la Windows y no hizo falta el Escenario B.
    `scripts/catalogo_comandos.py` cubren como fallback los comandos que el parser
    de reglas no reconoce, para lenguaje más natural/libre. Soporta Ollama local y
    OpenAI (function calling nativo).
-6. **Fase 5 – Más comandos ✅ completa**: escudos, alerta roja/amarilla, disparo,
+6. **Fase 5 – Más comandos ✅ completa**: escudos, alerta roja, disparo,
    ECM/ECCM, cámaras, selección/seguimiento de objetivos, etc., ya cubiertos en
    `scripts/fase1_text_commands.py` reusando la lista completa de
    `docs/hotkeys_sfc2.md`.

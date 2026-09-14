@@ -270,8 +270,41 @@ ALERT_WORDS = {
     "roja": "r",
     "red alert": "r",
 }
-# Nota: el manual de esta edicion no documenta una tecla dedicada de Yellow
-# Alert (ver docs/hotkeys_sfc2.md) - a confirmar en el juego real.
+
+# ---------------------------------------------------------------------------
+# Comandos que el capitan puede pedir de forma razonable pero que EL JUEGO NO
+# SOPORTA por teclado. Se listan aparte para poder dar un mensaje claro que
+# explique POR QUE no se puede hacer, en vez de un generico "comando no
+# reconocido" (que hace pensar que es un problema de transcripcion o que
+# falta un sinonimo, cuando en realidad la accion no existe en el juego).
+#
+# Ademas, marcarlos aca evita gastar una llamada al LLM de fallback: no tiene
+# sentido preguntarle a un LLM por algo que sabemos de antemano que no se
+# puede ejecutar.
+# ---------------------------------------------------------------------------
+
+NO_SOPORTADO = {
+    "alerta_amarilla": {
+        "palabras": ["alerta amarilla", "yellow alert", "amarilla"],
+        "motivo": (
+            "Yellow Alert EXISTE en el juego (boton en el HUD, pag. 101 del "
+            "manual: sube escudos sin armar las armas), pero NO tiene tecla "
+            "asignada - solo Red Alert ('r') la tiene. Por ahora hay que "
+            "clickearlo. Probá con 'alerta roja' (sube escudos Y arma las "
+            "armas)."
+        ),
+    },
+    "interceptar": {
+        "palabras": ["interceptar", "intercepten", "interceptalo",
+                     "vamos hacia esa nave", "acercarse al objetivo"],
+        "motivo": (
+            "Intercept Target existe como orden del oficial de timon "
+            "(pag. 103 del manual) pero NO tiene hotkey - se da desde el "
+            "Helm Officer MFD con el mouse. Alternativas por voz: "
+            "'seguir a esa nave' (Follow Target) u 'orbitar'."
+        ),
+    },
+}
 
 # Disparo / armas
 # Nota: "ataquen" a secas se saco de FIRE_WORDS porque colisionaba con el
@@ -295,6 +328,26 @@ ALL_OUT_ATTACK_WORDS = ["ataquen con todo", "ataque total", "todo el poder de fu
 RETREAT_WORDS = ["alejense a maxima velocidad", "alejarse a maxima velocidad",
                  "retirada a maxima velocidad", "huyan a maxima velocidad"]
 
+# Combo: "vamos al enemigo mas cercano" - selecciona el enemigo MAS CERCANO
+# (backtick `), le pone rumbo con Follow Target (Numpad *) y acelera.
+# Ver INTERCEPTAR_CERCANO_STEPS mas abajo para el detalle de los pasos.
+IR_AL_CERCANO_WORDS = [
+    "vamos al enemigo mas cercano", "al enemigo mas cercano",
+    "vamos por el mas cercano", "atacar al mas cercano",
+    "ir al enemigo mas cercano", "vayan al mas cercano",
+    "acercarse al enemigo mas cercano",
+]
+
+# Combo: "busca un enemigo cualquiera" - cicla al proximo enemigo (Y), le pone
+# rumbo y acelera. "Al azar" en la practica = el proximo del ciclo, que es lo
+# mas parecido que permite el juego (no hay un comando de target aleatorio).
+IR_A_CUALQUIERA_WORDS = [
+    "busca un enemigo", "busquen un enemigo", "buscar enemigo",
+    "vamos por cualquiera", "atacar a cualquiera",
+    "vamos por otro enemigo", "busca otro enemigo",
+    "elegi un enemigo", "buscar un objetivo",
+]
+
 # Escudos
 SHIELD_MAX_WORDS = ["escudos al maximo", "reforzar escudos", "maximo escudo"]
 
@@ -304,10 +357,23 @@ CLOAK_WORDS = ["camuflaje", "cloaking", "activar camuflaje", "modo sigilo"]
 # Deep Scan
 DEEPSCAN_WORDS = ["escaneo profundo", "deep scan", "escanear"]
 
-# Follow Target (Numpad *): seguir automaticamente al target seleccionado.
-# El manual no distingue entre "nave" y "amenaza" - Follow Target sigue a lo
-# que este seleccionado como target en ese momento (ver T/SHIFT+T/Y/SHIFT+Y
-# para cambiar de target antes de seguir, si hiciera falta mas adelante).
+# Follow Target (Numpad *): seguir al target seleccionado.
+#
+# ATENCION - NO ESTA CONFIRMADO SI ESTO VIRA LA NAVE O SOLO SIGUE CON LA
+# CAMARA. El manual lista la tecla (pag. 159) pero NUNCA la describe, a
+# diferencia de Orbit/Intercept/Erratic, que si estan explicadas (pag. 102-103)
+# y ademas aparecen en el Helm Officer MFD - Follow Target no aparece en ese
+# MFD. Ver docs/hotkeys_sfc2.md, seccion "Follow Target: ¿mueve la nave o solo
+# la camara?", para los argumentos de cada lado y la prueba sugerida para
+# verificarlo en el juego.
+#
+# Si se confirmara que es solo camara, la alternativa real para "andá hacia
+# esa nave" seria Intercept Target, que hoy no tiene hotkey (ver NO_SOPORTADO)
+# pero podria asignarsele una desde Options -> Hotkeys.
+#
+# El manual no distingue entre "nave" y "amenaza" - Follow Target actua sobre
+# lo que este seleccionado como target en ese momento (ver T/SHIFT+T/Y/SHIFT+Y
+# para cambiar de target antes de seguir).
 FOLLOW_WORDS = [
     "seguir a esa nave", "seguir la nave", "seguir nave",
     "seguir a la amenaza", "seguir amenaza", "seguir al objetivo",
@@ -315,14 +381,85 @@ FOLLOW_WORDS = [
     "sigan la nave", "persigan a esa nave", "perseguir nave",
 ]
 
-# Cycle target (T): ciclar al proximo target disponible. Util decir esto
-# antes de "seguir a esa nave" si el target actual no es el deseado.
+# Cycle target (T): ciclar al proximo target disponible (CUALQUIER unidad,
+# incluye naves propias/neutrales). Util decir esto antes de "seguir a esa
+# nave" si el target actual no es el deseado.
 NEXT_TARGET_WORDS = ["siguiente objetivo", "cambiar de blanco",
                      "cambiar objetivo", "proximo objetivo"]
+
+# Cycle target ENEMIGO (Y): igual que T pero ciclando SOLO entre enemigos.
+# Documentado en el manual como "Target Enemy (cycles)" (pag. 157). Es el
+# comando practico para ir "pasando" entre naves enemigas hasta encontrar la
+# que se quiere seguir/atacar, sin que se cuelen unidades no hostiles.
+NEXT_ENEMY_WORDS = ["siguiente enemigo", "proximo enemigo", "otro enemigo",
+                    "cambiar de enemigo", "siguiente nave enemiga"]
+
+# Ciclado en orden INVERSO (SHIFT+T / SHIFT+Y): para volver atras si nos
+# pasamos de la nave que queriamos seleccionar.
+PREV_TARGET_WORDS = ["objetivo anterior", "volver al objetivo anterior",
+                     "blanco anterior"]
+PREV_ENEMY_WORDS = ["enemigo anterior", "volver al enemigo anterior"]
 
 # Target al enemigo mas cercano (backtick `)
 NEAREST_ENEMY_WORDS = ["objetivo mas cercano", "enemigo mas cercano",
                        "apunten al mas cercano", "target mas cercano"]
+
+# Deseleccionar target (\): soltar la nave que se tenia seleccionada.
+DESELECT_WORDS = ["deseleccionar objetivo", "soltar objetivo",
+                  "cancelar objetivo", "olvidar objetivo"]
+
+# ---------------------------------------------------------------------------
+# Memoria de targets (teclas 5-8 y CTRL+5-8, pag. 157 del manual).
+# Esto es lo mas cercano que el juego ofrece a "seguir a UNA NAVE DETERMINADA":
+# no se puede nombrar una nave por voz, pero SI se puede guardar el target
+# actual en una de 4 ranuras de memoria y volver a seleccionarlo despues.
+#
+# Flujo tipico por voz:
+#   "siguiente enemigo"        -> cicla hasta la nave que se quiere
+#   "guardar objetivo uno"     -> CTRL+5, queda memorizada en la ranura 1
+#   ...(combate, se cambia de target varias veces)...
+#   "objetivo uno"             -> 5, vuelve a seleccionar ESA misma nave
+#   "seguir a esa nave"        -> Numpad *, la persigue
+# ---------------------------------------------------------------------------
+
+# Seleccionar target guardado (teclas 5, 6, 7, 8 -> ranuras 1 a 4)
+TARGET_MEMORIA_WORDS = {
+    "objetivo uno": "5", "objetivo 1": "5", "primer objetivo": "5",
+    "objetivo dos": "6", "objetivo 2": "6", "segundo objetivo": "6",
+    "objetivo tres": "7", "objetivo 3": "7", "tercer objetivo": "7",
+    "objetivo cuatro": "8", "objetivo 4": "8", "cuarto objetivo": "8",
+}
+
+# Guardar el target actual en memoria (CTRL + 5..8)
+GUARDAR_TARGET_WORDS = {
+    "guardar objetivo uno": "5", "memorizar objetivo uno": "5",
+    "guardar objetivo dos": "6", "memorizar objetivo dos": "6",
+    "guardar objetivo tres": "7", "memorizar objetivo tres": "7",
+    "guardar objetivo cuatro": "8", "memorizar objetivo cuatro": "8",
+}
+
+# ---------------------------------------------------------------------------
+# Maniobras del Helm officer documentadas en la pag. 103 del manual. Son
+# ordenes que delegan el pilotaje en el oficial de timon - o sea que NO
+# requieren controlar el rumbo con el mouse, que es justo la limitacion que
+# tenemos hoy (ver Fase 6 del ROADMAP).
+# ---------------------------------------------------------------------------
+
+# OJO - Intercept Target NO tiene hotkey: el manual lo documenta como una
+# orden del Helm Officer MFD (pag. 103), pero NO aparece en la lista de
+# teclas (pag. 157-159), a diferencia de Orbit/Follow/Erratic que si tienen.
+# Se maneja como comando no soportado (ver NO_SOPORTADO) hasta confirmar en
+# el juego si se le puede asignar una tecla desde Options -> Hotkeys.
+
+# Orbit Target (Numpad -): pone la nave en orbita alrededor del target.
+ORBIT_WORDS = ["orbitar", "orbitar objetivo", "ponerse en orbita",
+               "orbiten la nave", "orbitar la nave"]
+
+# Erratic Maneuvers (Numpad /): maniobras evasivas, genera 4 puntos de ECM
+# natural. Nota del manual: dificulta tambien NUESTRA punteria y bloquea
+# lanzar shuttles/minas/torpedos mientras este activo.
+ERRATIC_WORDS = ["maniobras evasivas", "maniobra evasiva", "evasivas",
+                 "zigzag", "maniobras erraticas"]
 
 # Pedir ayuda / listar comandos disponibles (no manda ninguna tecla al juego)
 HELP_WORDS = ["que comandos hay", "ayuda", "que puedo decir",
@@ -354,6 +491,47 @@ COMBOS = {
         "pasos": [("s", 8)],  # 8x 's' = nivel de velocidad 4 (toda maquina)
         "descripcion": "Acelera a máxima velocidad (no gira la nave)",
     },
+
+    # -----------------------------------------------------------------------
+    # "Buscar un objetivo e ir hacia el": selecciona + pone rumbo + acelera,
+    # todo en una sola orden. Son los dos combos mas "completos" que se pueden
+    # armar hoy solo con teclado.
+    #
+    # ATENCION - el paso de RUMBO depende de Follow Target ("multiply"), que
+    # NO esta confirmado que efectivamente vire la nave (puede ser solo
+    # seguimiento de camara - ver la nota larga arriba de FOLLOW_WORDS y
+    # docs/hotkeys_sfc2.md). Si al probarlo resulta que no vira:
+    #   - reemplazar "multiply" por "subtract" (Orbit Target), que segun el
+    #     manual SI mueve la nave (la pone en orbita alrededor del target), o
+    #   - asignarle una tecla a Intercept Target desde Options -> Hotkeys y
+    #     usar esa, que es la orden que el manual describe como "ir hacia el
+    #     objetivo".
+    # -----------------------------------------------------------------------
+
+    # "vamos al enemigo mas cercano"
+    "ir_al_mas_cercano": {
+        "palabras": IR_AL_CERCANO_WORDS,
+        "pasos": [
+            "`",          # Target Nearest Enemy: selecciona el mas cercano
+            "multiply",   # Follow Target: pone rumbo hacia el (a confirmar)
+            ("s", 6),     # acelerar a ~3/4 de maquina para acercarse
+        ],
+        "descripcion": ("Selecciona el enemigo MAS CERCANO, pone rumbo hacia "
+                        "él y acelera a 3/4 de máquina"),
+    },
+
+    # "busca un enemigo" (el proximo del ciclo - el juego no tiene target
+    # aleatorio real, ver IR_A_CUALQUIERA_WORDS)
+    "ir_a_cualquiera": {
+        "palabras": IR_A_CUALQUIERA_WORDS,
+        "pasos": [
+            "y",          # Target Enemy (cycles): proximo enemigo del ciclo
+            "multiply",   # Follow Target: pone rumbo hacia el (a confirmar)
+            ("s", 6),     # acelerar a ~3/4 de maquina para acercarse
+        ],
+        "descripcion": ("Busca un enemigo (el siguiente del ciclo), pone "
+                        "rumbo hacia él y acelera a 3/4 de máquina"),
+    },
 }
 
 
@@ -375,8 +553,25 @@ def listar_comandos():
     print("  'disparar' / 'fuego' / 'abran fuego'         -> disparo simple")
     print("  'alpha strike' / 'fuego a discrecion'        -> disparar todo")
     print("  'objetivo mas cercano'                       -> target al enemigo mas cercano")
-    print("  'siguiente objetivo' / 'cambiar de blanco'   -> ciclar target")
-    print("  'seguir a esa nave' / 'seguir a la amenaza'  -> Follow Target")
+    print("  'siguiente objetivo' / 'cambiar de blanco'   -> ciclar target (todos)")
+    print("  'siguiente enemigo' / 'otro enemigo'         -> ciclar SOLO enemigos")
+    print("  'objetivo anterior' / 'enemigo anterior'     -> ciclar hacia atras")
+    print("  'deseleccionar objetivo'                     -> soltar el target")
+
+    print("\nSEGUIR A UNA NAVE DETERMINADA:")
+    print("  (el juego no permite nombrar naves, pero se pueden memorizar)")
+    print("  'siguiente enemigo'        -> cicla hasta encontrar la nave que querés")
+    print("  'guardar objetivo uno'     -> la memoriza en la ranura 1 (hasta 4)")
+    print("  'objetivo uno'             -> vuelve a seleccionar ESA nave")
+    print("  'seguir a esa nave'        -> Follow Target, la persigue")
+
+    print("\nMANIOBRAS (las pilotea el oficial de timon, sin mouse):")
+    print("  'seguir a esa nave' / 'seguir a la amenaza'  -> Follow Target (*)")
+    print("  'orbitar' / 'ponerse en orbita'              -> Orbit Target")
+    print("  'maniobras evasivas' / 'zigzag'              -> Erratic Maneuvers (+4 ECM)")
+    print("  (*) sin confirmar si Follow Target vira la nave o solo sigue con")
+    print("      la camara - el manual no lo describe. Si solo querés que la")
+    print("      nave se MUEVA hacia el objetivo, probá 'orbitar'.")
 
     print("\nDEFENSA:")
     print("  'alerta roja'                                -> Red Alert")
@@ -388,10 +583,17 @@ def listar_comandos():
     for datos in COMBOS.values():
         ejemplo = datos["palabras"][0]
         print(f"  '{ejemplo}'  -> {datos['descripcion']}")
+    print("  NOTA: los combos que 'ponen rumbo' usan Follow Target, cuyo")
+    print("        efecto sobre el rumbo todavia no esta confirmado (*).")
 
     print("\nOTROS:")
     print("  'ayuda' / 'que comandos hay'                 -> mostrar esta lista")
     print("  'salir' / 'exit'                              -> terminar el programa")
+
+    if NO_SOPORTADO:
+        print("\nNO DISPONIBLES (el juego no los soporta):")
+        for datos in NO_SOPORTADO.values():
+            print(f"  '{datos['palabras'][0]}'  -> {datos['motivo']}")
     print()
 
 
@@ -405,6 +607,16 @@ def parsear_comando(texto):
     # Ayuda / listar comandos (se chequea primero, no manda tecla al juego)
     if any(contiene_frase(t, w) for w in HELP_WORDS):
         return {"action": "help", "raw": texto}
+
+    # Comandos que el juego NO soporta (ver NO_SOPORTADO). Se chequea MUY
+    # temprano, y en particular ANTES que ALERT_WORDS: "alerta amarilla"
+    # contiene la palabra "alerta", asi que si se chequeara despues correria
+    # riesgo de matchear un comando de alerta equivocado. Devuelve una accion
+    # propia para poder explicar el motivo real al usuario.
+    for nombre, datos in NO_SOPORTADO.items():
+        if any(contiene_frase(t, w) for w in datos["palabras"]):
+            return {"action": "no_soportado", "nombre": nombre,
+                    "motivo": datos["motivo"], "raw": texto}
 
     # Combos (se chequean ANTES que los comandos individuales, porque son mas
     # especificos - ej. "ataquen con todo" no debe interpretarse como el
@@ -443,6 +655,42 @@ def parsear_comando(texto):
     # pydirectinput para el asterisco del teclado numerico.
     if any(contiene_frase(t, w) for w in FOLLOW_WORDS):
         return {"action": "key", "key": "multiply", "raw": texto}
+
+    # --- Memoria de targets (lo mas cercano a "seguir a UNA nave concreta") ---
+    # GUARDAR se chequea ANTES que SELECCIONAR: "guardar objetivo uno"
+    # contiene "objetivo uno", asi que el orden inverso lo matchearia mal.
+    for frase, tecla in GUARDAR_TARGET_WORDS.items():
+        if contiene_frase(t, frase):
+            return {"action": "key_combo", "keys": ["ctrl", tecla],
+                    "raw": texto}
+
+    for frase, tecla in TARGET_MEMORIA_WORDS.items():
+        if contiene_frase(t, frase):
+            return {"action": "key", "key": tecla, "raw": texto}
+
+    # --- Ciclado de targets ---
+    # Las variantes "anterior" (SHIFT+) van ANTES que las normales, porque
+    # "objetivo anterior" tambien contendria palabras de las listas normales.
+    if any(contiene_frase(t, w) for w in PREV_ENEMY_WORDS):
+        return {"action": "key_combo", "keys": ["shift", "y"], "raw": texto}
+
+    if any(contiene_frase(t, w) for w in PREV_TARGET_WORDS):
+        return {"action": "key_combo", "keys": ["shift", "t"], "raw": texto}
+
+    # Cycle target ENEMIGO (Y) - mas especifico que el ciclado general
+    if any(contiene_frase(t, w) for w in NEXT_ENEMY_WORDS):
+        return {"action": "key", "key": "y", "raw": texto}
+
+    # Deseleccionar target (\)
+    if any(contiene_frase(t, w) for w in DESELECT_WORDS):
+        return {"action": "key", "key": "\\", "raw": texto}
+
+    # --- Maniobras del Helm officer ---
+    if any(contiene_frase(t, w) for w in ORBIT_WORDS):
+        return {"action": "key", "key": "subtract", "raw": texto}
+
+    if any(contiene_frase(t, w) for w in ERRATIC_WORDS):
+        return {"action": "key", "key": "divide", "raw": texto}
 
     # Cycle target (T)
     if any(contiene_frase(t, w) for w in NEXT_TARGET_WORDS):
@@ -558,6 +806,9 @@ def ejecutar_accion(accion, pausa_entre_teclas=0.15):
         print(f"  -> Velocidad {pct}% solicitada, pero el conteo preciso de "
               f"pasos aun no esta implementado (pendiente Fase 3). "
               f"No se envia ninguna tecla por ahora.")
+
+    elif tipo == "no_soportado":
+        print(f"  -> No se puede ejecutar '{accion['raw']}': {accion['motivo']}")
 
     elif tipo == "unknown":
         print(f"  -> Comando no reconocido: '{accion['raw']}'")

@@ -144,8 +144,82 @@ Otros settings interesantes del `.ini` (sección `[UI]`):
 |---|---|
 | R | Red Alert! |
 
-(No aparece una tecla dedicada a Yellow Alert en esta lista de la Gold Edition;
-a confirmar en el juego si existe o si se maneja desde algún panel.)
+**Yellow Alert: existe en el juego, pero NO tiene tecla.** La pág. 101 del
+`SFCfullMan.pdf` confirma que hay tres botones de alerta en el HUD (GREEN,
+YELLOW y RED ALERT), con esta diferencia funcional:
+- **RED ALERT** → sube escudos **y** arma todas las armas.
+- **YELLOW ALERT** → sube escudos solamente. El manual recomienda usarlo "en
+  situaciones desconocidas o peligrosas", y pasar a Red Alert antes de entrar
+  en combate.
+
+Como solo Red Alert aparece en la lista de hotkeys (pág. 157), Yellow/Green
+Alert hoy únicamente se pueden clickear. Ver `NO_SOPORTADO` en
+`scripts/fase1_text_commands.py`.
+
+## Seguir / perseguir a una nave determinada
+
+El juego **no permite identificar una nave por nombre**, pero sí combinar
+targeting + memoria para seguir a una nave concreta y volver a ella:
+
+| Tecla | Acción |
+|---|---|
+| T / SHIFT+T | Ciclar entre **todos** los targets (adelante / atrás) |
+| Y / SHIFT+Y | Ciclar **solo entre enemigos** (adelante / atrás) |
+| ` | Target al enemigo más cercano |
+| 5 – 8 | **Seleccionar** target guardado en memoria (4 ranuras) |
+| CTRL + 5 – 8 | **Guardar** el target actual en esa ranura de memoria |
+| \\ | Deseleccionar target |
+| Numpad * | **Follow Target** — perseguir al target actual |
+| Numpad – | **Orbit Target** — orbitar alrededor del target |
+
+**Flujo recomendado por voz** (implementado en la Fase 1):
+
+1. `"siguiente enemigo"` (`Y`) → ciclar hasta la nave deseada.
+2. `"guardar objetivo uno"` (`CTRL+5`) → memorizarla.
+3. …combate, se cambia de target varias veces…
+4. `"objetivo uno"` (`5`) → volver a seleccionar **esa misma** nave.
+5. `"seguir a esa nave"` (`Numpad *`) → perseguirla.
+
+**Intercept Target: existe pero NO tiene hotkey.** La pág. 103 lo documenta
+como orden del Helm Officer ("el oficial de timón toma el control e intenta
+interceptar al target actual"), pero no figura en la lista de teclas — se da
+con el mouse desde el MFD del Helm. Alternativas por teclado: Follow Target u
+Orbit Target.
+
+### ⚠️ Follow Target (Numpad `*`): ¿mueve la nave o solo la cámara?
+
+**El manual NO lo aclara — hay que verificarlo en el juego.** Se revisaron los
+tres PDFs completos y `Numpad *  Follow Target` aparece **únicamente** en la
+tabla de hotkeys (pág. 159), **sin ninguna descripción** en el cuerpo del
+manual. Es la única maniobra en esa situación:
+
+| Acción | ¿Descrita en el manual? | ¿En el Helm MFD? |
+|---|---|---|
+| Orbit Target | ✅ Sí (pág. 103) | ✅ Sí (ítem 10) |
+| Intercept Target | ✅ Sí (pág. 103) | ✅ Sí (ítem 11) |
+| Erratic Maneuvers | ✅ Sí (pág. 102) | ✅ Sí (ítem 2) |
+| **Follow Target** | ❌ **No aparece** | ❌ **No está** |
+
+**Argumentos a favor de que SÍ mueve/vira la nave:**
+- Está en el Number Pad junto a `Orbit Target` y `Erratic Maneuvers`, que son
+  inequívocamente maniobras de la **nave**, no de la cámara.
+- Todas las teclas de cámara están agrupadas aparte, en las F1-F5 y
+  HOME/END/PGUP/PGDN.
+
+**Argumentos a favor de que sea solo cámara/seguimiento visual:**
+- Existe `F3 Follow Camera` y `F5 Toggle Target Padlock` — o sea que el juego
+  ya usa la palabra "Follow" para cosas de cámara.
+- No figura en el Helm Officer MFD, donde están todas las demás órdenes de
+  pilotaje automático.
+
+**Cómo verificarlo en el juego (prueba sugerida):** seleccionar un target que
+esté **a un costado o detrás** de la nave, pulsar `Numpad *`, y observar:
+- Si el **indicador de rumbo** (el que aparece bajo la nave al virar, pág. 99)
+  se activa y la nave empieza a girar → mueve la nave ✅
+- Si solo cambia el encuadre/la cámara y el rumbo sigue igual → es visual ❌
+
+Mientras no esté confirmado, el comando de voz "seguir a esa nave" está
+implementado pero **su efecto real sobre el rumbo no está verificado**.
 
 ## Shuttles / Misceláneos
 | Tecla | Acción |

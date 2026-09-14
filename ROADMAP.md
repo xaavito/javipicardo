@@ -420,6 +420,121 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
 - Precisión de transcripción (aceptable / requiere ajustes):
 - Notas:
 
+### Hallazgos de las pruebas en vivo
+
+- **[12/09] "alerta amarilla" no era reconocido.** Reportado en prueba real.
+  Causa: **no era un bug de transcripción ni un sinónimo faltante** — el
+  comando simplemente **nunca existió** en el parser. `ALERT_WORDS` solo tenía
+  Red Alert, con un comentario avisando que el manual de la Gold Edition no
+  documenta una tecla de Yellow Alert. La documentación (README) sí prometía
+  "alerta roja/amarilla", lo cual era incorrecto y generaba la expectativa.
+  - **Solución aplicada:** se agregó el diccionario `NO_SOPORTADO` en
+    `fase1_text_commands.py` y una acción nueva `no_soportado`. Ahora, en vez
+    de un genérico "comando no reconocido" (que hace pensar que falló el STT o
+    que falta un sinónimo), el sistema responde explicando **el motivo real**:
+    que el juego no tiene esa tecla, y sugiriendo la alternativa ("alerta
+    roja").
+  - Se chequea **antes** que `ALERT_WORDS` a propósito: "alerta amarilla"
+    contiene "alerta", así que si se evaluara después podría matchear un
+    comando de alerta equivocado.
+  - **Bonus:** estos comandos **no disparan el fallback del LLM** (el fallback
+    solo se activa con `unknown`), así que no se gasta una llamada de API en
+    algo que ya sabemos que no se puede ejecutar.
+  - También aparecen ahora en el listado de `ayuda`, bajo la sección
+    "NO DISPONIBLES (el juego no los soporta)", para que se sepa de antemano.
+  - Se corrigió el README, que afirmaba tener "alerta roja/amarilla".
+  - [x] **RESUELTA la duda sobre Yellow Alert** (ver relectura del manual más
+        abajo): **existe como botón en el HUD** (pág. 101 — sube escudos sin
+        armar las armas, a diferencia de Red Alert que hace ambas), pero
+        **no tiene tecla asignada**, así que sigue en `NO_SOPORTADO`. El
+        mensaje ahora explica esa diferencia funcional.
+
+- **[12/09] Relectura de los manuales buscando "seguir a una nave determinada".**
+  Se extrajo el texto de los PDFs (con `pypdf`) para revisar las páginas de
+  targeting y maniobras, en vez de quedarnos solo con la lista de hotkeys.
+  Hallazgos:
+  - **El juego NO permite identificar una nave por nombre** — no existe forma
+    de decir "seguí a la Enterprise". Pero **sí hay memoria de targets**
+    (teclas `5`-`8` para seleccionar, `CTRL+5`-`8` para guardar, pág. 157),
+    que es lo más cercano posible: se cicla hasta la nave deseada, se la
+    guarda en una ranura, y después se la puede volver a seleccionar aunque
+    se haya cambiado de target mil veces.
+  - **Estábamos desaprovechando varios comandos de targeting documentados.**
+    Se agregaron al parser: `Y`/`SHIFT+Y` (ciclar **solo enemigos**, mucho más
+    útil que `T` que cicla todo, incluidas unidades no hostiles),
+    `SHIFT+T` (ciclar hacia atrás) y `\` (deseleccionar).
+  - **Maniobras del Helm officer que no teníamos:** `Numpad -` (Orbit Target)
+    y `Numpad /` (Erratic Maneuvers, +4 puntos de ECM natural). Son
+    especialmente valiosas porque **las pilotea el oficial de timón**, o sea
+    que dan control de movimiento SIN depender del mouse — que es justo la
+    limitación que bloquea la Fase 6.
+  - **Intercept Target existe pero NO tiene hotkey** (pág. 103): es un botón
+    del Helm Officer MFD. Se agregó a `NO_SOPORTADO` sugiriendo Follow/Orbit
+    como alternativas, para no mapear una tecla inexistente.
+  - Validado con mocks: 26 frases parseadas correctamente, sin regresiones en
+    los comandos que ya andaban.
+  - [ ] **Pendiente de probar en vivo:** confirmar que las teclas de numpad
+        (`subtract`/`divide`/`multiply`) y `CTRL+5-8` llegan bien al juego vía
+        `pydirectinput`. Confirmar también si desde Options → Hotkeys se
+        pueden asignar teclas a Yellow Alert e Intercept Target (si se puede,
+        salen de `NO_SOPORTADO` y pasan a ser comandos normales).
+
+- **[12/09] DUDA ABIERTA: ¿"seguir a esa nave" (Follow Target) vira la nave o
+  solo sigue con la cámara?** Surgió al preguntarse si el comando realmente
+  apunta la nave hacia el objetivo. **El manual no lo aclara.** Se revisaron
+  los 3 PDFs completos: `Numpad * Follow Target` aparece **solo** en la tabla
+  de hotkeys (pág. 159), sin ninguna descripción en el cuerpo del manual — y
+  es la **única** maniobra en esa situación:
+  - Orbit Target, Intercept Target y Erratic Maneuvers **sí** están descritas
+    (pág. 102-103) **y** aparecen en el Helm Officer MFD.
+  - Follow Target **no** está descrita **ni** aparece en el Helm MFD.
+  - **A favor de que mueva la nave:** está en el numpad junto a Orbit y
+    Erratic, que son inequívocamente maniobras de la nave; las teclas de
+    cámara están agrupadas aparte (F1-F5, HOME/END/PGUP/PGDN).
+  - **A favor de que sea solo visual:** el juego ya usa "Follow" para cámara
+    (`F3 Follow Camera`, `F5 Target Padlock`), y no figura entre las órdenes
+    de pilotaje del Helm.
+  - **Implicancia para el proyecto:** si resultara ser solo cámara, entonces
+    **hoy no tenemos NINGÚN comando por voz que mueva la nave hacia un
+    objetivo** (más allá de Orbit). La alternativa real sería Intercept
+    Target, que no tiene hotkey pero quizá se le pueda asignar una desde
+    Options → Hotkeys.
+  - [ ] **PRUEBA PRIORITARIA en la Windows:** seleccionar un target que esté
+        **al costado o detrás**, pulsar `Numpad *` y mirar si se activa el
+        indicador de rumbo (pág. 99) y la nave gira, o si solo cambia el
+        encuadre. Documentar el resultado acá y ajustar el mensaje de ayuda.
+  - Mientras tanto: código y ayuda avisan explícitamente que el efecto sobre
+    el rumbo **no está verificado**, sugiriendo "orbitar" si lo que se quiere
+    es que la nave efectivamente se mueva.
+
+- **[12/09] Combos nuevos: "buscar objetivo + rumbo + velocidad" en una orden.**
+  Pedido concreto: un comando que busque un objetivo (el más cercano o
+  cualquiera), le ponga rumbo y acelere hacia él, sin tener que encadenar tres
+  órdenes a mano. Se agregaron dos combos a `COMBOS`:
+  - **`ir_al_mas_cercano`** ("vamos al enemigo más cercano"):
+    `` ` `` (Target Nearest Enemy) → `Numpad *` (Follow) → 6x `s` (~3/4 máquina).
+  - **`ir_a_cualquiera`** ("busca un enemigo"):
+    `Y` (ciclar enemigos) → `Numpad *` (Follow) → 6x `s`.
+  - **Sobre el "al azar":** el juego **no tiene un comando de target
+    aleatorio**. Lo más parecido es `Y` (Target Enemy cycles), que avanza al
+    siguiente del ciclo — repetir la orden va rotando entre los enemigos, que
+    en la práctica cubre el caso de uso de "elegí cualquiera".
+  - **Se eligió 3/4 de máquina (6x `s`) y no máxima** a propósito: llegar a
+    toda velocidad hace difícil frenar/maniobrar al llegar al objetivo.
+  - **Dependencia del hallazgo anterior:** el paso de rumbo usa Follow Target,
+    que es justo lo que no está confirmado. Si al probar resulta que no vira,
+    el arreglo es de una línea por combo: cambiar `"multiply"` por
+    `"subtract"` (Orbit Target, que el manual sí confirma que mueve la nave),
+    o asignarle tecla a Intercept Target desde Options → Hotkeys. Queda
+    documentado en el propio código, al lado de los pasos.
+  - Validado con mocks: las secuencias enviadas son exactamente
+    `` ` multiply s s s s s s `` y `y multiply s s s s s s`, con el foco de
+    ventana hecho **una sola vez** para todo el combo. Sin regresiones: se
+    verificó que "objetivo mas cercano", "siguiente enemigo", "otro enemigo",
+    "seguir a esa nave" y el resto siguen resolviendo igual que antes (las
+    frases nuevas son más específicas y se chequean primero, por estar en
+    `COMBOS`).
+
 ---
 
 ## Fase 3 — Velocidad relativa precisa (OCR o calibración de pasos)

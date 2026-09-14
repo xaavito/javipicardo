@@ -65,7 +65,7 @@ MODELO_STT = "gpt-4o-mini-transcribe"
 # completa de comandos, solo los terminos que MAS se confunden al transcribir.
 PROMPT_VOCABULARIO = (
     "Comandos de nave de Star Trek: Starfleet Command. "
-    "alerta roja, alerta amarilla, media maquina, cuarto de maquina, "
+    "alerta roja, media maquina, cuarto de maquina, "
     "tres cuartos de maquina, toda maquina avante, alto total, "
     "fuego a discrecion, disparar, alpha strike, escudos al maximo, "
     "camuflaje, deep scan, ECM, ECCM, seguir a esa nave, "

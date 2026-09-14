@@ -1,0 +1,18 @@
+# Cache de Python (se regenera solo, no debe versionarse)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Config local / secretos (la OPENAI_API_KEY va por variable de entorno,
+# NUNCA en un archivo del repo)
+.env
+*.local
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
