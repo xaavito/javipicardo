@@ -84,7 +84,55 @@ roja, sin avisar que descartó la segunda parte.
 
 ---
 
-## 2. Otras ideas sueltas (sin analizar todavía)
+## 2. Bajar más la latencia (análisis hecho, pendiente de medir en vivo)
+
+Dónde se va el tiempo hoy, por comando (medido sobre el código real):
+
+| Etapa | Costo actual | Notas |
+|---|---|---|
+| Grabación | lo que hablás | no se puede bajar (es el audio) |
+| **STT (API OpenAI)** | ~0.5-1.5s | red + inferencia |
+| Parser de reglas | ~0.0001s | despreciable |
+| **Pausa post-enfoque** | **1.0s fijo** | se paga SIEMPRE |
+| **Pausas entre teclas** | 0.15s × hasta 8 | 1.2s en comandos de velocidad |
+
+Promedio actual de la etapa de ejecución: **1.75s**. Con valores optimizados
+(0.4s de enfoque + 0.05s entre teclas) bajaría a **0.65s** — es decir, más de
+**1 segundo de ahorro por comando**, sin tocar el STT.
+
+### 2.1 Pausas (lo más rentable, y ya hay herramienta)
+Los valores `PAUSA_POST_ENFOQUE = 1.0` y `PAUSA_ENTRE_TECLAS = 0.15` se
+eligieron de forma **conservadora, no medida** (ver Fase 0). Se agregó
+`scripts/calibrar_latencia.py` para encontrar el mínimo seguro real en la
+máquina, probando valores decrecientes y confirmando visualmente que la nave
+reacciona. **Es lo primero que conviene hacer.**
+
+### 2.2 Modelo de STT
+- `gpt-4o-mini-transcribe` (actual) ya es el rápido de la familia nueva.
+- **`whisper-1` puede ser más rápido** para audios muy cortos (menos overhead
+  de modelo), aunque menos preciso. Vale medirlo con el desglose de tiempos.
+- **`faster-whisper` local con modelo `tiny`/`base`**: elimina el round-trip
+  de red por completo. En un i7 moderno, `tiny` transcribe una frase corta en
+  ~0.2-0.4s. Como nuestro vocabulario es **acotado y cerrado**, un modelo
+  chico puede alcanzar perfectamente — y el parser de reglas tolera bastante
+  error de transcripción. **Es la opción con mayor potencial de mejora.**
+- Ya está soportado: es cambiar `STT_BACKEND = "local"` y `MODEL_SIZE`.
+
+### 2.3 Streaming de audio (más ambicioso)
+Hoy se graba todo, se manda, y recién ahí se transcribe. Con la API Realtime
+de OpenAI (o VAD local) se podría ir transcribiendo **mientras hablás**, de
+modo que al soltar la tecla el texto ya esté casi listo. Ahorraría casi todo
+el tiempo de STT percibido, a costa de bastante complejidad.
+
+### 2.4 Micro-optimizaciones ya aplicadas
+- Cliente de OpenAI cacheado + precalentado (ver ROADMAP, fix del 12/09).
+- Ventana del juego cacheada (evita `getAllWindows()` en cada comando).
+- Logs de debug apagados por defecto (`DEBUG_VENTANA = False`): ahorraban dos
+  llamadas a la API de Windows y dos prints por comando.
+
+---
+
+## 3. Otras ideas sueltas (sin analizar todavía)
 
 - Feedback por voz del sistema (TTS): que la nave conteste "afirmativo, capitán"
   al ejecutar una orden, en vez de solo imprimir en consola.

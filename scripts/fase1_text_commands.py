@@ -91,12 +91,29 @@ WINDOW_TITLE_KEYWORDS = ["starfleet", "star trek", "dxwnd"]
 # vez de solo avisar por consola y seguir sin mandar la tecla).
 FALLAR_SI_NO_ENCUENTRA_VENTANA = False
 
+# Si es True, imprime informacion de debug sobre que ventana se encontro y
+# cual quedo activa. Apagado por defecto porque esas consultas a la API de
+# Windows + los prints se pagan en CADA comando. Prender solo para
+# diagnosticar problemas de foco (ej. "la tecla no llega al juego").
+DEBUG_VENTANA = False
+
 # Pausa despues de enfocar la ventana del juego, antes de mandar la primera
 # tecla. IMPORTANTE: se confirmo en pruebas (scripts/probar_tecla_con_foco.py)
 # que con una pausa corta (0.15s) la tecla no llegaba al juego pese a que
 # Windows ya marcaba la ventana como "activa" - haciendo falta una pausa mas
 # larga para que el juego "asiente" el cambio de foco internamente.
+#
+# OPTIMIZACION DE LATENCIA: este es el mayor costo fijo de cada comando (1s
+# que se paga SIEMPRE). El 1.0 se eligio de forma conservadora, no medida -
+# el valor minimo seguro real puede ser bastante menor. Usar
+# `python calibrar_latencia.py` para encontrarlo empiricamente en la maquina
+# real, y ajustar aca. Cada 0.1s que se baje, se ahorra 0.1s en CADA comando.
 PAUSA_POST_ENFOQUE = 1.0
+
+# Pausa entre teclas consecutivas dentro de un mismo comando. Importa mucho
+# en los comandos de velocidad y combos, que mandan hasta 8 teclas: a 0.15s
+# son 1.2s solo de pausas. Tambien calibrable con calibrar_latencia.py.
+PAUSA_ENTRE_TECLAS = 0.15
 
 
 # ---------------------------------------------------------------------------
@@ -209,11 +226,13 @@ def enfocar_ventana_juego():
         print(f"  [!] {msg}")
         return False
 
-    # Log de debug: siempre visible, para poder confirmar en la consola
-    # exactamente que ventana se encontro (titulo y hwnd) antes de intentar
-    # enfocarla y mandar la tecla.
-    print(f"  [debug] Ventana encontrada: titulo={ventana.title!r} "
-          f"hwnd={ventana._hWnd}")
+    # Log de debug. Se apaga por defecto (DEBUG_VENTANA) porque acceder a
+    # ventana.title hace una llamada extra a la API de Windows y el print a
+    # consola tambien cuesta - chico, pero se paga en CADA comando. Ponerlo
+    # en True si hay que diagnosticar problemas de foco de ventana.
+    if DEBUG_VENTANA:
+        print(f"  [debug] Ventana encontrada: titulo={ventana.title!r} "
+              f"hwnd={ventana._hWnd}")
 
     try:
         if ventana.isMinimized:
@@ -232,11 +251,13 @@ def enfocar_ventana_juego():
         # de foco internamente antes de mandar la tecla.
         time.sleep(PAUSA_POST_ENFOQUE)
 
-        # Debug: confirmar cual ventana quedo realmente activa segun Windows,
-        # para comparar contra la que se intento enfocar.
-        activa = gw.getActiveWindow()
-        print(f"  [debug] Ventana activa despues de enfocar: "
-              f"{activa.title if activa else None!r}")
+        # Debug: confirmar cual ventana quedo realmente activa segun Windows.
+        # Tambien apagado por defecto: getActiveWindow() es otra llamada a la
+        # API de Windows que se pagaba en cada comando.
+        if DEBUG_VENTANA:
+            activa = gw.getActiveWindow()
+            print(f"  [debug] Ventana activa despues de enfocar: "
+                  f"{activa.title if activa else None!r}")
 
         return True
     except Exception as e:
@@ -790,7 +811,9 @@ def _presionar_paso(paso, pausa_entre_teclas):
         time.sleep(pausa_entre_teclas)
 
 
-def ejecutar_accion(accion, pausa_entre_teclas=0.15):
+def ejecutar_accion(accion, pausa_entre_teclas=None):
+    if pausa_entre_teclas is None:
+        pausa_entre_teclas = PAUSA_ENTRE_TECLAS
     tipo = accion.get("action")
 
     # Acciones que efectivamente mandan alguna tecla: enfocar el juego primero.
