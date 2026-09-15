@@ -16,23 +16,16 @@ Administrador** · misión con la nave pudiendo moverse.
 
 ## 🔴 Prioridad ALTA — bloquean o invalidan otras cosas
 
-### 1. ¿"Seguir a esa nave" (Follow Target) vira la nave o solo la cámara?
+### ~~1. ¿"Seguir a esa nave" (Follow Target) vira la nave o solo la cámara?~~
 
-**Por qué importa:** de esto depende que los combos de aproximación (#6 y #7)
-funcionen como se espera. El manual **no lo aclara** (ver
-`docs/hotkeys_sfc2.md`).
+- [x] **RESUELTA (13/09): VIRA LA NAVE y la persigue.** ✅
 
-**Cómo probarlo:**
-1. Seleccionar un enemigo que esté **al costado o detrás** (no adelante, ahí
-   no se distingue).
-2. Decir **"seguir a esa nave"**.
-3. Mirar si aparece el **indicador de rumbo** bajo la nave y si **gira**.
+No es solo cámara. Es el **único comando por teclado que apunta la nave a un
+objetivo** sin usar el mouse — la herramienta de movimiento por voz más útil
+que tenemos. Los combos #6 y #7 quedan validados en su paso de rumbo.
 
-- [ ] **Resultado:** ⬜ vira la nave · ⬜ solo cámara · ⬜ no pasa nada
-- Notas:
-
-> Si es "solo cámara": avisar, es cambiar `"multiply"` por `"subtract"`
-> (Orbit Target) en los dos combos.
+> Consecuencia: baja la urgencia de la Fase 6 (rumbo por click con mouse), que
+> era el plan previsto para resolver el direccionamiento.
 
 ### 2. Calibrar las pausas (el mayor ahorro de latencia disponible)
 

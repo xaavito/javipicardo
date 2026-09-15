@@ -504,13 +504,20 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     objetivo** (más allá de Orbit). La alternativa real sería Intercept
     Target, que no tiene hotkey pero quizá se le pueda asignar una desde
     Options → Hotkeys.
-  - [ ] **PRUEBA PRIORITARIA en la Windows:** seleccionar un target que esté
-        **al costado o detrás**, pulsar `Numpad *` y mirar si se activa el
-        indicador de rumbo (pág. 99) y la nave gira, o si solo cambia el
-        encuadre. Documentar el resultado acá y ajustar el mensaje de ayuda.
-  - Mientras tanto: código y ayuda avisan explícitamente que el efecto sobre
-    el rumbo **no está verificado**, sugiriendo "orbitar" si lo que se quiere
-    es que la nave efectivamente se mueva.
+  - [x] **RESUELTO (13/09) — probado en el juego: Follow Target SÍ VIRA LA
+        NAVE hacia el objetivo y lo persigue.** ✅ No es solo cámara.
+  - **Implicancias (importantes):**
+    - Es el **único comando por teclado que apunta la nave a un objetivo**,
+      sin depender del mouse sobre la vista táctica.
+    - **Valida el paso de rumbo de los combos** `ir_al_mas_cercano` e
+      `ir_a_cualquiera` — no hay que cambiar `"multiply"` por `"subtract"`.
+    - **Baja la urgencia de la Fase 6** (girar por click con trigonometría):
+      esa fase existía porque se creía que no había ninguna forma de dirigir
+      la nave por teclado. Sigue teniendo sentido para "girá 90 grados a
+      babor" (rumbo absoluto sin objetivo), pero el caso de uso más común
+      —ir hacia una nave enemiga— ya está cubierto.
+  - Se limpiaron todas las advertencias de "sin confirmar" del código, la
+    ayuda y `docs/hotkeys_sfc2.md`.
 
 - **[12/09] Delay excesivo SOLO en el primer comando.** Reportado en prueba
   real: el primer comando tardaba notablemente más que los siguientes, que
@@ -727,9 +734,20 @@ esta fase hasta consolidar y probar bien en uso real lo ya construido (Fases
   ninguna dependencia nueva para esto, la complejidad es de cálculo/
   calibración, no de herramientas.
 
-**Prioridad acordada:** esta es la **próxima fase a atacar** una vez que se
-terminen de probar en vivo las Fases 0-2 + el STT nuevo. El encadenado de
-comandos (ver `WISHLIST.md`) queda DESPUÉS de esto.
+**⚠️ Prioridad REVISADA (13/09):** esta fase era prioritaria porque se creía
+que **no había ninguna forma de dirigir la nave por teclado**. Pero se
+confirmó que **Follow Target (`Numpad *`) sí vira la nave hacia el objetivo
+seleccionado** — o sea que el caso de uso más frecuente ("andá hacia esa nave
+enemiga") ya está resuelto por voz, sin mouse ni trigonometría.
+
+Lo que esta fase seguiría aportando: **rumbo absoluto sin objetivo**, del tipo
+"girá 90 grados a babor" o "rumbo 270" — útil para maniobras de evasión o
+posicionamiento, pero bastante menos frecuente que perseguir a alguien.
+
+Conclusión: **deja de ser la próxima fase obligatoria.** Conviene primero
+estabilizar y medir lo que ya existe (ver `PRUEBAS.md`), y después decidir
+entre esta fase y el encadenado de comandos (`WISHLIST.md`) según qué se
+extrañe más al jugar.
 
 ### Checklist (para cuando se retome)
 - [ ] Confirmar con el usuario si seguir con Opción A o ir directo a Opción B

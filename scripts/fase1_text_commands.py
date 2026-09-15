@@ -376,10 +376,15 @@ ALPHA_STRIKE_WORDS = ["alpha strike", "fuego total", "disparen todo",
 ALL_OUT_ATTACK_WORDS = ["ataquen con todo", "ataque total", "todo el poder de fuego",
                         "usen todas las armas", "fuego con todo"]
 
-# Combo: "alejarse a maxima velocidad" - el juego no permite controlar el
-# RUMBO por teclado (se hace con el mouse/waypoints, fuera del alcance de
-# este proyecto por ahora), asi que se interpreta como acelerar a maxima
-# velocidad nada mas (ignorando el "alejarse", que implicaria girar 180°).
+# Combo: "alejarse a maxima velocidad" - se interpreta como acelerar a maxima
+# velocidad nada mas, ignorando el "alejarse" (que implicaria girar 180°).
+#
+# Nota (13/09): se confirmo que Follow Target SI vira la nave, pero solo
+# HACIA un objetivo - no sirve para huir (rumbo opuesto). Para eso haria
+# falta el HET 180° (Numpad 5 = Start HET, ver manual pag. 103) o el control
+# de rumbo absoluto de la Fase 6. Pendiente de evaluar si conviene sumar el
+# HET 180° a este combo: es una maniobra brusca que estresa la nave y puede
+# fallar, asi que meterla sin querer en una retirada podria ser contraproducente.
 RETREAT_WORDS = ["alejense a maxima velocidad", "alejarse a maxima velocidad",
                  "retirada a maxima velocidad", "huyan a maxima velocidad"]
 
@@ -414,17 +419,16 @@ DEEPSCAN_WORDS = ["escaneo profundo", "deep scan", "escanear"]
 
 # Follow Target (Numpad *): seguir al target seleccionado.
 #
-# ATENCION - NO ESTA CONFIRMADO SI ESTO VIRA LA NAVE O SOLO SIGUE CON LA
-# CAMARA. El manual lista la tecla (pag. 159) pero NUNCA la describe, a
-# diferencia de Orbit/Intercept/Erratic, que si estan explicadas (pag. 102-103)
-# y ademas aparecen en el Helm Officer MFD - Follow Target no aparece en ese
-# MFD. Ver docs/hotkeys_sfc2.md, seccion "Follow Target: ¿mueve la nave o solo
-# la camara?", para los argumentos de cada lado y la prueba sugerida para
-# verificarlo en el juego.
+# CONFIRMADO EN EL JUEGO (prueba del 13/09): Follow Target efectivamente
+# **VIRA LA NAVE hacia el objetivo y lo persigue** - NO es solo seguimiento
+# de camara. Esto es importante porque el manual nunca lo describe (lista la
+# tecla en pag. 159 pero no la explica, a diferencia de Orbit/Intercept/
+# Erratic), asi que hubo que verificarlo empiricamente.
 #
-# Si se confirmara que es solo camara, la alternativa real para "andá hacia
-# esa nave" seria Intercept Target, que hoy no tiene hotkey (ver NO_SOPORTADO)
-# pero podria asignarsele una desde Options -> Hotkeys.
+# Consecuencia: es el comando de movimiento por voz mas util que tenemos, y
+# el unico que apunta la nave a un objetivo sin depender del mouse. Los
+# combos de aproximacion (ir_al_mas_cercano / ir_a_cualquiera) se apoyan en
+# esto.
 #
 # El manual no distingue entre "nave" y "amenaza" - Follow Target actua sobre
 # lo que este seleccionado como target en ese momento (ver T/SHIFT+T/Y/SHIFT+Y
@@ -552,15 +556,9 @@ COMBOS = {
     # todo en una sola orden. Son los dos combos mas "completos" que se pueden
     # armar hoy solo con teclado.
     #
-    # ATENCION - el paso de RUMBO depende de Follow Target ("multiply"), que
-    # NO esta confirmado que efectivamente vire la nave (puede ser solo
-    # seguimiento de camara - ver la nota larga arriba de FOLLOW_WORDS y
-    # docs/hotkeys_sfc2.md). Si al probarlo resulta que no vira:
-    #   - reemplazar "multiply" por "subtract" (Orbit Target), que segun el
-    #     manual SI mueve la nave (la pone en orbita alrededor del target), o
-    #   - asignarle una tecla a Intercept Target desde Options -> Hotkeys y
-    #     usar esa, que es la orden que el manual describe como "ir hacia el
-    #     objetivo".
+    # El paso de RUMBO usa Follow Target ("multiply"), CONFIRMADO en el juego
+    # (prueba del 13/09): vira la nave hacia el objetivo y lo persigue. Ver la
+    # nota arriba de FOLLOW_WORDS.
     # -----------------------------------------------------------------------
 
     # "vamos al enemigo mas cercano"
@@ -568,7 +566,7 @@ COMBOS = {
         "palabras": IR_AL_CERCANO_WORDS,
         "pasos": [
             "`",          # Target Nearest Enemy: selecciona el mas cercano
-            "multiply",   # Follow Target: pone rumbo hacia el (a confirmar)
+            "multiply",   # Follow Target: vira la nave hacia el objetivo
             ("s", 6),     # acelerar a ~3/4 de maquina para acercarse
         ],
         "descripcion": ("Selecciona el enemigo MAS CERCANO, pone rumbo hacia "
@@ -581,7 +579,7 @@ COMBOS = {
         "palabras": IR_A_CUALQUIERA_WORDS,
         "pasos": [
             "y",          # Target Enemy (cycles): proximo enemigo del ciclo
-            "multiply",   # Follow Target: pone rumbo hacia el (a confirmar)
+            "multiply",   # Follow Target: vira la nave hacia el objetivo
             ("s", 6),     # acelerar a ~3/4 de maquina para acercarse
         ],
         "descripcion": ("Busca un enemigo (el siguiente del ciclo), pone "
@@ -621,12 +619,10 @@ def listar_comandos():
     print("  'seguir a esa nave'        -> Follow Target, la persigue")
 
     print("\nMANIOBRAS (las pilotea el oficial de timon, sin mouse):")
-    print("  'seguir a esa nave' / 'seguir a la amenaza'  -> Follow Target (*)")
+    print("  'seguir a esa nave' / 'seguir a la amenaza'  -> vira hacia el")
+    print("                                                  objetivo y lo persigue")
     print("  'orbitar' / 'ponerse en orbita'              -> Orbit Target")
     print("  'maniobras evasivas' / 'zigzag'              -> Erratic Maneuvers (+4 ECM)")
-    print("  (*) sin confirmar si Follow Target vira la nave o solo sigue con")
-    print("      la camara - el manual no lo describe. Si solo querés que la")
-    print("      nave se MUEVA hacia el objetivo, probá 'orbitar'.")
 
     print("\nDEFENSA:")
     print("  'alerta roja'                                -> Red Alert")
@@ -638,8 +634,7 @@ def listar_comandos():
     for datos in COMBOS.values():
         ejemplo = datos["palabras"][0]
         print(f"  '{ejemplo}'  -> {datos['descripcion']}")
-    print("  NOTA: los combos que 'ponen rumbo' usan Follow Target, cuyo")
-    print("        efecto sobre el rumbo todavia no esta confirmado (*).")
+
 
     print("\nOTROS:")
     print("  'ayuda' / 'que comandos hay'                 -> mostrar esta lista")

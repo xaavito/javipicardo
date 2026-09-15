@@ -186,40 +186,31 @@ interceptar al target actual"), pero no figura en la lista de teclas — se da
 con el mouse desde el MFD del Helm. Alternativas por teclado: Follow Target u
 Orbit Target.
 
-### ⚠️ Follow Target (Numpad `*`): ¿mueve la nave o solo la cámara?
+### ✅ Follow Target (Numpad `*`): VIRA LA NAVE — confirmado en el juego
 
-**El manual NO lo aclara — hay que verificarlo en el juego.** Se revisaron los
-tres PDFs completos y `Numpad *  Follow Target` aparece **únicamente** en la
-tabla de hotkeys (pág. 159), **sin ninguna descripción** en el cuerpo del
-manual. Es la única maniobra en esa situación:
+**Confirmado empíricamente (prueba del 13/09): `Numpad *` hace que la nave
+gire hacia el objetivo seleccionado y lo persiga.** No es solo seguimiento de
+cámara.
+
+Hubo que verificarlo en el juego porque **el manual nunca lo describe**: se
+revisaron los tres PDFs completos y `Numpad * Follow Target` aparece
+únicamente en la tabla de hotkeys (pág. 159), sin explicación en el cuerpo del
+manual — la única maniobra en esa situación:
 
 | Acción | ¿Descrita en el manual? | ¿En el Helm MFD? |
 |---|---|---|
 | Orbit Target | ✅ Sí (pág. 103) | ✅ Sí (ítem 10) |
 | Intercept Target | ✅ Sí (pág. 103) | ✅ Sí (ítem 11) |
 | Erratic Maneuvers | ✅ Sí (pág. 102) | ✅ Sí (ítem 2) |
-| **Follow Target** | ❌ **No aparece** | ❌ **No está** |
+| **Follow Target** | ❌ No aparece | ❌ No está |
 
-**Argumentos a favor de que SÍ mueve/vira la nave:**
-- Está en el Number Pad junto a `Orbit Target` y `Erratic Maneuvers`, que son
-  inequívocamente maniobras de la **nave**, no de la cámara.
-- Todas las teclas de cámara están agrupadas aparte, en las F1-F5 y
-  HOME/END/PGUP/PGDN.
+**Por qué esto es importante para el proyecto:** es el **único comando por
+teclado que apunta la nave hacia un objetivo**, sin depender del mouse sobre
+la vista táctica. Eso lo convierte en la herramienta de movimiento más útil
+que tenemos por voz, y reduce bastante la urgencia de la Fase 6 (control de
+rumbo por click), que era la forma prevista de resolver el direccionamiento.
 
-**Argumentos a favor de que sea solo cámara/seguimiento visual:**
-- Existe `F3 Follow Camera` y `F5 Toggle Target Padlock` — o sea que el juego
-  ya usa la palabra "Follow" para cosas de cámara.
-- No figura en el Helm Officer MFD, donde están todas las demás órdenes de
-  pilotaje automático.
-
-**Cómo verificarlo en el juego (prueba sugerida):** seleccionar un target que
-esté **a un costado o detrás** de la nave, pulsar `Numpad *`, y observar:
-- Si el **indicador de rumbo** (el que aparece bajo la nave al virar, pág. 99)
-  se activa y la nave empieza a girar → mueve la nave ✅
-- Si solo cambia el encuadre/la cámara y el rumbo sigue igual → es visual ❌
-
-Mientras no esté confirmado, el comando de voz "seguir a esa nave" está
-implementado pero **su efecto real sobre el rumbo no está verificado**.
+Los combos `ir_al_mas_cercano` e `ir_a_cualquiera` se apoyan en esta tecla.
 
 ## Shuttles / Misceláneos
 | Tecla | Acción |
