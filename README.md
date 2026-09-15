@@ -61,6 +61,10 @@ con Pato (una tabla por sesión, lista para mandar por Slack).
   feedback con Pato (quien lidera el proyecto), estimadas semanalmente los
   viernes: qué se sugirió en cada una, si ya lo teníamos, y qué se hizo o por
   qué se descartó. Pensado para copiar/pegar en Slack.
+- ✅ **`PRUEBAS.md`** — **checklist de lo que hay que probar en la máquina
+  Windows**, numerado, priorizado y con lugar para anotar cada medición. Se
+  actualiza cada vez que hay cambios que requieren validación en vivo. Es el
+  documento a abrir antes de sentarse a probar.
 - 💡 **`WISHLIST.md`** — ideas a futuro todavía no comprometidas (ej. encadenar
   varios comandos en una sola orden), con el análisis técnico ya hecho.
 

@@ -1,0 +1,47 @@
+# Reglas del proyecto SFC Voice Commander
+
+## Documentos y para qué sirve cada uno
+
+- `README.md` — teoría, arquitectura y estado general del proyecto.
+- `ROADMAP.md` — bitácora histórica: qué se hizo, qué se probó, qué resultó.
+- `PRUEBAS.md` — checklist de lo pendiente de probar en la máquina Windows.
+- `WISHLIST.md` — ideas a futuro, no comprometidas.
+- `docs/feedback_sesiones.md` — resumen ejecutivo de las charlas con Pato.
+- `docs/hotkeys_sfc2.md` — hotkeys del juego según los manuales oficiales.
+
+## Regla: mantener PRUEBAS.md actualizado
+
+**Cada vez que se hagan cambios que requieran validación en la máquina
+Windows** (cualquier cosa que toque teclas, latencia, STT, o comandos
+nuevos), hay que **agregar la prueba correspondiente a `PRUEBAS.md`** antes
+de terminar la tarea. Formato de cada entrada:
+
+1. **Número** (secuencial, para poder referenciarla: "la prueba #3 falló").
+2. **Título** claro de qué se prueba.
+3. **Por qué importa** — sobre todo si bloquea otras pruebas.
+4. **Cómo probarlo** — pasos concretos, no genéricos.
+5. **Campo de resultado** con checkbox `[ ]` y espacio para la medición.
+
+Las pruebas se agrupan por prioridad:
+- 🔴 **ALTA**: bloquean o invalidan otras cosas.
+- 🟡 **MEDIA**: funcionalidad nueva sin validar.
+- 🟢 **BAJA**: exploratorio.
+
+Cuando una prueba se confirma, su resultado se vuelca al `ROADMAP.md` (que es
+la memoria histórica) y se puede limpiar de `PRUEBAS.md` para no acumular
+ruido.
+
+## Contexto técnico que no hay que olvidar
+
+- El juego es **Star Trek: Starfleet Command Gold Edition** (SFC1), corre en
+  Windows 10, abierto **desde DxWnd** para forzar modo ventana.
+- Los scripts necesitan **consola como Administrador** (si no, el input no
+  llega al juego por UIPI de Windows).
+- Todo el proyecto es **Python** (obligado por `pydirectinput`/`pygetwindow`).
+- `pydirectinput` espera nombres de teclas de letras en **minúscula**.
+- En la Mac de desarrollo no se pueden correr los scripts (no existe
+  `pydirectinput`): validar con **mocks**, como se viene haciendo.
+- El parser de reglas es **local y gratuito**; el LLM es solo **fallback**
+  para lo que el parser no reconoce. No invertir ese orden.
+- `catalogo_comandos.py` genera el catálogo del LLM **dinámicamente** desde
+  los diccionarios del parser: no mantener listas de comandos duplicadas.

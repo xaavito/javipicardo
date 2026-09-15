@@ -4,6 +4,11 @@ Documento vivo para ir marcando qué se probó, qué funcionó, qué no, y las p
 acciones. Se actualiza a medida que avanzamos. Ver `README.md` para la teoría y
 arquitectura completa, y `docs/hotkeys_sfc2.md` para la lista de hotkeys del juego.
 
+✅ Para **lo que hay que probar en la máquina Windows**, ver **`PRUEBAS.md`**:
+checklist numerado y priorizado, con lugar para anotar cada medición. Ese es el
+documento de trabajo del día; acá en el ROADMAP quedan los resultados una vez
+confirmados.
+
 💡 Para **ideas a futuro todavía no comprometidas** (ej. encadenar varios comandos
 en una sola orden), ver **`WISHLIST.md`**. Este ROADMAP es lo que se está
 ejecutando; la wishlist es el "algún día".
