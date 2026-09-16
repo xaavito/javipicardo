@@ -138,6 +138,50 @@ juego vía `prompt`, + `temperature=0`.
 - [ ] Confirmar que **no** tarda (no debería llamar al LLM)
 - Notas:
 
+### 15. Speed by explicit percentage
+
+**Why it matters:** "velocidad al 70 por ciento" was parsed but sent no key at
+all, so the order was silently dropped. It now rounds to the closest of the 5
+levels (70% -> level 3, ~75%). Rounding is all we can do before Fase 3, so
+what needs checking is whether it feels right while playing.
+
+**How to test it:** say each phrase and watch the HUD.
+
+| Phrase | Expected level | Did the ship react? |
+|---|---|---|
+| "velocidad al 70 por ciento" | 3 (6x `s`) | [ ] |
+| "velocidad al 50 por ciento" | 2 (4x `s`) | [ ] |
+| "velocidad al 10 por ciento" | 0 (8x `a`) | [ ] |
+
+- [ ] Is rounding to the nearest quarter enough, or is the exact % missed?
+- Notes:
+
+### 16. LLM fallback live (never tested) + the commands it was missing
+
+**Why it matters:** the fallback has been implemented since Fase 4 but was
+never run against the real API. On top of that, the catalog the LLM sees was
+out of sync with the parser: 16 commands the parser understood were missing
+from it (cycling enemies, cycling backwards, deselecting, orbiting, erratic
+maneuvers and the whole target memory). It now exposes 32 tools.
+
+**How to test it:** say free-form phrases the parser does NOT recognise, to
+force the fallback (the console prints "consultando al LLM").
+
+| Phrase (deliberately odd) | Command it should pick | Right? |
+|---|---|---|
+| "che, dale una vuelta alrededor de esa nave" | orbitar | [ ] |
+| "esquivá como puedas" | maniobras evasivas | [ ] |
+| "acordate de esta nave en la ranura dos" | guardar objetivo dos | [ ] |
+| "pasá al siguiente hostil" | siguiente enemigo | [ ] |
+| "soltá el blanco" | deseleccionar objetivo | [ ] |
+
+- [ ] **First fallback latency:** ______s · **second:** ______s
+      *(the OpenAI client is cached now, so the first one should not be slower
+      than the rest — write it down if it still is)*
+- [ ] Run `python catalogo_comandos.py` and confirm it reports "Cobertura OK"
+      and 32 commands
+- Notes:
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -178,6 +222,6 @@ Cambiar `STT_BACKEND = "local"` y `MODEL_SIZE = "tiny"` en
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 14
+- **Pruebas completadas:** ____ / 16
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

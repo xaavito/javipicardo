@@ -314,6 +314,17 @@ STEPS_VELOCIDAD = {
     4: ("s", 8),
 }
 
+def pct_a_nivel(pct):
+    """Rounds an explicit percentage to the closest of the 5 speed levels.
+
+    An exact percentage needs the real top speed of the current ship, which
+    is Fase 3; rounding to the nearest quarter is the simplified approach the
+    README describes, and beats ignoring the order.
+    """
+    pct = max(0, min(100, pct))
+    return int(round(pct / 25.0))
+
+
 # Alertas
 # IMPORTANTE: pydirectinput/pyautogui esperan los nombres de teclas de letras
 # en MINUSCULA para su mapeo interno (KEYBOARD_MAPPING). Mandar 'R' en vez de
@@ -601,6 +612,8 @@ def listar_comandos():
     print("  'media maquina' / 'mitad'                    -> velocidad 50%")
     print("  'tres cuartos de maquina'                    -> velocidad 75%")
     print("  'toda maquina' / 'maxima velocidad'          -> velocidad 100%")
+    print("  'velocidad al 70 por ciento'                 -> % explicito,")
+    print("                                                  redondeado al cuarto mas cercano")
 
     print("\nARMAS:")
     print("  'disparar' / 'fuego' / 'abran fuego'         -> disparo simple")
@@ -806,14 +819,22 @@ def _presionar_paso(paso, pausa_entre_teclas):
         time.sleep(pausa_entre_teclas)
 
 
+def _enviar_nivel_velocidad(nivel, pausa_entre_teclas):
+    """Presses the S/A sequence of a speed level (see STEPS_VELOCIDAD)."""
+    tecla, cantidad = STEPS_VELOCIDAD[nivel]
+    for _ in range(cantidad):
+        pydirectinput.press(tecla)
+        time.sleep(pausa_entre_teclas)
+
+
 def ejecutar_accion(accion, pausa_entre_teclas=None):
     if pausa_entre_teclas is None:
         pausa_entre_teclas = PAUSA_ENTRE_TECLAS
     tipo = accion.get("action")
 
     # Acciones que efectivamente mandan alguna tecla: enfocar el juego primero.
-    # (help, set_speed_pct y unknown no mandan nada, no hace falta cambiar el foco)
-    if tipo in ("key", "key_combo", "set_speed", "combo"):
+    # (help, no_soportado y unknown no mandan nada, no hace falta cambiar el foco)
+    if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
         enfocado = enfocar_ventana_juego()
         if not enfocado:
             print("  [!] Se intenta mandar la tecla igual, pero puede que no "
@@ -849,15 +870,16 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
         tecla, cantidad = STEPS_VELOCIDAD[nivel]
         print(f"  -> Velocidad nivel {nivel}: {cantidad}x tecla '{tecla}' "
               f"(aproximado, ver Fase 3 para precision real)")
-        for _ in range(cantidad):
-            pydirectinput.press(tecla)
-            time.sleep(pausa_entre_teclas)
+        _enviar_nivel_velocidad(nivel, pausa_entre_teclas)
 
     elif tipo == "set_speed_pct":
         pct = accion["pct"]
-        print(f"  -> Velocidad {pct}% solicitada, pero el conteo preciso de "
-              f"pasos aun no esta implementado (pendiente Fase 3). "
-              f"No se envia ninguna tecla por ahora.")
+        nivel = pct_a_nivel(pct)
+        tecla, cantidad = STEPS_VELOCIDAD[nivel]
+        print(f"  -> Velocidad {pct}% -> nivel {nivel} de 4 (~{nivel * 25}%, "
+              f"el mas cercano): {cantidad}x tecla '{tecla}' "
+              f"(aproximado, ver Fase 3 para precision real)")
+        _enviar_nivel_velocidad(nivel, pausa_entre_teclas)
 
     elif tipo == "no_soportado":
         print(f"  -> No se puede ejecutar '{accion['raw']}': {accion['motivo']}")
@@ -870,7 +892,7 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
 
     # Si se enfoco el juego para esta accion, volver el foco a la consola
     # para poder seguir escribiendo el proximo comando comodamente.
-    if tipo in ("key", "key_combo", "set_speed", "combo"):
+    if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
         enfocar_consola()
 
 

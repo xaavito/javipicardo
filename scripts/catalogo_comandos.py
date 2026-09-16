@@ -13,6 +13,20 @@ ninguna, si no aplica ningun comando).
 
 import fase1_text_commands as fase1
 
+# Target memory slots: the game keys 5-8 select, CTRL+5-8 store (manual p.157).
+RANURA_POR_TECLA = {"5": 1, "6": 2, "7": 3, "8": 4}
+
+# Cached (tools, mapa) pair -- see generar_tools_openai().
+_tools_cacheadas = None
+
+
+def _agrupar_por_tecla(diccionario):
+    """{frase: tecla} -> {tecla: [frases]}, keeping the original order."""
+    agrupado = {}
+    for frase, tecla in diccionario.items():
+        agrupado.setdefault(tecla, []).append(frase)
+    return agrupado
+
 
 def generar_catalogo():
     """Devuelve una lista de dicts, cada uno describiendo una accion posible
@@ -53,6 +67,15 @@ def generar_catalogo():
          "Ciclar al siguiente objetivo disponible"),
         ("objetivo_mas_cercano", fase1.NEAREST_ENEMY_WORDS, "`",
          "Seleccionar como objetivo al enemigo mas cercano"),
+        ("siguiente_enemigo", fase1.NEXT_ENEMY_WORDS, "y",
+         "Ciclar al siguiente enemigo, salteando unidades no hostiles"),
+        ("deseleccionar_objetivo", fase1.DESELECT_WORDS, "\\",
+         "Soltar el objetivo seleccionado, sin elegir otro"),
+        ("orbitar_objetivo", fase1.ORBIT_WORDS, "subtract",
+         "Poner la nave en orbita alrededor del objetivo"),
+        ("maniobras_evasivas", fase1.ERRATIC_WORDS, "divide",
+         "Maniobras erraticas: +4 de ECM natural, a costa de nuestra "
+         "punteria y de no poder lanzar shuttles/minas/torpedos"),
     ]
     for nombre, frases, tecla, descripcion in grupos_de_una_tecla:
         catalogo.append({
@@ -63,14 +86,48 @@ def generar_catalogo():
             "ejemplos": list(frases)[:3],
         })
 
-    # --- Alpha strike (combo de teclas simple) ---
-    catalogo.append({
-        "accion": "key_combo",
-        "parametros": {"keys": ["shift", "z"]},
-        "nombre_legible": "alpha_strike",
-        "descripcion": "Disparar todas las armas de todos los hardpoints a la vez",
-        "ejemplos": fase1.ALPHA_STRIKE_WORDS[:3],
-    })
+    # --- Comandos de dos teclas (modificador + tecla) ---
+    grupos_de_dos_teclas = [
+        ("alpha_strike", fase1.ALPHA_STRIKE_WORDS, ["shift", "z"],
+         "Disparar todas las armas de todos los hardpoints a la vez"),
+        ("enemigo_anterior", fase1.PREV_ENEMY_WORDS, ["shift", "y"],
+         "Ciclar hacia atras entre enemigos, volver al anterior"),
+        ("objetivo_anterior", fase1.PREV_TARGET_WORDS, ["shift", "t"],
+         "Ciclar hacia atras entre objetivos, volver al anterior"),
+    ]
+    for nombre, frases, teclas, descripcion in grupos_de_dos_teclas:
+        catalogo.append({
+            "accion": "key_combo",
+            "parametros": {"keys": teclas},
+            "nombre_legible": nombre,
+            "descripcion": descripcion,
+            "ejemplos": list(frases)[:3],
+        })
+
+    # --- Memoria de targets: seleccionar (5-8) y guardar (CTRL+5-8) ---
+    # Built from the phrase->key dicts, so a new phrase for an existing slot
+    # shows up here on its own.
+    for tecla, frases in _agrupar_por_tecla(fase1.TARGET_MEMORIA_WORDS).items():
+        ranura = RANURA_POR_TECLA.get(tecla, tecla)
+        catalogo.append({
+            "accion": "key",
+            "parametros": {"key": tecla},
+            "nombre_legible": f"seleccionar_objetivo_memorizado_{ranura}",
+            "descripcion": (f"Volver a seleccionar la nave guardada en la "
+                            f"ranura de memoria {ranura}"),
+            "ejemplos": frases[:3],
+        })
+
+    for tecla, frases in _agrupar_por_tecla(fase1.GUARDAR_TARGET_WORDS).items():
+        ranura = RANURA_POR_TECLA.get(tecla, tecla)
+        catalogo.append({
+            "accion": "key_combo",
+            "parametros": {"keys": ["ctrl", tecla]},
+            "nombre_legible": f"guardar_objetivo_en_memoria_{ranura}",
+            "descripcion": (f"Guardar el objetivo actual en la ranura de "
+                            f"memoria {ranura}, para volver a el mas tarde"),
+            "ejemplos": frases[:3],
+        })
 
     # --- Combos (definidos en fase1.COMBOS) ---
     for nombre_combo, datos in fase1.COMBOS.items():
@@ -102,6 +159,14 @@ def generar_tools_openai():
       traducir de vuelta el nombre de funcion elegido a la accion interna
       real que hay que ejecutar.
     """
+    # Cached: the catalog comes from static dicts, so the schema never
+    # changes while the program runs. Without the cache the warm-up call in
+    # precalentar_todo() achieved nothing and every LLM fallback rebuilt the
+    # whole schema before being able to ask anything.
+    global _tools_cacheadas
+    if _tools_cacheadas is not None:
+        return _tools_cacheadas
+
     catalogo = generar_catalogo()
     tools = []
     mapa = {}
@@ -125,7 +190,41 @@ def generar_tools_openai():
         })
         mapa[nombre] = item
 
-    return tools, mapa
+    _tools_cacheadas = (tools, mapa)
+    return _tools_cacheadas
+
+
+# Command dictionaries of fase1 that on purpose stay out of the catalog:
+# "ayuda" prints the command list instead of pressing a key, so there is
+# nothing for the LLM to invoke.
+FUERA_DEL_CATALOGO = {"HELP_WORDS"}
+
+
+def verificar_cobertura():
+    """Lists the fase1 command dictionaries that no catalog entry covers.
+
+    The catalog is the only thing the LLM fallback can choose from, so a
+    command the rules parser understands but that is missing here is
+    unreachable by voice through the LLM. That is what happened with the
+    targeting and helm commands added on 12/09. Compares the first phrase of
+    every `*_WORDS` collection of fase1 against the catalog examples.
+
+    Returns a list of (dictionary name, phrase that is not represented).
+    """
+    ejemplos = set()
+    for item in generar_catalogo():
+        ejemplos.update(item["ejemplos"])
+
+    faltantes = []
+    for nombre, valor in vars(fase1).items():
+        if not nombre.endswith("_WORDS") or nombre in FUERA_DEL_CATALOGO:
+            continue
+        if not isinstance(valor, (list, dict)) or not valor:
+            continue
+        primera = list(valor)[0]
+        if primera not in ejemplos:
+            faltantes.append((nombre, primera))
+    return faltantes
 
 
 def catalogo_como_texto():
@@ -145,3 +244,13 @@ if __name__ == "__main__":
     # Permite correr este archivo solo para ver el catalogo generado:
     #   python catalogo_comandos.py
     print(catalogo_como_texto())
+
+    faltantes = verificar_cobertura()
+    print(f"\n{len(generar_catalogo())} comandos en el catalogo.")
+    if faltantes:
+        print("\n[!] Comandos que el parser entiende pero el LLM NO puede "
+              "elegir (agregarlos en generar_catalogo):")
+        for nombre, frase in faltantes:
+            print(f"  - {nombre}  (ej. \"{frase}\")")
+    else:
+        print("Cobertura OK: el catalogo cubre todos los comandos del parser.")

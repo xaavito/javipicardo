@@ -600,6 +600,15 @@ al 50% de la máxima de la nave actual, no una aproximación arbitraria.
       de lectura
 - [ ] Si conteo manual: jugar y contar cuántos `S` hacen falta desde 0 hasta
       distintos niveles, para 2-3 clases de nave distintas, y documentar la tabla
+- [x] **[16/09] An explicit percentage now executes, rounded to the closest
+      level.** "velocidad al 70 por ciento" parsed fine, but `set_speed_pct`
+      only printed a "pending Fase 3" notice and **sent no key at all**: the
+      order was silently lost, which is worse than an approximation. It now
+      rounds to one of the 5 levels (70% → level 3, ~75%) and presses the
+      matching S/A sequence, through `pct_a_nivel()`. This is the "simplified
+      approach without OCR" the README already proposed for the MVP; it does
+      **not** close the phase: real per-ship precision is still pending.
+      Checked with mocks (70/50/10/100%, plus out-of-range clamping).
 - [ ] Implementar la lógica de "ir pulsando S/A hasta llegar al objetivo"
 - [ ] Probar en vivo con distintas naves/velocidades de partida
 
@@ -674,6 +683,32 @@ README sección 2.4 para tamaños de modelo recomendados).
       texto no-JSON que debe caer a `unknown` sin crashear) y con un test de
       integración completo confirmando que no hay import circular en la
       práctica.
+- [x] **[16/09] The catalog WAS out of sync with the parser (fixed).**
+      `catalogo_comandos.py` promised to derive itself from the Fase 1
+      dictionaries alone, but `generar_catalogo()` carried a hardcoded list
+      that never grew with the commands added on 12/09: cycling enemies only
+      (`y`), cycling backwards (`shift+y` / `shift+t`), deselecting (`\`),
+      Orbit (`subtract`), Erratic Maneuvers (`divide`) and the whole target
+      memory (`5`-`8`, `ctrl+5`-`8`) were **unreachable for the LLM**: the
+      parser understood them, the LLM could not pick them. The catalog went
+      from **16 to 32 tools**.
+  - So it does not happen again: `verificar_cobertura()` compares the first
+    phrase of every `*_WORDS` collection of `fase1_text_commands.py` against
+    the catalog examples and reports whatever is missing. Run it with
+    `python catalogo_comandos.py`. `HELP_WORDS` is excluded on purpose
+    (listing the commands is not a key press).
+  - Checked with mocks: no gaps in coverage, tool names unique and valid for
+    the API, and the 16 new actions press the right key once they go through
+    `_item_catalogo_a_accion()`.
+- [x] **[16/09] OpenAI client cached in `llm_fallback.py`.** The same lazy
+      initialization fixed on 12/09 for the STT was still untouched in the
+      LLM: a new `OpenAI(...)` was created **on every call**, so the first
+      fallback of each session paid DNS + TLS handshake. It now reuses the
+      client `stt_openai.py` already warms up at startup (or opens its own, if
+      the STT runs on the local backend).
+  - `generar_tools_openai()` is cached too: without that, the warm-up call in
+    `precalentar_todo()` achieved nothing and every fallback rebuilt the whole
+    32-tool schema before being able to ask anything.
 - [ ] Instalar Ollama en la máquina Windows: https://ollama.com/download
 - [ ] Descargar modelo chico: `ollama pull llama3.2:3b` (o `llama3.2:1b` si
       se quiere algo aún más liviano/rápido)
@@ -908,3 +943,12 @@ sesión de trabajo/prueba, independientemente de la fase.
   Python **como Administrador**, el script funcionó correctamente y la nave
   aceleró/frenó como se esperaba. **Fase 0 cerrada con éxito.** Próximo paso:
   Fase 1 (parser de comandos por texto, sin voz).
+- **[16/09] Full read of the project + 3 code fixes** (Windows machine not
+  touched, everything checked with mocks): (1) the LLM catalog was out of sync
+  with the parser and 16 commands were missing from it — it went from 16 to 32
+  tools, with a coverage check so it does not happen again; (2)
+  `llm_fallback.py` created one OpenAI client per call, the same latency bug
+  already fixed in the STT — it now reuses the warmed-up client, and the tool
+  schema is cached; (3) "velocidad al N por ciento" was understood but sent no
+  key — it now rounds to the closest level. Detail under Fase 3 and Fase 4.
+  Still to validate live: tests **#15 and #16** of `PRUEBAS.md`.

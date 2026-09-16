@@ -98,6 +98,13 @@ def _cliente():
     return _cliente_cacheado
 
 
+def obtener_cliente():
+    """Public accessor to the cached client, so other modules (llm_fallback)
+    reuse this same connection instead of opening a second one against the
+    same API."""
+    return _cliente()
+
+
 def precalentar():
     """Inicializa el cliente y abre la conexion HTTPS con la API ANTES de que
     el usuario diga el primer comando, para que ese primer comando no pague

@@ -63,6 +63,34 @@ elif LLM_BACKEND == "openai":
     from openai import OpenAI
 
 
+# Cached OpenAI client, the same fix already applied in stt_openai.py:
+# creating one per call pays DNS + TLS handshake on the first fallback of
+# every run. When the STT also runs on the OpenAI backend its client is
+# reused, so the connection that precalentar_todo() warms up at startup
+# serves the LLM too.
+_cliente_cacheado = None
+
+
+def _cliente():
+    global _cliente_cacheado
+    if _cliente_cacheado is None:
+        try:
+            import stt_openai
+            _cliente_cacheado = stt_openai.obtener_cliente()
+        except Exception:
+            # STT on the local backend, or soundfile not installed: this
+            # module opens its own client.
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
+                raise RuntimeError(
+                    "No se encontro la variable de entorno OPENAI_API_KEY. "
+                    "Ver docstring de este archivo / stt_openai.py para como "
+                    "configurarla."
+                )
+            _cliente_cacheado = OpenAI(api_key=api_key)
+    return _cliente_cacheado
+
+
 def _armar_system_prompt():
     catalogo_texto = cc.catalogo_como_texto()
     return f"""Sos el sistema de control por voz de una nave de Star Trek: \
@@ -150,16 +178,9 @@ def _interpretar_con_openai_function_calling(texto_usuario):
     especificamente para esta tarea) y mas confiable (la API valida que el
     nombre de funcion elegido exista en el esquema, no puede "inventar" un
     comando que no este en la lista)."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "No se encontro la variable de entorno OPENAI_API_KEY. Ver "
-            "docstring de este archivo / stt_openai.py para como configurarla."
-        )
-
     tools, mapa_nombre_a_item = cc.generar_tools_openai()
 
-    cliente = OpenAI(api_key=api_key)
+    cliente = _cliente()
     respuesta = cliente.chat.completions.create(
         model=MODELO_LLM_OPENAI,
         messages=[
