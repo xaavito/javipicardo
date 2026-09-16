@@ -6,14 +6,25 @@ con el análisis técnico ya hecho para no tener que re-pensarlo cuando se retom
 
 ## Orden de prioridad acordado
 
-1. **PRIMERO: probar y estabilizar lo que ya existe.** Fases 0-2 + LLM fallback
-   están implementadas pero falta validación en vivo en la Windows (STT nuevo,
-   latencia real, precisión de transcripción con micrófono). No tiene sentido
-   agregar features encima de algo no probado.
-2. **DESPUÉS: la parte visual / direccionamiento de la nave** (Fase 6 del
-   ROADMAP — girar la nave por voz, que hoy no se puede porque el rumbo no se
-   controla por teclado sino con mouse sobre la vista táctica).
-3. **MÁS ADELANTE: encadenar comandos** (este documento, ítem 1).
+1. **PRIMERO: probar y estabilizar lo que ya existe.** Ver `PRUEBAS.md` — hay
+   13 pruebas pendientes en la máquina Windows (latencia, STT nuevo, teclas de
+   numpad, combos). No tiene sentido agregar features encima de algo no probado.
+2. **DESPUÉS:** bajar la latencia (§2 — el mayor ahorro está en calibrar las
+   pausas, que es una prueba ya lista de correr).
+3. **MÁS ADELANTE, a elección según qué se extrañe más al jugar:**
+   - Encadenar comandos (§1).
+   - Tripulación virtual: oficiales que contestan, con cara y voz (§3).
+   - Fase 6 del ROADMAP (rumbo absoluto por click). **Bajó de prioridad** al
+     confirmarse que Follow Target ya vira la nave hacia un objetivo.
+
+## Índice
+
+| § | Idea | Estado |
+|---|---|---|
+| 1 | Encadenar comandos en una sola orden | analizada, no implementada |
+| 2 | Bajar más la latencia | analizada, herramienta lista |
+| 3 | Tripulación virtual (wake word + oficiales con cara y voz) | analizada, no implementada |
+| 4 | Otras ideas sueltas | sin analizar |
 
 ---
 
@@ -132,12 +143,103 @@ el tiempo de STT percibido, a costa de bastante complejidad.
 
 ---
 
-## 3. Otras ideas sueltas (sin analizar todavía)
+## 3. Tripulación virtual: wake word + oficiales que contestan con cara
 
-- Feedback por voz del sistema (TTS): que la nave conteste "afirmativo, capitán"
-  al ejecutar una orden, en vez de solo imprimir en consola.
-- Modo "manos libres" real: reemplazar el push-to-talk por wake word
-  ("Capitán...", "Computadora...") una vez que la precisión del STT esté
-  validada.
+**La idea:** dejar de ser "un sistema que aprieta teclas" y pasar a sentir que
+hay una **tripulación** a bordo. Tres piezas que se suman:
+
+1. **Wake word** — decir *"Computadora..."* (o *"Oficial de armas..."*) en vez
+   de mantener apretado F12.
+2. **Que contesten** — respuesta hablada y/o escrita, en el tono del personaje
+   ("Phasers cargados, Capitán").
+3. **Que tengan cara** — una **imagen generada por IA** del oficial (un
+   klingon, un vulcano, etc.) mostrada junto a su respuesta escrita abajo.
+
+Es la idea más ambiciosa de la wishlist, pero también la que más cambia la
+experiencia. Se puede hacer por partes, en el orden de abajo.
+
+### 3.1 Wake word (reemplazar el push-to-talk)
+
+Hoy usamos push-to-talk (F12) porque es simple y de baja latencia. Un wake
+word permite manos libres — importante si estás peleando con el mouse.
+
+- **Opciones:** `openWakeWord` o `Porcupine` (Picovoice) son las librerías
+  típicas; ambas corren local y liviano. Porcupine permite entrenar palabras
+  custom (ej. "Computadora") pero su licencia gratis es limitada;
+  openWakeWord es open source.
+- **Alternativa barata:** dejar el micrófono escuchando con VAD (detección de
+  voz) y filtrar por texto — si la transcripción **empieza con** "computadora"
+  o el nombre de un oficial, se procesa; si no, se descarta. Más simple, pero
+  gasta STT en todo lo que escucha (con backend local eso es gratis).
+- **Riesgo a tener en cuenta:** falsos positivos. Si estás hablando con
+  alguien y el sistema cree que le diste una orden, te puede meter la nave a
+  toda máquina en medio de un combate. Conviene poder apagarlo rápido.
+
+### 3.2 Que contesten (TTS + personalidad)
+
+- **Texto primero (fácil):** el oficial responde por consola, con frases
+  propias del rol. Esto ya se puede hacer hoy con un diccionario de respuestas
+  por tipo de comando, sin ningún modelo.
+- **Voz (TTS):** la API de OpenAI tiene text-to-speech con varias voces
+  (`tts-1` es la rápida). Se le puede asignar **una voz distinta a cada
+  oficial**, lo cual ayuda muchísimo a la ilusión de tripulación. También hay
+  opciones locales (`piper`, `pyttsx3`) si no se quiere pagar/depender de red.
+- **Cuidado con la latencia:** si el oficial contesta *antes* de que la acción
+  se ejecute, se siente lento. Mejor: ejecutar la tecla primero y que la voz
+  suene **mientras** el juego ya reaccionó. También conviene **cachear** los
+  audios de las frases fijas más comunes ("Afirmativo, Capitán") en vez de
+  generarlos cada vez.
+- **Ojo con el audio del juego:** si el juego está fuerte, la voz del oficial
+  se puede perder. Quizá haya que bajar el volumen del juego o usar auriculares.
+
+### 3.3 Oficiales con cara generada por IA
+
+- **Idea:** cada oficial es un personaje con **raza** (klingon, vulcano,
+  humano, andoriano...) y **rol** (armas, timón, ingeniería, ciencias). Al
+  contestar, se muestra su retrato + su respuesta escrita abajo, tipo viñeta
+  de cómic o ficha de personaje.
+- **Cómo generar las imágenes:** con `gpt-image-1` / DALL·E de OpenAI. Clave:
+  **generarlas UNA vez y guardarlas en disco**, no en cada respuesta —
+  generar una imagen tarda segundos y cuesta, sería inviable en tiempo real.
+  La idea es tener un "plantel" fijo de 4-6 oficiales ya generados.
+- **Nivel intermedio (más rico, más trabajo):** generar **2-3 variantes de
+  expresión** por oficial (neutral, alarmado, satisfecho) y elegir según el
+  contexto: si la nave está recibiendo daño, mostrar la cara de alarma. Sigue
+  siendo pre-generado, solo hay que elegir qué archivo mostrar.
+- **Dónde mostrarlo:** el juego corre en ventana vía DxWnd, así que se puede
+  poner una **ventanita aparte** al costado (Tkinter/PyQt, o incluso una
+  página HTML local que se auto-actualice). No conviene intentar dibujar
+  encima del juego: es frágil y puede romper el render de DirectX.
+- **Bonus barato:** que el **texto** del oficial lo genere el LLM que ya
+  usamos como fallback, pidiéndole que responda en el tono del personaje
+  ("sos un artillero klingon, contestá en una línea, agresivo"). Reusa
+  infraestructura que ya está.
+
+### 3.4 Por qué esto encaja bien con lo que ya tenemos
+
+- El **catálogo dinámico** (`catalogo_comandos.py`) ya sabe qué comandos
+  existen y de qué tipo son — se le puede agregar a cada uno **qué oficial lo
+  responde** (armas → artillero, velocidad → timonel) sin rehacer nada.
+- El **LLM de fallback** ya está integrado: sirve tanto para interpretar
+  órdenes raras como para redactar las respuestas en personaje.
+- Como el parser ya devuelve **acciones estructuradas**, es fácil enganchar
+  "después de ejecutar, que conteste el oficial X" sin tocar la lógica de
+  teclas.
+
+### 3.5 Orden sugerido para atacarlo
+
+1. Respuestas **de texto** por oficial, en consola (barato, ya se puede).
+2. Ventanita aparte con **retratos pre-generados** + el texto abajo.
+3. **TTS** con una voz por oficial (con caché de frases comunes).
+4. **Wake word** para manos libres (lo más riesgoso por los falsos positivos,
+   mejor dejarlo para cuando el resto esté sólido).
+
+---
+
+## 4. Otras ideas sueltas (sin analizar todavía)
+
 - Perfiles de nave: que "media máquina" se calibre distinto según la clase de
   nave (relacionado con la Fase 3 del ROADMAP).
+- HET 180° para el combo de retirada: hoy "aléjense a máxima velocidad" solo
+  acelera, no gira. El HET 180° (`Numpad 5`) daría la vuelta de verdad, pero
+  estresa la nave y puede fallar — evaluar si conviene.
