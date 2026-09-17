@@ -557,6 +557,32 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[18/09] The LLM guessed a speed out of half a word, and accelerated the
+  ship.** The STT clipped "media máquina" down to "Máquina.", the rules parser
+  did not know it, and the fallback answered `set_speed` level 1 (cuarto de
+  máquina) — a real key sequence out of an ambiguous fragment, plus 2.43s of
+  latency to get it wrong. Same family as the prompt echo: an unclear input
+  producing a confident action.
+  - `FRASES_AMBIGUAS` in the parser answers a single ambiguous word ("maquina",
+    "velocidad", "alerta", "escudos", "objetivo", "enemigo") with the list of
+    what to say instead, presses nothing and **never reaches the LLM**. It is
+    matched against the COMPLETE text without punctuation, so it cannot steal
+    a match from a longer phrase: "media maquina" resolves as always.
+  - The LLM system prompt was hardened as well, on both backends: if the
+    phrase looks truncated or is one word matching several commands, call no
+    function — running the wrong command is worse than running nothing.
+  - Checked with mocks: 8 ambiguous fragments execute zero keys, and the 22
+    full commands are untouched.
+  - [ ] Live: test **#19** of `PRUEBAS.md`.
+
+- **[18/09] pydirectinput's hidden pause confirmed (test #18, steps 1-3).**
+  Setting `PAUSE = 0` landed exactly on the prediction and **no key was
+  dropped** over 3 speed cycles: 0.76s → **0.43s** for one key, 1.88s →
+  **0.65-0.69s** for "media máquina", and 0.86-0.89s for the 8 keys of "alto
+  total". Total execution cost for a full command is now under a second.
+  Pending: steps 4-5, `shift+z` and the ECM + alpha strike combo, which are
+  the cases most likely to lose a key with no pause at all.
+
 - **[17/09, later] pydirectinput was adding ~0.3s PER KEY on its own.** Found
   by reading the timings of the second session: execution was 0.76s for a
   single key and 1.88s for "media máquina" (4 keys), while our own pauses only

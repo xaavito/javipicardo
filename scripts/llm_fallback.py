@@ -110,6 +110,11 @@ inventes acciones ni parametros nuevos):
 Si la orden del capitan no coincide razonablemente con NINGUNA de estas \
 acciones, devolve exactamente: {{"accion": null}}
 
+Si la frase parece CORTADA, o es una sola palabra que encaja con varios \
+comandos distintos (por ejemplo "maquina", que puede ser media maquina o \
+toda maquina), NO adivines: devolve {{"accion": null}}. Ejecutar el comando \
+equivocado es peor que no ejecutar nada.
+
 Respondé SOLO con el JSON, nada mas."""
 
 
@@ -190,7 +195,11 @@ def _interpretar_con_openai_function_calling(texto_usuario):
                 "español (puede tener errores de transcripcion de voz). "
                 "Elegi la funcion (herramienta) que mejor represente esa "
                 "orden. Si ninguna aplica razonablemente, no llames a "
-                "ninguna funcion."
+                "ninguna funcion. Si la frase parece CORTADA o es una sola "
+                "palabra que encaja con varios comandos distintos (por "
+                "ejemplo 'maquina', que puede ser media o toda maquina), NO "
+                "adivines: no llames a ninguna funcion. Ejecutar el comando "
+                "equivocado es peor que no ejecutar nada."
             )},
             {"role": "user", "content": texto_usuario},
         ],

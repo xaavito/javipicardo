@@ -68,8 +68,15 @@ why this goes first: if keys get dropped, every other test of the day lies.
 4. "alpha strike" → it has to fire. `shift`+`z` is the most fragile one.
 5. "ataquen con todo" → ECM **and** alpha strike, both.
 
-- [ ] **Result:** ⬜ every key arrives · ⬜ some get dropped
-- [ ] `ejecucion:` one key: ______s · "media máquina": ______s
+- [x] **18/09, steps 1-3:** no key dropped over 3 speed cycles, and the
+      measurements match the prediction: **0.43s** for one key (was 0.76s),
+      **0.65-0.69s** for "media máquina" (was 1.88s), **0.86-0.89s** for
+      "alto total", which is 8 keys.
+- [ ] **Steps 4 and 5 still pending, and they are the fragile ones:**
+      "alpha strike" (`shift`+`z`) and "ataquen con todo" (ECM **and** alpha
+      strike). A modifier held across a press is the case most likely to be
+      lost with no pause at all.
+- [ ] Two more cycles of step 3, to get to the 5 asked for.
 - ⚠️ If any key gets dropped: set `PAUSA_INTERNA_PYDIRECTINPUT = 0.02` in
   `fase1_text_commands.py`, retest, then `0.05`. If it still drops, put it
   back to `0.1` and re-run `calibrar_latencia.py`.
@@ -253,6 +260,30 @@ force the fallback (the console prints "consultando al LLM").
       and 32 commands
 - Notes:
 
+### 19. Palabra suelta ambigua: que no adivine
+
+**Why it matters:** on 18/09 the STT clipped "media máquina" down to
+"Máquina.", the parser did not know it, and **the LLM guessed "cuarto de
+máquina"** — so half a word accelerated the ship. Guessing wrong is worse than
+doing nothing. A single ambiguous word now answers with the alternatives and
+presses no key, without spending an LLM call either.
+
+**How to test it:**
+1. Say just **"máquina"** → expected: `es ambiguo, no se ejecuta nada` plus
+   the list of speeds. **No** `[consultando al LLM]` line, and no reaction in
+   the game.
+2. Same with **"velocidad"**, **"objetivo"**, **"escudos"** and **"alerta"**.
+3. Then say "media máquina" and "alerta roja" in full → they have to keep
+   working exactly as before.
+4. Force a truncated phrase on purpose: start talking a beat after pressing
+   F12, so only the tail is recorded. Whatever comes out, the ship must not
+   move unless the transcription really is a full command.
+
+- [ ] **Result:** ⬜ explains and does nothing · ⬜ still fires something
+- [ ] Any other fragment the STT produces often → tell me and it goes in
+      `FRASES_AMBIGUAS`
+- Notes:
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -284,6 +315,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 18
+- **Pruebas completadas:** ____ / 19
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

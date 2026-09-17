@@ -375,6 +375,25 @@ NO_SOPORTADO = {
     },
 }
 
+# Una sola palabra puede ser compatible con varios comandos distintos, y ahi
+# NO hay que adivinar: el 18/09 el STT corto "media maquina" a "Maquina." y el
+# LLM eligio cuarto de maquina, o sea que acelero la nave por una palabra a
+# medias. Se matchea contra el texto COMPLETO (no con contiene_frase), asi que
+# "media maquina" sigue resolviendo normal; solo cae aca la palabra suelta.
+FRASES_AMBIGUAS = {
+    "maquina": ("¿Qué velocidad? 'cuarto de máquina', 'media máquina', "
+                "'tres cuartos de máquina' o 'toda máquina'."),
+    "velocidad": ("¿Qué velocidad? 'media máquina', 'toda máquina', "
+                  "'alto total', o 'velocidad al 70 por ciento'."),
+    "alerta": "¿'alerta roja'? Es la única que tiene tecla en el juego.",
+    "escudos": "¿'escudos al máximo'?",
+    "objetivo": ("¿'objetivo más cercano', 'siguiente objetivo' o "
+                 "'deseleccionar objetivo'?"),
+    "enemigo": ("¿'siguiente enemigo', 'enemigo más cercano' o 'vamos al "
+                "enemigo más cercano'?"),
+    "escudo": "¿'escudos al máximo'?",
+}
+
 # Disparo / armas
 # Nota: "ataquen" a secas se saco de FIRE_WORDS porque colisionaba con el
 # combo ALL_OUT_ATTACK_WORDS ("ataquen con todo") - ahora FIRE_WORDS requiere
@@ -685,6 +704,13 @@ def parsear_comando(texto):
     if any(contiene_frase(t, w) for w in HELP_WORDS):
         return {"action": "help", "raw": texto}
 
+    # Palabra suelta ambigua: se compara el texto COMPLETO sin puntuacion, asi
+    # que no puede robarle un match a una frase mas larga.
+    solo_palabras = re.sub(r'[^a-z0-9 ]+', '', t).strip()
+    if solo_palabras in FRASES_AMBIGUAS:
+        return {"action": "ambiguo", "motivo": FRASES_AMBIGUAS[solo_palabras],
+                "raw": texto}
+
     # Comandos que el juego NO soporta (ver NO_SOPORTADO). Se chequea MUY
     # temprano, y en particular ANTES que ALERT_WORDS: "alerta amarilla"
     # contiene la palabra "alerta", asi que si se chequeara despues correria
@@ -894,6 +920,10 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
               f"el mas cercano): {cantidad}x tecla '{tecla}' "
               f"(aproximado, ver Fase 3 para precision real)")
         _enviar_nivel_velocidad(nivel, pausa_entre_teclas)
+
+    elif tipo == "ambiguo":
+        print(f"  -> '{accion['raw']}' es ambiguo, no se ejecuta nada. "
+              f"{accion['motivo']}")
 
     elif tipo == "no_soportado":
         print(f"  -> No se puede ejecutar '{accion['raw']}': {accion['motivo']}")
