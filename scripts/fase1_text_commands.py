@@ -74,6 +74,11 @@ import ctypes
 import pydirectinput
 import pygetwindow as gw
 
+# pydirectinput pausa 0.1s despues de CADA llamada elemental (~0.3s por press):
+# medido el 17/09, era todo el costo de ejecucion que quedaba. Ver ROADMAP.
+PAUSA_INTERNA_PYDIRECTINPUT = 0.0
+pydirectinput.PAUSE = PAUSA_INTERNA_PYDIRECTINPUT
+
 # Titulo EXACTO de la ventana del juego, confirmado en pruebas reales (ver
 # scripts/probar_activar.py) corriendo pygetwindow.getAllWindows() con el
 # juego abierto via DxWnd. Se usa como primer intento de busqueda (mas
@@ -415,6 +420,8 @@ IR_A_CUALQUIERA_WORDS = [
     "vamos por cualquiera", "atacar a cualquiera",
     "vamos por otro enemigo", "busca otro enemigo",
     "elegi un enemigo", "buscar un objetivo",
+    # 17/09: "Ir a enemigo" was not recognised and the LLM answered 404.
+    "ir a enemigo", "ir al enemigo", "vamos por un enemigo",
 ]
 
 # Escudos
@@ -451,6 +458,9 @@ FOLLOW_WORDS = [
     "seguir a la amenaza", "seguir amenaza", "seguir al objetivo",
     "seguir objetivo", "seguir target", "sigan a esa nave",
     "sigan la nave", "persigan a esa nave", "perseguir nave",
+    # 17/09: "Seguir enemigo" fell to the LLM, which picked cycling instead.
+    "seguir enemigo", "seguir al enemigo", "seguir a ese enemigo",
+    "perseguir al enemigo", "persigan al enemigo",
 ]
 
 # Cycle target (T): ciclar al proximo target disponible (CUALQUIER unidad,
@@ -477,7 +487,9 @@ NEAREST_ENEMY_WORDS = ["objetivo mas cercano", "enemigo mas cercano",
                        "apunten al mas cercano", "target mas cercano"]
 
 # Deseleccionar target (\): soltar la nave que se tenia seleccionada.
-DESELECT_WORDS = ["deseleccionar objetivo", "soltar objetivo",
+DESELECT_WORDS = ["deseleccionar objetivo", "deseleccionar a objetivo",
+                  "deseleccionar el objetivo", "deseleccionar target",
+                  "soltar objetivo", "soltar el objetivo",
                   "cancelar objetivo", "olvidar objetivo"]
 
 # ---------------------------------------------------------------------------

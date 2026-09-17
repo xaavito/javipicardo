@@ -164,14 +164,16 @@ def precalentar():
     try:
         import numpy as np
         silencio = np.zeros(int(16000 * 0.1), dtype=np.float32)
-        transcribir_openai(silencio, 16000, language="es")
+        # usar_prompt=False: silence + prompt makes the model echo the prompt
+        # back, which printed a bogus warning on every startup.
+        transcribir_openai(silencio, 16000, language="es", usar_prompt=False)
         return True
     except Exception as e:
         print(f"  [!] No se pudo precalentar la conexion con OpenAI: {e}")
         return False
 
 
-def transcribir_openai(audio, sample_rate, language="es"):
+def transcribir_openai(audio, sample_rate, language="es", usar_prompt=True):
     """Recibe un array numpy float32 (mono) con el audio grabado y devuelve
     el texto transcripto usando la API de Whisper de OpenAI. Si audio esta
     vacio, devuelve "" sin llamar a la API."""
@@ -197,13 +199,13 @@ def transcribir_openai(audio, sample_rate, language="es"):
             # PROMPT_VOCABULARIO). Mejora notablemente el reconocimiento de
             # terminos como "media maquina" o "ECCM" sin costo extra de
             # latencia.
-            prompt=PROMPT_VOCABULARIO,
+            prompt=PROMPT_VOCABULARIO if usar_prompt else "",
             # temperature=0 -> transcripcion lo mas determinista posible, sin
             # que el modelo "improvise" palabras cuando el audio es ambiguo.
             temperature=0,
         )
         texto = respuesta.text.strip()
-        if es_eco_del_prompt(texto):
+        if usar_prompt and es_eco_del_prompt(texto):
             print("  [!] La API devolvio el prompt de vocabulario en vez de "
                   "una transcripcion (audio sin voz). Se descarta.")
             return ""

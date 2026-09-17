@@ -557,6 +557,42 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[17/09, later] pydirectinput was adding ~0.3s PER KEY on its own.** Found
+  by reading the timings of the second session: execution was 0.76s for a
+  single key and 1.88s for "media máquina" (4 keys), while our own pauses only
+  account for 0.3s of focus + 0.1s of console + 0.05s per key. The model that
+  fits all three measurements (1 key 0.76s, `shift+z` 1.05s, 4 keys 1.88s) is
+  **0.1s per elementary call**, which is `pydirectinput.PAUSE`: a `press()` is
+  keyDown + keyUp + wrapper, so 0.3s.
+  - Set to 0 through the new `PAUSA_INTERNA_PYDIRECTINPUT`, since our own
+    `PAUSA_ENTRE_TECLAS` already spaces the keys. Expected: one key 0.76s →
+    ~0.45s, "media maquina" 1.88s → ~0.6s.
+  - **Caveat that makes this test #18 and not a closed fix:** the calibration
+    of test #2 ran with that hidden 0.3s in place, so the real gap between
+    keys was ~0.35s, not the 0.05s we thought we had validated. With PAUSE at
+    0 the gap really is 0.05s, which was never tested — a dropped key is the
+    thing to watch, especially on the 4-key speed commands.
+
+- **[17/09, later] The echo guard fired on our own warm-up.** Working as
+  designed but noisy: `precalentar()` sends 0.1s of silence, which is exactly
+  what makes the model echo the prompt, so every startup printed the warning.
+  `transcribir_openai()` took a `usar_prompt` flag and the warm-up now calls
+  without the prompt, which also makes the warm-up cheaper (fewer tokens).
+
+- **[17/09, later] Two more synonyms lost to the LLM, one of them answered
+  wrong.** "Seguir enemigo" was not in `FOLLOW_WORDS`, went to the fallback,
+  and the LLM picked **cycling enemies** (`y`) instead of Follow Target — the
+  right key for a phrase we should never have delegated. "Deseleccionar a
+  objetivo" and "Ir a enemigo" were not recognised either. All three are in
+  the parser now. Same lesson as the shields one, twice over.
+
+- **[17/09, later] Intermittent 404 from the LLM, unresolved.** Two calls died
+  with `Error code: 404` in 0.19s while others in the same session worked in
+  0.88-1.45s, so it is not a wrong model name (that would fail every time).
+  The error message now prints the exception type, the model and the response
+  body, to have something to work with next time. Test #16 carries the steps
+  to reproduce it.
+
 - **[17/09] SERIOUS BUG: the STT echoed the vocabulary prompt back and the
   parser fired an attack combo on its own.** Reported in a live test. After a
   push-to-talk with no speech in it, the API answered with the whole
@@ -1021,3 +1057,12 @@ sesión de trabajo/prueba, independientemente de la fase.
   three independent guards, still to be confirmed live (#17). The finding that
   changes priorities: the **STT is now 60-70% of the latency**, so #13 (local
   STT) was promoted to HIGH. Full detail under the Fase 2 findings.
+- **[17/09, second session] The guards work, and a bigger latency culprit
+  turned up.** Tests #17 (echo guards, no spurious key reached the game) and
+  the pause sanity check came out clean, execution dropped from 1.45s to 0.76s
+  per key, and #8 (targeting) is almost done. Reading the numbers exposed
+  `pydirectinput.PAUSE`, which was quietly adding ~0.3s per key — set to 0,
+  and it is now test **#18**, the first thing to validate tomorrow because a
+  dropped key would invalidate the rest of the session. Also found: erratic
+  maneuvers sends its key but does nothing visible (#4), an intermittent 404
+  from the LLM, and two more missing synonyms.

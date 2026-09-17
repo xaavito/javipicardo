@@ -260,7 +260,13 @@ def interpretar_con_llm(texto_usuario, timeout_seg=10):
         else:
             raise ValueError(f"LLM_BACKEND desconocido: {LLM_BACKEND!r}")
     except Exception as e:
-        print(f"  [!] Error consultando al LLM ({LLM_BACKEND}): {e}")
+        modelo = (MODELO_LLM_OPENAI if LLM_BACKEND == "openai"
+                  else MODELO_LLM_OLLAMA)
+        detalle = getattr(e, "body", None) or getattr(e, "message", None)
+        print(f"  [!] Error consultando al LLM ({LLM_BACKEND}, modelo "
+              f"{modelo}): {type(e).__name__}: {e}")
+        if detalle:
+            print(f"      detalle: {detalle}")
         return {"action": "unknown", "raw": texto_usuario}
 
 

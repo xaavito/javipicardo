@@ -45,6 +45,35 @@ single-key command drops from ~1.45s to ~0.55s of execution.
 What is left (STT 3.12s on the first against 2.15-2.57s afterwards) is API
 variance, not lazy initialization.
 
+### 18. La pausa interna de pydirectinput (`PAUSE = 0`) — el último ahorro grande
+
+**Why it matters:** the 17/09 numbers put execution at 0.76s for one key and
+1.88s for "media máquina", far above what our own pauses explain.
+`pydirectinput` sleeps 0.1s after **every** elementary call, and a `press()`
+is three of them, so it was adding **~0.3s per key**. It is now 0, and our
+calibrated `PAUSA_ENTRE_TECLAS` does the spacing.
+
+**Careful:** the calibration in test #2 ran with that hidden 0.3s in place, so
+the real gap between keys was ~0.35s. With `PAUSE = 0` it drops to 0.05s,
+which was never tested. **A dropped key is what to watch for**, and that is
+why this goes first: if keys get dropped, every other test of the day lies.
+
+**How to test it, in this order:**
+1. "alerta roja" → the game must react. Expected `ejecucion:` ~0.45s (0.76s
+   yesterday).
+2. "alto total", then "media máquina" → **count the speed steps on the HUD**:
+   it has to land on the same speed as before, not short. Expected
+   `ejecucion:` ~0.6s (1.88s yesterday).
+3. Repeat step 2 five times. This is the risky one: 4 presses 0.05s apart.
+4. "alpha strike" → it has to fire. `shift`+`z` is the most fragile one.
+5. "ataquen con todo" → ECM **and** alpha strike, both.
+
+- [ ] **Result:** ⬜ every key arrives · ⬜ some get dropped
+- [ ] `ejecucion:` one key: ______s · "media máquina": ______s
+- ⚠️ If any key gets dropped: set `PAUSA_INTERNA_PYDIRECTINPUT = 0.02` in
+  `fase1_text_commands.py`, retest, then `0.05`. If it still drops, put it
+  back to `0.1` and re-run `calibrar_latencia.py`.
+
 ### 13. Local STT (`tiny`) vs. the API — the biggest saving left
 
 **Why it matters:** with the pauses already calibrated, the **STT is now
@@ -64,39 +93,42 @@ and should land around 0.2-0.4s, and our vocabulary is small and closed.
 - [ ] If `tiny` is not accurate enough, try `base` before going back to the API
 - Notes:
 
-### 17. Guard against the STT echoing its prompt
+### ~~17. Guard against the STT echoing its prompt~~
 
-**Why it matters:** on 17/09 the API returned the whole `PROMPT_VOCABULARIO`
-as if it were the transcription and, since that text ends with "ataquen con
-todo", the parser **fired the Alpha Strike on its own**. It is the worst kind
-of bug: a real key press in the game with nobody giving an order.
+- [x] **RESOLVED (17/09).** ✅ Both guards fired several times each
+      (`[grabacion de 0.00s...]` on taps, `[!] La API devolvio el prompt...`
+      on silent holds) and **no spurious key reached the game**.
 
-**How to test it:**
-1. Tap F12 for an instant and release it without saying anything → it must
-   print `[grabacion de 0.0Xs, demasiado corta...]` and **not** call the API.
-2. Hold F12 for ~1 second **in silence**, without speaking. If the API returns
-   the prompt, it must print `[!] La API devolvio el prompt de vocabulario...`
-   and press no key.
-3. Repeat 3-4 times and confirm the game does not react on any of them.
-
-- [ ] **Result:** ⬜ no spurious key · ⬜ something still fires
-- Notes (paste the transcription if an odd one shows up):
+Side effect found and fixed: the warm-up at startup also sends silence, so it
+printed that same warning on every run. `precalentar()` now calls the API
+without the prompt, which also makes the warm-up cheaper.
 
 ---
 
 ## 🟡 Prioridad MEDIA — funcionalidad nueva sin validar
 
-### 4. Teclas de numpad
+### 4. Numpad — "maniobras evasivas" no hace nada visible
 
-**Por qué importa:** son las que más riesgo tienen de no pasar por
-`pydirectinput`. Si fallan, caen "orbitar", "evasivas" y los dos combos.
+**Status (17/09):** the key does reach the game (the console prints
+`-> Tecla: divide`) but the ship does not visibly change how it moves. Orbit
+and Follow still have no confirmed visual either.
 
-| Comando | Tecla | ¿Funciona? |
-|---|---|---|
-| "orbitar" | `Numpad -` | [ ] |
-| "maniobras evasivas" | `Numpad /` | [ ] |
-| "seguir a esa nave" | `Numpad *` | [ ] |
+**What to check, in order:**
+1. Give the ship speed first: "media máquina". Erratic maneuvers may well do
+   nothing at speed 0.
+2. Open the **Helm Officer MFD** and watch its Erratic button while saying
+   "maniobras evasivas". If the button lights up, the key works and the effect
+   is simply subtle — it is +4 ECM, not a visible zigzag.
+3. Select a target ("objetivo más cercano") and then "orbitar" → the ship has
+   to circle it.
+4. With that target still selected, "seguir a esa nave" → it has to turn and
+   chase.
+5. If the Helm button does not light up, check Options → Hotkeys to see what
+   `Numpad /` is really bound to in this edition.
 
+- [ ] Erratic: ⬜ the MFD button lights up · ⬜ nothing at all
+- [ ] Orbit (`Numpad -`): ⬜ the ship circles · ⬜ nothing
+- [ ] Follow (`Numpad *`): ⬜ turns and chases · ⬜ nothing
 - Notas:
 
 ### 5. Memoria de targets (seguir a UNA nave concreta)
@@ -132,11 +164,12 @@ Secuencia esperada: `y` → `Numpad *` → 6× `s`
 
 | Comando | Tecla | ¿Funciona? |
 |---|---|---|
-| "siguiente enemigo" (solo enemigos) | `y` | [ ] |
-| "enemigo anterior" | `shift+y` | [ ] |
+| "siguiente enemigo" (solo enemigos) | `y` | [x] 17/09 |
+| "enemigo anterior" | `shift+y` | [x] 17/09 |
 | "objetivo anterior" | `shift+t` | [ ] |
-| "deseleccionar objetivo" | `\` | [ ] |
+| "deseleccionar objetivo" | `\` | [ ] 17/09: came out as "deseleccionar **a** objetivo" and was not recognised; synonym added, retest |
 
+- [x] "siguiente objetivo" (`t`) also confirmed working on 17/09
 - Notas:
 
 ### 9. STT nuevo: ¿mejoró precisión y latencia?
@@ -204,9 +237,15 @@ force the fallback (the console prints "consultando al LLM").
 | "pasá al siguiente hostil" | siguiente enemigo | [ ] |
 | "soltá el blanco" | deseleccionar objetivo | [ ] |
 
-- [x] **17/09 — first live run ever:** "Escudos a máximo" fell through to the
-      LLM and it picked the shields command correctly, in **1.46s**. Note that
-      phrase is no longer a fallback case: it was added to the parser.
+- [x] **17/09 — first live runs:** it declined correctly on "Me llamo Akira"
+      (no tool called) and answered "Seguir enemigo" with cycling, which was
+      **wrong** — that one is now a parser synonym for Follow Target.
+- [ ] **404s to chase:** two calls died with `Error code: 404` in 0.19s while
+      others worked in 0.88-1.45s, so it is intermittent rather than a bad
+      model name. The message now prints the exception type, the model and the
+      body. Say **"esquivá como puedas"** three times and **"che, dale una
+      vuelta alrededor de esa nave"** three times, and paste whatever the
+      `detalle:` line says.
 - [ ] **First fallback latency:** ______s · **second:** ______s
       *(the OpenAI client is cached now, so the first one should not be slower
       than the rest — write it down if it still is)*
@@ -245,6 +284,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 17
+- **Pruebas completadas:** ____ / 18
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**
