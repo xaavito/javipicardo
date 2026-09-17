@@ -71,7 +71,7 @@ def generar_catalogo():
          "Ciclar al siguiente enemigo, salteando unidades no hostiles"),
         ("deseleccionar_objetivo", fase1.DESELECT_WORDS, "\\",
          "Soltar el objetivo seleccionado, sin elegir otro"),
-        ("orbitar_objetivo", fase1.ORBIT_WORDS, "subtract",
+        ("orbitar_objetivo", fase1.ORBIT_WORDS, fase1.TECLA_ORBITAR,
          "Poner la nave en orbita alrededor del objetivo"),
         ("maniobras_evasivas", fase1.ERRATIC_WORDS, "divide",
          "Maniobras erraticas: +4 de ECM natural, a costa de nuestra "

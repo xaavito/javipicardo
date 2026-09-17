@@ -116,26 +116,55 @@ without the prompt, which also makes the warm-up cheaper.
 
 ### 4. Numpad — "maniobras evasivas" no hace nada visible
 
-**Status (17/09):** the key does reach the game (the console prints
-`-> Tecla: divide`) but the ship does not visibly change how it moves. Orbit
-and Follow still have no confirmed visual either.
+**Status (18/09):** the key reaches the game (`-> Tecla: divide`) but nothing
+visible happens and nothing appears selected. **The manual explains why it can
+look like that** (SFCfullMan pages 102 and 140), so the steps below follow
+from it rather than guessing:
 
-**What to check, in order:**
-1. Give the ship speed first: "media máquina". Erratic maneuvers may well do
-   nothing at speed 0.
-2. Open the **Helm Officer MFD** and watch its Erratic button while saying
-   "maniobras evasivas". If the button lights up, the key works and the effect
-   is simply subtle — it is +4 ECM, not a visible zigzag.
-3. Select a target ("objetivo más cercano") and then "orbitar" → the ship has
-   to circle it.
-4. With that target still selected, "seguir a esa nave" → it has to turn and
-   chase.
-5. If the Helm button does not light up, check Options → Hotkeys to see what
-   `Numpad /` is really bound to in this edition.
+- EM **costs 6 points of movement energy**: with no spare energy it does not
+  engage at all.
+- It **cannot run together with the cloaking device**, they are exclusive.
+- The effect is not a showy zigzag, it is "small, swift course changes". What
+  does show is the **restrictions**: no shuttles/fighters/missiles/plasma, no
+  mines/transporters/tractors, turn rate down by 1.
+- Turning it **off** needs the "Normal Maneuvering" button on the Helm MFD,
+  which **has no hotkey**.
+
+**How to test it, in this order:**
+1. **"cuarto de máquina"**, not full speed: EM needs 6 points of movement
+   energy spare, and at full speed there may be none.
+2. Confirm the cloak is **off** (if "camuflaje" was used earlier, EM will
+   never engage).
+3. Open the **Helm Officer MFD** and watch its Erratic button while saying
+   "maniobras evasivas". **That button is the real result of this test**: if it
+   lights up, the key works and the effect is just subtle.
+4. Say "maniobras evasivas" a second time → check whether it toggles off or
+   stays on. If it stays on, by voice we can turn it on and **not** off, which
+   decides whether it belongs in a combo at all.
+5. If the button never lights up, check Options → Hotkeys for what `Numpad /`
+   is actually bound to in this edition.
 
 - [ ] Erratic: ⬜ the MFD button lights up · ⬜ nothing at all
-- [ ] Orbit (`Numpad -`): ⬜ the ship circles · ⬜ nothing
-- [ ] Follow (`Numpad *`): ⬜ turns and chases · ⬜ nothing
+- [ ] Does saying it twice turn it off? ⬜ yes, it toggles · ⬜ no, it stays on
+
+### 4b. Orbit Target: los manuales dicen teclas distintas
+
+**Why it matters:** `SFCfullMan` p.159 says Orbit Target is Numpad **`–`**,
+while `SFCquick` p.24 says Numpad **`.`**. Both keys exist on the numpad, so
+it is not an obvious typo — and "orbitar" has never been confirmed to work in
+the game. We may have been sending the wrong key from the start.
+
+**How to test it:**
+1. "objetivo más cercano" to have a target.
+2. "orbitar" → does the ship circle it? (currently sends `subtract`)
+3. If nothing happens: set `TECLA_ORBITAR = "decimal"` in
+   `fase1_text_commands.py` and repeat step 2.
+4. Whichever of the two works, tell me and it gets written into
+   `docs/hotkeys_sfc2.md` as the confirmed one.
+
+- [ ] `subtract` (Numpad `–`): ⬜ orbits · ⬜ nothing
+- [ ] `decimal` (Numpad `.`): ⬜ orbits · ⬜ nothing
+- [ ] Follow (`Numpad *`), for the record: ⬜ turns and chases · ⬜ nothing
 - Notas:
 
 ### 5. Memoria de targets (seguir a UNA nave concreta)
@@ -315,6 +344,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 19
+- **Pruebas completadas:** ____ / 19 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

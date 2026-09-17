@@ -80,9 +80,37 @@ Otros settings interesantes del `.ini` (sección `[UI]`):
 | **A** | **Desacelerar (Slow Down)** — reduce la velocidad deseada un paso |
 | Numpad 0 | Emergency Deceleration (frenado de emergencia) |
 | Numpad 5 | Start HET (High Energy Turn) |
-| Numpad – | Orbit Target |
-| Numpad / | Erratic Maneuvers |
+| Numpad – | Orbit Target — ⚠️ ver discrepancia abajo |
+| Numpad / | Erratic Maneuvers — ⚠️ ver condiciones abajo |
 | Numpad * | Follow Target |
+
+### ⚠️ Orbit Target: los dos manuales dicen teclas distintas
+
+- `SFCfullMan.pdf` pág. 159 → **Numpad `–`** (minus / `subtract`).
+- `SFCquick.pdf` pág. 24 → **Numpad `.`** (punto / `decimal`).
+
+Las dos teclas existen en el numpad, así que no es un error de tipografía
+evidente. El parser usa `subtract` (constante `TECLA_ORBITAR` en
+`fase1_text_commands.py`); si "orbitar" no hace nada en el juego, la primera
+cosa a probar es cambiarla a `decimal`. Pendiente de confirmar en vivo.
+
+### ⚠️ Erratic Maneuvers: por qué puede "no hacer nada"
+
+Del `SFCfullMan.pdf` pág. 102 y 140 — la tecla puede llegar bien y la nave no
+hacer nada visible, porque EM tiene condiciones:
+
+- **Cuesta 6 puntos de energía de movimiento.** Si la nave no tiene energía de
+  sobra (por ejemplo a toda máquina, con todo comprometido), no engancha.
+- **No se puede usar junto con el camuflaje** (pág. 140): son excluyentes.
+- **El efecto no es un zigzag llamativo**: son "small, swift course changes".
+  Lo que sí se nota son las restricciones que impone — no se pueden lanzar
+  shuttles, fighters, misiles ni torpedos de plasma, no se pueden tirar minas
+  ni usar transportadores/rayos tractores, la tasa de giro baja en 1, y los
+  HET fallan ~17% más seguido.
+- **Para apagarlo hay que clickear "Normal Maneuvering"** en el Helm MFD
+  (ítem 12 de la pág. 9 del `SFCquick.pdf`): **no tiene hotkey**. O sea que
+  por voz se puede prender pero *no* apagar — tenerlo en cuenta antes de
+  meterlo en un combo.
 
 > Igual que documentamos antes: no hay un valor numérico fijo de "velocidad máxima"
 > en el manual — depende de la nave. S/A incrementan o decrementan de a un paso por

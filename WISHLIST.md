@@ -95,9 +95,17 @@ roja, sin avisar que descartó la segunda parte.
 
 ---
 
-## 2. Bajar más la latencia (análisis hecho, pendiente de medir en vivo)
+## 2. Bajar más la latencia
 
-Dónde se va el tiempo hoy, por comando (medido sobre el código real):
+> **Actualizado 18/09 — ya medido en vivo, no queda pendiente de estimar.**
+> La ejecución bajó de **1.75s a 0.43s** (una tecla) y a 0.65s (cuatro): se
+> calibraron las pausas (1.0s → 0.3s y 0.15s → 0.05s) y apareció un costo que
+> no estaba en esta tabla, la **pausa interna de `pydirectinput`** (0.1s por
+> llamada elemental, ~0.3s por tecla), ahora en 0. El STT medido real es
+> **1.5-3.1s**, no 0.5-1.5s, así que hoy es **el 80% de lo que queda**: ver
+> §2.2, que pasó a ser lo único con margen grande. Detalle en el ROADMAP.
+
+Dónde se iba el tiempo (tabla original, antes de medir):
 
 | Etapa | Costo actual | Notas |
 |---|---|---|
@@ -111,12 +119,15 @@ Promedio actual de la etapa de ejecución: **1.75s**. Con valores optimizados
 (0.4s de enfoque + 0.05s entre teclas) bajaría a **0.65s** — es decir, más de
 **1 segundo de ahorro por comando**, sin tocar el STT.
 
-### 2.1 Pausas (lo más rentable, y ya hay herramienta)
+### 2.1 Pausas — ✅ HECHO (18/09)
 Los valores `PAUSA_POST_ENFOQUE = 1.0` y `PAUSA_ENTRE_TECLAS = 0.15` se
 eligieron de forma **conservadora, no medida** (ver Fase 0). Se agregó
 `scripts/calibrar_latencia.py` para encontrar el mínimo seguro real en la
 máquina, probando valores decrecientes y confirmando visualmente que la nave
-reacciona. **Es lo primero que conviene hacer.**
+reacciona. **Hecho:** mínimos reales 0.2s y 0.03s, aplicados con un paso de
+margen (0.3s / 0.05s). Ojo con un detalle: esa calibración corrió con los
+~0.3s de `pydirectinput` adentro, así que el hueco real entre teclas medido
+era ~0.35s y no 0.05s.
 
 ### 2.2 Modelo de STT
 - `gpt-4o-mini-transcribe` (actual) ya es el rápido de la familia nueva.
@@ -241,5 +252,8 @@ word permite manos libres — importante si estás peleando con el mouse.
 - Perfiles de nave: que "media máquina" se calibre distinto según la clase de
   nave (relacionado con la Fase 3 del ROADMAP).
 - HET 180° para el combo de retirada: hoy "aléjense a máxima velocidad" solo
-  acelera, no gira. El HET 180° (`Numpad 5`) daría la vuelta de verdad, pero
-  estresa la nave y puede fallar — evaluar si conviene.
+  acelera, no gira. **Corrección (18/09):** `Numpad 5` no es el HET 180°, es un
+  **"Start HET"** genérico; las direcciones del HET (izquierda, derecha, 180°,
+  hard) están sólo como botones del Helm MFD, sin hotkey (`SFCquick.pdf`
+  pág. 9). O sea que el HET 180° por voz **no es posible hoy** sin control de
+  mouse. Queda a la espera de la Fase 6.

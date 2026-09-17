@@ -557,6 +557,31 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[18/09] Re-read of the manuals over erratic maneuvers, and a hotkey
+  discrepancy came out of it.** Reported live: the key arrives but nothing
+  visible happens and nothing looks selected. Extracted the text of the three
+  PDFs again looking for "erratic". Findings:
+  - **EM costs 6 points of movement energy** (SFCfullMan p.102). With no spare
+    energy it simply does not engage, which is the most likely explanation of
+    "nothing happens" — so it has to be tested at low speed, not full.
+  - **EM and the cloaking device are mutually exclusive** (p.140).
+  - The effect is "small, swift course changes", not a visible zigzag. What
+    shows is the restrictions: no shuttles/fighters/missiles/plasma, no
+    mines/transporters/tractors, turn rate down by 1, HETs ~17% more likely to
+    fail.
+  - **Turning EM off needs the "Normal Maneuvering" button of the Helm MFD**
+    (SFCquick p.9, item 12), which has **no hotkey**. By voice we can turn it
+    on and not off — that decides whether it belongs in a combo.
+  - **⚠️ The two manuals disagree on the Orbit Target key:** SFCfullMan p.159
+    says Numpad `–` (`subtract`), SFCquick p.24 says Numpad `.` (`decimal`).
+    Both keys exist on the numpad, so it is not an obvious typo, and "orbitar"
+    was never confirmed working in the game. The key moved into the
+    `TECLA_ORBITAR` constant so the alternative is a one-line change, and it
+    became test **#4b**.
+  - Also noticed, unrelated: `WISHLIST.md` claims HET 180° is `Numpad 5`, but
+    the manual maps Numpad 5 to a generic **"Start HET"** and puts the HET
+    directions (left/right/180/hard) in the Helm MFD only, without hotkeys.
+
 - **[18/09] The LLM guessed a speed out of half a word, and accelerated the
   ship.** The STT clipped "media máquina" down to "Máquina.", the rules parser
   did not know it, and the fallback answered `set_speed` level 1 (cuarto de

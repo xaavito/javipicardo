@@ -554,7 +554,12 @@ GUARDAR_TARGET_WORDS = {
 # Se maneja como comando no soportado (ver NO_SOPORTADO) hasta confirmar en
 # el juego si se le puede asignar una tecla desde Options -> Hotkeys.
 
-# Orbit Target (Numpad -): pone la nave en orbita alrededor del target.
+# OJO: los dos manuales NO coinciden en la tecla de Orbit Target. SFCfullMan
+# pag. 159 dice Numpad "–" (subtract); SFCquick pag. 24 dice Numpad "." (decimal).
+# Si "orbitar" no hace nada en el juego, probar "decimal" aca. Ver prueba #4.
+TECLA_ORBITAR = "subtract"
+
+# Orbit Target: pone la nave en orbita alrededor del target.
 ORBIT_WORDS = ["orbitar", "orbitar objetivo", "ponerse en orbita",
                "orbiten la nave", "orbitar la nave"]
 
@@ -790,7 +795,7 @@ def parsear_comando(texto):
 
     # --- Maniobras del Helm officer ---
     if any(contiene_frase(t, w) for w in ORBIT_WORDS):
-        return {"action": "key", "key": "subtract", "raw": texto}
+        return {"action": "key", "key": TECLA_ORBITAR, "raw": texto}
 
     if any(contiene_frase(t, w) for w in ERRATIC_WORDS):
         return {"action": "key", "key": "divide", "raw": texto}
