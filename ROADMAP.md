@@ -557,6 +557,32 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[18/09] Test #18 closed: `pydirectinput.PAUSE = 0` is safe, modifiers
+  included.** The two fragile steps passed in the game — "alpha strike"
+  (`shift`+`z`) and "ataquen con todo" (Max ECM + alpha strike) both work, and
+  **no key was dropped** anywhere, neither in the 4 and 8 key speed sequences
+  nor with a modifier held across a press. Final numbers: **0.43s** for one
+  key (from 0.76s), **0.65-0.69s** for "media máquina" (from 1.88s) and
+  0.86-0.89s for the 8 keys of "alto total".
+  - **The execution stage is now closed**: from the 1.75s of the original
+    estimate down to under 0.5s for a single-key command, across two findings
+    (the calibrated pauses and pydirectinput's own hidden 0.3s per key).
+  - Everything left in latency is the STT, 1.5-3.1s, which is now roughly 80%
+    of a command. Test #13 is the only big lever left.
+
+- **[18/09] Orbit Target confirmed: `subtract`, and the quickstart is wrong.**
+  Tested in the game right after the discrepancy came up: Numpad `–` does
+  orbit the selected target, so `SFCfullMan` p.159 is right and `SFCquick`
+  p.24 (Numpad `.`) is an erratum. Written into `docs/hotkeys_sfc2.md` and
+  kept in the `TECLA_ORBITAR` constant.
+  - **This narrows the erratic maneuvers question.** With Orbit (`–`) and
+    Follow (`*`) both confirmed, numpad keys demonstrably reach the game
+    through `pydirectinput`, so "maniobras evasivas" doing nothing is **not**
+    a key delivery or hotkey problem. What is left is the conditions of EM:
+    6 points of movement energy spare, and no cloak active.
+  - Third of the three manoeuvre keys confirmed working end to end, after
+    Follow on 13/09. Only the effect of `/` is in question, not the plumbing.
+
 - **[18/09] Re-read of the manuals over erratic maneuvers, and a hotkey
   discrepancy came out of it.** Reported live: the key arrives but nothing
   visible happens and nothing looks selected. Extracted the text of the three

@@ -554,9 +554,8 @@ GUARDAR_TARGET_WORDS = {
 # Se maneja como comando no soportado (ver NO_SOPORTADO) hasta confirmar en
 # el juego si se le puede asignar una tecla desde Options -> Hotkeys.
 
-# OJO: los dos manuales NO coinciden en la tecla de Orbit Target. SFCfullMan
-# pag. 159 dice Numpad "–" (subtract); SFCquick pag. 24 dice Numpad "." (decimal).
-# Si "orbitar" no hace nada en el juego, probar "decimal" aca. Ver prueba #4.
+# CONFIRMADO en el juego (18/09): Numpad "–" orbita. SFCquick pag. 24 dice
+# Numpad "." y esta equivocado; vale SFCfullMan pag. 159.
 TECLA_ORBITAR = "subtract"
 
 # Orbit Target: pone la nave en orbita alrededor del target.

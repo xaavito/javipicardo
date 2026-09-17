@@ -80,19 +80,23 @@ Otros settings interesantes del `.ini` (sección `[UI]`):
 | **A** | **Desacelerar (Slow Down)** — reduce la velocidad deseada un paso |
 | Numpad 0 | Emergency Deceleration (frenado de emergencia) |
 | Numpad 5 | Start HET (High Energy Turn) |
-| Numpad – | Orbit Target — ⚠️ ver discrepancia abajo |
+| Numpad – | Orbit Target — ✅ confirmado en el juego (18/09) |
 | Numpad / | Erratic Maneuvers — ⚠️ ver condiciones abajo |
 | Numpad * | Follow Target |
 
-### ⚠️ Orbit Target: los dos manuales dicen teclas distintas
+### ✅ Orbit Target: era Numpad `–`, el quickstart está mal
 
-- `SFCfullMan.pdf` pág. 159 → **Numpad `–`** (minus / `subtract`).
-- `SFCquick.pdf` pág. 24 → **Numpad `.`** (punto / `decimal`).
+Los dos manuales decían teclas distintas: `SFCfullMan.pdf` pág. 159 daba
+Numpad **`–`** (`subtract`) y `SFCquick.pdf` pág. 24 daba Numpad **`.`**
+(`decimal`). **Probado en el juego el 18/09: `subtract` orbita.** Vale la
+pág. 159; la del quickstart es errata. El parser lo tiene en la constante
+`TECLA_ORBITAR` de `fase1_text_commands.py`.
 
-Las dos teclas existen en el numpad, así que no es un error de tipografía
-evidente. El parser usa `subtract` (constante `TECLA_ORBITAR` en
-`fase1_text_commands.py`); si "orbitar" no hace nada en el juego, la primera
-cosa a probar es cambiarla a `decimal`. Pendiente de confirmar en vivo.
+**Corolario importante:** con Orbit (`–`) y Follow (`*`) los dos confirmados,
+queda probado que **las teclas del numpad sí llegan al juego** vía
+`pydirectinput`. O sea que si "maniobras evasivas" (`/`) no hace nada, **no es
+un problema de que la tecla no llegue** — es por las condiciones de EM
+(energía de movimiento, camuflaje) que se documentan abajo.
 
 ### ⚠️ Erratic Maneuvers: por qué puede "no hacer nada"
 

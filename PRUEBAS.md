@@ -45,7 +45,7 @@ single-key command drops from ~1.45s to ~0.55s of execution.
 What is left (STT 3.12s on the first against 2.15-2.57s afterwards) is API
 variance, not lazy initialization.
 
-### 18. La pausa interna de pydirectinput (`PAUSE = 0`) — el último ahorro grande
+### ~~18. La pausa interna de pydirectinput (`PAUSE = 0`)~~ — RESUELTA
 
 **Why it matters:** the 17/09 numbers put execution at 0.76s for one key and
 1.88s for "media máquina", far above what our own pauses explain.
@@ -68,18 +68,21 @@ why this goes first: if keys get dropped, every other test of the day lies.
 4. "alpha strike" → it has to fire. `shift`+`z` is the most fragile one.
 5. "ataquen con todo" → ECM **and** alpha strike, both.
 
-- [x] **18/09, steps 1-3:** no key dropped over 3 speed cycles, and the
-      measurements match the prediction: **0.43s** for one key (was 0.76s),
-      **0.65-0.69s** for "media máquina" (was 1.88s), **0.86-0.89s** for
-      "alto total", which is 8 keys.
-- [ ] **Steps 4 and 5 still pending, and they are the fragile ones:**
-      "alpha strike" (`shift`+`z`) and "ataquen con todo" (ECM **and** alpha
-      strike). A modifier held across a press is the case most likely to be
-      lost with no pause at all.
-- [ ] Two more cycles of step 3, to get to the 5 asked for.
-- ⚠️ If any key gets dropped: set `PAUSA_INTERNA_PYDIRECTINPUT = 0.02` in
-  `fase1_text_commands.py`, retest, then `0.05`. If it still drops, put it
-  back to `0.1` and re-run `calibrar_latencia.py`.
+- [x] **RESUELTA (18/09), los 5 pasos.** ✅ **Ninguna tecla se perdió**, ni en
+      las secuencias de velocidad ni con modificador: "alpha strike"
+      (`shift`+`z`) y "ataquen con todo" (ECM + alpha strike) andan los dos,
+      que eran los casos frágiles.
+- [x] **Mediciones, clavadas en lo predicho:** **0.43s** una tecla (era
+      0.76s), **0.65-0.69s** "media máquina" (era 1.88s), **0.86-0.89s** "alto
+      total", que son 8 teclas.
+
+Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
+0.5s** en un comando de una tecla. Todo lo que queda de latencia es el STT
+(prueba #13).
+
+> Si alguna vez empieza a perderse una tecla: `PAUSA_INTERNA_PYDIRECTINPUT` en
+> `fase1_text_commands.py`, subirla a `0.02`, después `0.05`, y en último caso
+> volver a `0.1` y re-correr `calibrar_latencia.py`.
 
 ### 13. Local STT (`tiny`) vs. the API — the biggest saving left
 
@@ -117,9 +120,10 @@ without the prompt, which also makes the warm-up cheaper.
 ### 4. Numpad — "maniobras evasivas" no hace nada visible
 
 **Status (18/09):** the key reaches the game (`-> Tecla: divide`) but nothing
-visible happens and nothing appears selected. **The manual explains why it can
-look like that** (SFCfullMan pages 102 and 140), so the steps below follow
-from it rather than guessing:
+visible happens and nothing appears selected. Two hypotheses were on the
+table, and **#4b killed one of them**: numpad keys do arrive (Orbit and Follow
+both work), so this is not about key delivery. What is left is the conditions
+the manual puts on EM (SFCfullMan pages 102 and 140):
 
 - EM **costs 6 points of movement energy**: with no spare energy it does not
   engage at all.
@@ -141,31 +145,24 @@ from it rather than guessing:
 4. Say "maniobras evasivas" a second time → check whether it toggles off or
    stays on. If it stays on, by voice we can turn it on and **not** off, which
    decides whether it belongs in a combo at all.
-5. If the button never lights up, check Options → Hotkeys for what `Numpad /`
-   is actually bound to in this edition.
+5. If the button never lights up even at low speed with no cloak, then the
+   binding is the last suspect: check Options → Hotkeys for what `Numpad /` is
+   actually bound to in this edition. Note this is now unlikely, since the
+   other two numpad keys do work.
 
 - [ ] Erratic: ⬜ the MFD button lights up · ⬜ nothing at all
 - [ ] Does saying it twice turn it off? ⬜ yes, it toggles · ⬜ no, it stays on
 
-### 4b. Orbit Target: los manuales dicen teclas distintas
+### ~~4b. Orbit Target: los manuales dicen teclas distintas~~
 
-**Why it matters:** `SFCfullMan` p.159 says Orbit Target is Numpad **`–`**,
-while `SFCquick` p.24 says Numpad **`.`**. Both keys exist on the numpad, so
-it is not an obvious typo — and "orbitar" has never been confirmed to work in
-the game. We may have been sending the wrong key from the start.
+- [x] **RESUELTA (18/09): `subtract` (Numpad `–`) orbita.** ✅ Vale
+      `SFCfullMan` p.159; el `.` de `SFCquick` p.24 es errata. Escrito en
+      `docs/hotkeys_sfc2.md` y en la constante `TECLA_ORBITAR`.
 
-**How to test it:**
-1. "objetivo más cercano" to have a target.
-2. "orbitar" → does the ship circle it? (currently sends `subtract`)
-3. If nothing happens: set `TECLA_ORBITAR = "decimal"` in
-   `fase1_text_commands.py` and repeat step 2.
-4. Whichever of the two works, tell me and it gets written into
-   `docs/hotkeys_sfc2.md` as the confirmed one.
-
-- [ ] `subtract` (Numpad `–`): ⬜ orbits · ⬜ nothing
-- [ ] `decimal` (Numpad `.`): ⬜ orbits · ⬜ nothing
-- [ ] Follow (`Numpad *`), for the record: ⬜ turns and chases · ⬜ nothing
-- Notas:
+**Corolario que acota la #4:** con Orbit (`–`) y Follow (`*`) confirmados,
+**las teclas del numpad sí llegan al juego**. Si "maniobras evasivas" (`/`) no
+hace nada, ya no hay que sospechar de `pydirectinput` ni del hotkey — queda
+sólo la hipótesis de las condiciones de EM.
 
 ### 5. Memoria de targets (seguir a UNA nave concreta)
 
