@@ -557,6 +557,67 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[17/09] SERIOUS BUG: the STT echoed the vocabulary prompt back and the
+  parser fired an attack combo on its own.** Reported in a live test. After a
+  push-to-talk with no speech in it, the API answered with the whole
+  `PROMPT_VOCABULARIO` as if it were the transcription. That text **ends with
+  "ataquen con todo"**, so `parsear_comando()` matched it and fired Max ECM +
+  Alpha Strike **with nobody giving an order**.
+  - It is a known failure mode of the transcription models: given audio
+    without speech, they return the `prompt` they were handed. The underlying
+    cause on our side is that the parser matches a command **anywhere** in
+    the text, so any long spurious transcription can end up pressing a real
+    key.
+  - **Three independent guards added:**
+    1. `stt_openai.es_eco_del_prompt()`: if the answer is a long verbatim
+       chunk of the prompt, or >=85% of its words belong to the prompt with
+       >=12 words, it is dropped and `transcribir_openai()` returns `""`.
+    2. `MIN_DURACION_AUDIO_SEG = 0.3` in Fase 2: a tap on F12 never reaches
+       the API, which saves the round-trip and the cost as well as the risk.
+    3. `MAX_CARACTERES_COMANDO = 150` in Fase 2: no transcription longer
+       than that reaches the parser. This also covers the usual
+       hallucinations on silence, which look nothing like the prompt.
+  - Checked with mocks: the bug was reproduced (the echo parses as
+    `combo/ataque_total`) and with the guard in place the transcription comes
+    back empty and **no key is sent**. Confirmed it does not touch the normal
+    cases ("alerta roja", "media maquina", "seguir a esa nave", nor a long
+    chained phrase of real commands).
+  - [ ] Still to confirm live: test **#17** of `PRUEBAS.md`.
+
+- **[17/09] Pauses calibrated on the real machine (test #2 resolved).** The
+  minimums that worked were `PAUSA_POST_ENFOQUE` **0.2s** and
+  `PAUSA_ENTRE_TECLAS` **0.03s**; they were applied one step above, at
+  **0.3s** and **0.05s**. Real saving: ~0.7s on every command and ~1.7s on
+  the 8-key ones (a single-key command goes from ~1.45s to ~0.55s of
+  execution). The original 1.0s, picked by eye back in Fase 0, was **5 times**
+  the minimum.
+
+- **[17/09] First-command delay: closed (test #3 resolved).** With the
+  warm-up, the **execution** stage is a constant 1.45s from the very first
+  command, and the 4.23s of API connection are paid at startup instead. The
+  difference left (STT 3.12s on the first against 2.15-2.57s afterwards) is
+  API variance, not lazy initialization.
+
+- **[17/09] The STT is now the bottleneck, by a wide margin.** Measured live:
+  1.7-3.1s of STT out of a 3.5-5.8s total, that is **60-70% of the time**,
+  well above the 0.5-1.5s the README estimated for the cloud backend. With
+  the pauses already calibrated, everything left to win is there:
+  `faster-whisper` with `tiny` should land around 0.2-0.4s and pays no
+  network. That is why test **#13 was promoted to HIGH priority** in
+  `PRUEBAS.md` (it was LOW).
+
+- **[17/09] "escudos a maximo" fell through to the LLM over a missing
+  synonym.** The STT transcribed exactly what was said ("Escudos a máximo."),
+  but `SHIELD_MAX_WORDS` only had "escudos al maximo" (with the "l"), so it
+  went to the fallback: 1.46s and one API call for something the rules parser
+  answers in microseconds. The variants were added ("escudos a maximo",
+  "subir escudos", "levantar escudos", "escudos arriba", "refuercen
+  escudos"). General lesson: **when something falls through to the LLM, look
+  for a missing synonym first** before accepting the fallback as the answer.
+  - Side note: this was the first live run of the LLM fallback ever, and it
+    picked the shields command correctly, so Fase 4 got validated end to end
+    by accident.
+
 - **[12/09] Combos nuevos: "buscar objetivo + rumbo + velocidad" en una orden.**
   Pedido concreto: un comando que busque un objetivo (el más cercano o
   cualquiera), le ponga rumbo y acelere hacia él, sin tener que encadenar tres
@@ -952,3 +1013,11 @@ sesión de trabajo/prueba, independientemente de la fase.
   schema is cached; (3) "velocidad al N por ciento" was understood but sent no
   key — it now rounds to the closest level. Detail under Fase 3 and Fase 4.
   Still to validate live: tests **#15 and #16** of `PRUEBAS.md`.
+- **[17/09] First testing session on the Windows machine with the new code.**
+  Tests #2 (pauses calibrated: 1.0s → 0.3s), #3 (first-command delay closed)
+  and #14 (F12 does not collide) were resolved, and #9 (STT) moved forward.
+  **A serious bug came out**: the STT echoed the vocabulary prompt as a
+  transcription and the parser fired an Alpha Strike on its own — fixed with
+  three independent guards, still to be confirmed live (#17). The finding that
+  changes priorities: the **STT is now 60-70% of the latency**, so #13 (local
+  STT) was promoted to HIGH. Full detail under the Fase 2 findings.

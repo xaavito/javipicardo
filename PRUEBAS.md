@@ -27,33 +27,60 @@ que tenemos. Los combos #6 y #7 quedan validados en su paso de rumbo.
 > Consecuencia: baja la urgencia de la Fase 6 (rumbo por click con mouse), que
 > era el plan previsto para resolver el direccionamiento.
 
-### 2. Calibrar las pausas (el mayor ahorro de latencia disponible)
+### ~~2. Calibrar las pausas~~
 
-**Por qué importa:** hoy se pierden ~1.75s por comando en pausas fijas que
-**nunca se midieron** (se eligieron conservadoras en la Fase 0). El ahorro
-estimado es de **más de 1 segundo por comando**.
+- [x] **RESOLVED (17/09).** ✅ Minimums that worked: `PAUSA_POST_ENFOQUE`
+      **0.2s** and `PAUSA_ENTRE_TECLAS` **0.03s**. Applied one step above, at
+      **0.3s / 0.05s**.
 
-**Cómo probarlo:**
-```
-python calibrar_latencia.py
-```
-Sigue las instrucciones: manda teclas y pregunta si la nave reaccionó.
+Real saving: ~0.7s on **every** command and ~1.7s on the 8-key ones. A
+single-key command drops from ~1.45s to ~0.55s of execution.
 
-- [ ] **Resultado:** `PAUSA_POST_ENFOQUE` = ______ · `PAUSA_ENTRE_TECLAS` = ______
-- [ ] Valores aplicados en `fase1_text_commands.py`
-- Notas:
+### ~~3. ¿Se arregló el delay del primer comando?~~
 
-### 3. ¿Se arregló el delay del primer comando?
+- [x] **RESOLVED (17/09).** ✅ The warm-up does its job: it absorbs the 4.23s
+      of API connection at startup, and **execution** is a constant 1.45s from
+      the very first command.
 
-**Qué se cambió:** cliente de OpenAI cacheado, micrófono y ventana
-precalentados al arrancar (`precalentar_todo()`).
+What is left (STT 3.12s on the first against 2.15-2.57s afterwards) is API
+variance, not lazy initialization.
 
-**Cómo probarlo:** arrancar `fase2_voice_commands.py` y dar 3-4 comandos
-seguidos, mirando la línea `[tiempos]` de cada uno.
+### 13. Local STT (`tiny`) vs. the API — the biggest saving left
 
-- [ ] **Resultado:** 1er comando: ______s · 2do: ______s · 3ro: ______s
-- [ ] ¿Sigue habiendo diferencia notable con el primero? ⬜ sí · ⬜ no
-- Notas:
+**Why it matters:** with the pauses already calibrated, the **STT is now
+60-70% of the total** (1.7-3.1s out of 3.5-5.8s). The API sits well above the
+0.5-1.5s estimate. `faster-whisper` with `tiny` drops the network round-trip
+and should land around 0.2-0.4s, and our vocabulary is small and closed.
+
+**How to test it:**
+1. `pip install faster-whisper` (if it is not installed).
+2. In `fase2_voice_commands.py`: `STT_BACKEND = "local"` and
+   `MODEL_SIZE = "tiny"`.
+3. First run downloads the model (~75MB, once, needs internet).
+4. Say the same 5 phrases as test #9 and compare the `STT:` field.
+
+- [ ] **Latency with local `tiny`:** ______s (vs. ~2.3s on the API)
+- [ ] Is the accuracy enough for our vocabulary? ⬜ yes · ⬜ no
+- [ ] If `tiny` is not accurate enough, try `base` before going back to the API
+- Notes:
+
+### 17. Guard against the STT echoing its prompt
+
+**Why it matters:** on 17/09 the API returned the whole `PROMPT_VOCABULARIO`
+as if it were the transcription and, since that text ends with "ataquen con
+todo", the parser **fired the Alpha Strike on its own**. It is the worst kind
+of bug: a real key press in the game with nobody giving an order.
+
+**How to test it:**
+1. Tap F12 for an instant and release it without saying anything → it must
+   print `[grabacion de 0.0Xs, demasiado corta...]` and **not** call the API.
+2. Hold F12 for ~1 second **in silence**, without speaking. If the API returns
+   the prompt, it must print `[!] La API devolvio el prompt de vocabulario...`
+   and press no key.
+3. Repeat 3-4 times and confirm the game does not react on any of them.
+
+- [ ] **Result:** ⬜ no spurious key · ⬜ something still fires
+- Notes (paste the transcription if an odd one shows up):
 
 ---
 
@@ -121,13 +148,15 @@ juego vía `prompt`, + `temperature=0`.
 
 | Frase dicha | ¿Transcribió bien? |
 |---|---|
-| "media máquina" | [ ] |
-| "alerta roja" | [ ] |
-| "alpha strike" | [ ] |
-| "escudos al máximo" | [ ] |
+| "media máquina" | [x] 17/09 |
+| "alerta roja" | [x] 17/09 |
+| "alpha strike" | [x] 17/09 |
+| "escudos al máximo" | [x] 17/09 — came out as "escudos **a** máximo", which the parser did not have; added as a synonym |
 | "maniobras evasivas" | [ ] |
 
-- [ ] **Latencia STT promedio:** ______s (de la línea `[tiempos]`)
+- [x] **Average STT latency:** ~2.3s (1.7-3.1s) — **well above** the estimate,
+      see test #13
+- [ ] Only "maniobras evasivas" left
 - Notas (palabras que sigue transcribiendo mal → agregar a
   `PROMPT_VOCABULARIO`):
 
@@ -175,6 +204,9 @@ force the fallback (the console prints "consultando al LLM").
 | "pasá al siguiente hostil" | siguiente enemigo | [ ] |
 | "soltá el blanco" | deseleccionar objetivo | [ ] |
 
+- [x] **17/09 — first live run ever:** "Escudos a máximo" fell through to the
+      LLM and it picked the shields command correctly, in **1.46s**. Note that
+      phrase is no longer a fallback case: it was added to the parser.
 - [ ] **First fallback latency:** ______s · **second:** ______s
       *(the OpenAI client is cached now, so the first one should not be slower
       than the rest — write it down if it still is)*
@@ -203,25 +235,16 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 - [ ] **Resultado:** ⬜ funciona sin foco · ⬜ necesita foco sí o sí
 - Notas:
 
-### 13. Comparar STT local vs. API
+### ~~14. F12 no colisiona con el juego~~
 
-Cambiar `STT_BACKEND = "local"` y `MODEL_SIZE = "tiny"` en
-`fase2_voice_commands.py`.
-
-- [ ] Latencia con `tiny` local: ______s (vs. ______s de la API)
-- [ ] ¿La precisión alcanza para nuestro vocabulario? ⬜ sí · ⬜ no
-- Notas:
-
-### 14. F12 no colisiona con el juego
-
-- [ ] Confirmar que mantener `F12` no dispara ninguna acción en el juego
-- Notas:
+- [x] **RESOLVED in practice (17/09):** ~8 voice commands in a row holding
+      F12, with no odd effect in the game.
 
 ---
 
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 16
+- **Pruebas completadas:** ____ / 17
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

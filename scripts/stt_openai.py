@@ -39,6 +39,8 @@ COMO INSTALAR:
 
 import io
 import os
+import re
+import unicodedata
 
 import soundfile as sf
 from openai import OpenAI
@@ -96,6 +98,46 @@ def _cliente():
             )
         _cliente_cacheado = OpenAI(api_key=api_key)
     return _cliente_cacheado
+
+
+def _normalizar_para_comparar(texto):
+    """Lowercase, no accents, no punctuation, single spaces."""
+    texto = texto.lower().strip()
+    texto = "".join(c for c in unicodedata.normalize("NFD", texto)
+                    if unicodedata.category(c) != "Mn")
+    texto = re.sub(r"[^a-z0-9 ]+", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def es_eco_del_prompt(texto):
+    """True when the model echoed PROMPT_VOCABULARIO back instead of
+    transcribing speech.
+
+    Seen live on 17/09: after a push-to-talk tap with no speech in it, the API
+    answered with the vocabulary prompt word for word. That text ENDS with
+    "ataquen con todo", so the rules parser matched it and fired the Alpha
+    Strike combo on its own. Any transcription that is mostly prompt text has
+    to be dropped before it reaches the parser.
+    """
+    t = _normalizar_para_comparar(texto)
+    if not t:
+        return False
+
+    p = _normalizar_para_comparar(PROMPT_VOCABULARIO)
+
+    # A long verbatim chunk of the prompt came back.
+    if len(t) >= 40 and t in p:
+        return True
+
+    # Or almost every word of the answer belongs to the prompt. The threshold
+    # is high on purpose: a real order is never this long.
+    palabras = t.split()
+    if len(palabras) >= 12:
+        del_prompt = sum(1 for w in palabras if w in set(p.split()))
+        if del_prompt / len(palabras) >= 0.85:
+            return True
+
+    return False
 
 
 def obtener_cliente():
@@ -160,7 +202,12 @@ def transcribir_openai(audio, sample_rate, language="es"):
             # que el modelo "improvise" palabras cuando el audio es ambiguo.
             temperature=0,
         )
-        return respuesta.text.strip()
+        texto = respuesta.text.strip()
+        if es_eco_del_prompt(texto):
+            print("  [!] La API devolvio el prompt de vocabulario en vez de "
+                  "una transcripcion (audio sin voz). Se descarta.")
+            return ""
+        return texto
     except Exception as e:
         print(f"  [!] Error transcribiendo con OpenAI: {e}")
         return ""

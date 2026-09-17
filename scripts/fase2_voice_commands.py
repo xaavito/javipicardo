@@ -150,6 +150,16 @@ EXIT_KEY = "esc"
 SAMPLE_RATE = 16000  # Hz, el que espera Whisper
 CHANNELS = 1
 
+# Below this many seconds the recording is a push-to-talk tap, not an order.
+# It is not sent to the API: an audio with no speech makes the model answer
+# with the vocabulary prompt itself (see es_eco_del_prompt in stt_openai.py).
+MIN_DURACION_AUDIO_SEG = 0.3
+
+# A spoken order is short. Anything longer than this is a hallucination or an
+# echo, and it must not reach the parser: the parser matches a command ANYWHERE
+# in the text, so a long spurious transcription can fire a real key.
+MAX_CARACTERES_COMANDO = 150
+
 
 # ---------------------------------------------------------------------------
 # Captura de audio mientras se mantiene apretada la tecla de push-to-talk
@@ -308,11 +318,24 @@ def main():
         if keyboard.is_pressed(PUSH_TO_TALK_KEY):
             t0 = time.time()
             audio = grabar_mientras_se_mantiene_apretada(PUSH_TO_TALK_KEY)
+
+            duracion = audio.size / SAMPLE_RATE
+            if duracion < MIN_DURACION_AUDIO_SEG:
+                print(f"[grabacion de {duracion:.2f}s, demasiado corta para "
+                      f"ser una orden - no se manda al STT]\n")
+                continue
+
             texto = transcribir(modelo, audio)
             t1 = time.time()
 
             if not texto:
                 print("[no se entendio nada, probá de nuevo]\n")
+                continue
+
+            if len(texto) > MAX_CARACTERES_COMANDO:
+                print(f"Transcripcion descartada por ser demasiado larga "
+                      f"({len(texto)} caracteres) - no parece una orden:")
+                print(f"  \"{texto[:120]}...\"\n")
                 continue
 
             print(f"Transcripcion: \"{texto}\"  (STT: {t1 - t0:.2f}s)")

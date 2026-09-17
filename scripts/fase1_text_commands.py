@@ -103,17 +103,15 @@ DEBUG_VENTANA = False
 # Windows ya marcaba la ventana como "activa" - haciendo falta una pausa mas
 # larga para que el juego "asiente" el cambio de foco internamente.
 #
-# OPTIMIZACION DE LATENCIA: este es el mayor costo fijo de cada comando (1s
-# que se paga SIEMPRE). El 1.0 se eligio de forma conservadora, no medida -
-# el valor minimo seguro real puede ser bastante menor. Usar
-# `python calibrar_latencia.py` para encontrarlo empiricamente en la maquina
-# real, y ajustar aca. Cada 0.1s que se baje, se ahorra 0.1s en CADA comando.
-PAUSA_POST_ENFOQUE = 1.0
+# Measured with calibrar_latencia.py on the real machine (17/09): 0.2s still
+# worked, so 0.3s keeps one step of margin. Re-run the calibrator if the
+# machine or the DxWnd setup changes.
+PAUSA_POST_ENFOQUE = 0.3
 
 # Pausa entre teclas consecutivas dentro de un mismo comando. Importa mucho
-# en los comandos de velocidad y combos, que mandan hasta 8 teclas: a 0.15s
-# son 1.2s solo de pausas. Tambien calibrable con calibrar_latencia.py.
-PAUSA_ENTRE_TECLAS = 0.15
+# en los comandos de velocidad y combos, que mandan hasta 8 teclas.
+# Measured on 17/09: 0.03s still worked, 0.05s keeps one step of margin.
+PAUSA_ENTRE_TECLAS = 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +418,11 @@ IR_A_CUALQUIERA_WORDS = [
 ]
 
 # Escudos
-SHIELD_MAX_WORDS = ["escudos al maximo", "reforzar escudos", "maximo escudo"]
+# "escudos a maximo" (without the "l") reached the LLM fallback in the 17/09
+# live test: the STT transcribes what was said, so the variants have to be here.
+SHIELD_MAX_WORDS = ["escudos al maximo", "escudos a maximo", "reforzar escudos",
+                    "refuercen escudos", "maximo escudo", "subir escudos",
+                    "levantar escudos", "escudos arriba"]
 
 # Camuflaje
 CLOAK_WORDS = ["camuflaje", "cloaking", "activar camuflaje", "modo sigilo"]
