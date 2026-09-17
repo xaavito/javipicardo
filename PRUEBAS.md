@@ -68,7 +68,7 @@ why this goes first: if keys get dropped, every other test of the day lies.
 4. "alpha strike" → it has to fire. `shift`+`z` is the most fragile one.
 5. "ataquen con todo" → ECM **and** alpha strike, both.
 
-- [x] **RESUELTA (18/09), los 5 pasos.** ✅ **Ninguna tecla se perdió**, ni en
+- [x] **RESUELTA (17/09), los 5 pasos.** ✅ **Ninguna tecla se perdió**, ni en
       las secuencias de velocidad ni con modificador: "alpha strike"
       (`shift`+`z`) y "ataquen con todo" (ECM + alpha strike) andan los dos,
       que eran los casos frágiles.
@@ -119,7 +119,7 @@ without the prompt, which also makes the warm-up cheaper.
 
 ### 4. Numpad — "maniobras evasivas" no hace nada visible
 
-**Status (18/09):** the key reaches the game (`-> Tecla: divide`) but nothing
+**Status (17/09):** the key reaches the game (`-> Tecla: divide`) but nothing
 visible happens and nothing appears selected. Two hypotheses were on the
 table, and **#4b killed one of them**: numpad keys do arrive (Orbit and Follow
 both work), so this is not about key delivery. What is left is the conditions
@@ -155,7 +155,7 @@ the manual puts on EM (SFCfullMan pages 102 and 140):
 
 ### ~~4b. Orbit Target: los manuales dicen teclas distintas~~
 
-- [x] **RESUELTA (18/09): `subtract` (Numpad `–`) orbita.** ✅ Vale
+- [x] **RESUELTA (17/09): `subtract` (Numpad `–`) orbita.** ✅ Vale
       `SFCfullMan` p.159; el `.` de `SFCquick` p.24 es errata. Escrito en
       `docs/hotkeys_sfc2.md` y en la constante `TECLA_ORBITAR`.
 
@@ -288,7 +288,7 @@ force the fallback (the console prints "consultando al LLM").
 
 ### 19. Palabra suelta ambigua: que no adivine
 
-**Why it matters:** on 18/09 the STT clipped "media máquina" down to
+**Why it matters:** on 17/09 the STT clipped "media máquina" down to
 "Máquina.", the parser did not know it, and **the LLM guessed "cuarto de
 máquina"** — so half a word accelerated the ship. Guessing wrong is worse than
 doing nothing. A single ambiguous word now answers with the alternatives and

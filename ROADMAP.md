@@ -557,7 +557,7 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
-- **[18/09] Test #18 closed: `pydirectinput.PAUSE = 0` is safe, modifiers
+- **[17/09] Test #18 closed: `pydirectinput.PAUSE = 0` is safe, modifiers
   included.** The two fragile steps passed in the game — "alpha strike"
   (`shift`+`z`) and "ataquen con todo" (Max ECM + alpha strike) both work, and
   **no key was dropped** anywhere, neither in the 4 and 8 key speed sequences
@@ -570,7 +570,7 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
   - Everything left in latency is the STT, 1.5-3.1s, which is now roughly 80%
     of a command. Test #13 is the only big lever left.
 
-- **[18/09] Orbit Target confirmed: `subtract`, and the quickstart is wrong.**
+- **[17/09] Orbit Target confirmed: `subtract`, and the quickstart is wrong.**
   Tested in the game right after the discrepancy came up: Numpad `–` does
   orbit the selected target, so `SFCfullMan` p.159 is right and `SFCquick`
   p.24 (Numpad `.`) is an erratum. Written into `docs/hotkeys_sfc2.md` and
@@ -583,7 +583,7 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
   - Third of the three manoeuvre keys confirmed working end to end, after
     Follow on 13/09. Only the effect of `/` is in question, not the plumbing.
 
-- **[18/09] Re-read of the manuals over erratic maneuvers, and a hotkey
+- **[17/09] Re-read of the manuals over erratic maneuvers, and a hotkey
   discrepancy came out of it.** Reported live: the key arrives but nothing
   visible happens and nothing looks selected. Extracted the text of the three
   PDFs again looking for "erratic". Findings:
@@ -608,7 +608,7 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     the manual maps Numpad 5 to a generic **"Start HET"** and puts the HET
     directions (left/right/180/hard) in the Helm MFD only, without hotkeys.
 
-- **[18/09] The LLM guessed a speed out of half a word, and accelerated the
+- **[17/09] The LLM guessed a speed out of half a word, and accelerated the
   ship.** The STT clipped "media máquina" down to "Máquina.", the rules parser
   did not know it, and the fallback answered `set_speed` level 1 (cuarto de
   máquina) — a real key sequence out of an ambiguous fragment, plus 2.43s of
@@ -626,7 +626,7 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     full commands are untouched.
   - [ ] Live: test **#19** of `PRUEBAS.md`.
 
-- **[18/09] pydirectinput's hidden pause confirmed (test #18, steps 1-3).**
+- **[17/09] pydirectinput's hidden pause confirmed (test #18, steps 1-3).**
   Setting `PAUSE = 0` landed exactly on the prediction and **no key was
   dropped** over 3 speed cycles: 0.76s → **0.43s** for one key, 1.88s →
   **0.65-0.69s** for "media máquina", and 0.86-0.89s for the 8 keys of "alto

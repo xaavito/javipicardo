@@ -97,7 +97,7 @@ roja, sin avisar que descartó la segunda parte.
 
 ## 2. Bajar más la latencia
 
-> **Actualizado 18/09 — ya medido en vivo, no queda pendiente de estimar.**
+> **Actualizado 17/09 — ya medido en vivo, no queda pendiente de estimar.**
 > La ejecución bajó de **1.75s a 0.43s** (una tecla) y a 0.65s (cuatro): se
 > calibraron las pausas (1.0s → 0.3s y 0.15s → 0.05s) y apareció un costo que
 > no estaba en esta tabla, la **pausa interna de `pydirectinput`** (0.1s por
@@ -119,7 +119,7 @@ Promedio actual de la etapa de ejecución: **1.75s**. Con valores optimizados
 (0.4s de enfoque + 0.05s entre teclas) bajaría a **0.65s** — es decir, más de
 **1 segundo de ahorro por comando**, sin tocar el STT.
 
-### 2.1 Pausas — ✅ HECHO (18/09)
+### 2.1 Pausas — ✅ HECHO (17/09)
 Los valores `PAUSA_POST_ENFOQUE = 1.0` y `PAUSA_ENTRE_TECLAS = 0.15` se
 eligieron de forma **conservadora, no medida** (ver Fase 0). Se agregó
 `scripts/calibrar_latencia.py` para encontrar el mínimo seguro real en la
@@ -252,7 +252,7 @@ word permite manos libres — importante si estás peleando con el mouse.
 - Perfiles de nave: que "media máquina" se calibre distinto según la clase de
   nave (relacionado con la Fase 3 del ROADMAP).
 - HET 180° para el combo de retirada: hoy "aléjense a máxima velocidad" solo
-  acelera, no gira. **Corrección (18/09):** `Numpad 5` no es el HET 180°, es un
+  acelera, no gira. **Corrección (17/09):** `Numpad 5` no es el HET 180°, es un
   **"Start HET"** genérico; las direcciones del HET (izquierda, derecha, 180°,
   hard) están sólo como botones del Helm MFD, sin hotkey (`SFCquick.pdf`
   pág. 9). O sea que el HET 180° por voz **no es posible hoy** sin control de

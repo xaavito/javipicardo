@@ -52,11 +52,93 @@ conscientes de no adoptar (con motivo, ver abajo).
 
 ---
 
-## Sesión #2 — viernes __/__/____ — (pendiente)
+## Sesión #2 — viernes 18/09/2026
 
-**A repasar al inicio de esta charla** (viene de la Sesión #1):
-- Resultado de la prueba en vivo del STT nuevo (modelo + vocabulary biasing).
-- Explicar los 2 puntos no adoptados: audio directo al LLM, y Agents SDK.
+**Estado general: both commitments from Session #1 are done**, and the new STT
+was measured live. The measurement flipped one of the previous conclusions, and
+the vocabulary biasing left a finding worth telling. Written on **17/09, before
+the meeting** — the table of what Pato suggests tomorrow is further down.
+
+### 1. Session #1 commitments — done
+
+| Commitment | Result |
+|---|---|
+| ⏳ → ✅ Test the new STT live (`gpt-4o-mini-transcribe` + vocabulary biasing) | **Done.** Accuracy: 4 of the 5 phrases came out perfect. Latency: **1.5-3.1s**, ~2s on average |
+| ⏳ → ✅ Tune `PROMPT_VOCABULARIO` with whatever keeps failing | The only failure was not the STT's: it transcribed "escudos **a** máximo" correctly and it was the parser that lacked that synonym |
+| 🗣️ Explain the two points we did not adopt | See section 3: one of the two **changed state** with the measurement |
+
+### 2. The vocabulary biasing works, and has a dangerous failure mode
+
+Worth telling because it comes out of his suggestion 1b from the last meeting,
+and **the technique stays** — it does improve the game jargon.
+
+Given audio with **no speech** in it (a push-to-talk released before speaking),
+the API returns the vocabulary `prompt` **as if it were the transcription**.
+Our prompt ends with "ataquen con todo", so the parser matched it and **fired
+an Alpha Strike with nobody giving an order**.
+
+The underlying cause is ours: the parser matches a command anywhere in the
+text, so any long spurious transcription can press a real key. Three
+independent guards: drop the answer when it is the prompt, never send audio
+shorter than 0.3s to the API, and never let anything longer than 150
+characters reach the parser.
+
+A second version of the same problem turned up, this time from the LLM: the
+STT clipped "media máquina" down to **"Máquina."** and the fallback **guessed**
+"cuarto de máquina", so half a word accelerated the ship. A single ambiguous
+word now answers with the alternatives and executes nothing, and the LLM system
+prompt says explicitly that a truncated phrase must call no function.
+
+> Takeaway for the meeting: when you are flying a ship, **an unclear input must
+> never produce a confident action**. Both bugs of the week are the same problem
+> wearing two faces.
+
+### 3. The two rejected points, revisited with data
+
+| Point | Session #1 | With this week's measurements |
+|---|---|---|
+| **Audio straight to the LLM (no separate STT)** | ❌ Not adopted: it would break the free parser path | **The measurement runs in his favour.** The STT is now **80%** of a command (1.5-3.1s out of ~2.5-3.5s), not the minor cost we assumed. Even so, before going that way we are testing `faster-whisper` locally (`tiny`): if it lands at the expected 0.2-0.4s it wins on latency **and** on cost **and** keeps the local parser. If the local model is not accurate enough, his proposal becomes the best option left |
+| **Agents SDK (`openai-agents`)** | ❌ Not adopted: single-step classification | **Unchanged.** The concrete case that would justify it is still ad-hoc command chaining ("atacá con todo, y si no hay objetivo seleccioná el más cercano"), which is in the wishlist and has not been started |
+
+### 4. The week's progress, in numbers
+
+| What | Before | Now |
+|---|---|---|
+| Execution of one command (1 key) | 1.75s estimated / 1.45s real | **0.43s** |
+| "media máquina" (4 keys) | 1.88s | **0.65s** |
+| Whole command, end to end | 3.5-5.8s | **2.3-3.5s** |
+
+Two findings behind that: the focus and inter-key pauses **had never been
+measured** (the 1.0s picked by eye was 5 times the real minimum), and
+`pydirectinput` was adding **0.1s per elementary call — 0.3s per key —** on its
+own, which was in no previous analysis.
+
+Also: the **LLM fallback ran live for the first time** (it picked correctly, and
+declined correctly when no command applied), and the **catalog the LLM sees
+turned out to be out of sync** with the parser — 16 of the 32 commands were
+missing from it, so the LLM could not choose them. Fixed, with a coverage check
+so it cannot happen again.
+
+### 5. Open, worth mentioning
+
+- **Intermittent 404** from the chat API: two calls died in 0.19s while others
+  in the same session worked in 0.9-1.4s, so it is not the model name.
+  Diagnostics were added to chase it.
+- **Single next step**: local STT. It is the last big latency lever.
+
+### Lo que sugirió Pato en esta charla (completar después)
+
+| # | Lo que sugirió Pato | Cómo estábamos | Qué se hizo | Estado |
+|---|---|---|---|---|
+| 1 |  |  |  |  |
+
+### Compromisos para la próxima charla (viernes)
+- ⏳
+- 🗣️
+
+---
+
+## Sesión #3 — viernes __/__/____ — (pendiente)
 
 <!--
 Plantilla, copiar y completar después de la charla:

@@ -80,7 +80,7 @@ Otros settings interesantes del `.ini` (sección `[UI]`):
 | **A** | **Desacelerar (Slow Down)** — reduce la velocidad deseada un paso |
 | Numpad 0 | Emergency Deceleration (frenado de emergencia) |
 | Numpad 5 | Start HET (High Energy Turn) |
-| Numpad – | Orbit Target — ✅ confirmado en el juego (18/09) |
+| Numpad – | Orbit Target — ✅ confirmado en el juego (17/09) |
 | Numpad / | Erratic Maneuvers — ⚠️ ver condiciones abajo |
 | Numpad * | Follow Target |
 
@@ -88,7 +88,7 @@ Otros settings interesantes del `.ini` (sección `[UI]`):
 
 Los dos manuales decían teclas distintas: `SFCfullMan.pdf` pág. 159 daba
 Numpad **`–`** (`subtract`) y `SFCquick.pdf` pág. 24 daba Numpad **`.`**
-(`decimal`). **Probado en el juego el 18/09: `subtract` orbita.** Vale la
+(`decimal`). **Probado en el juego el 17/09: `subtract` orbita.** Vale la
 pág. 159; la del quickstart es errata. El parser lo tiene en la constante
 `TECLA_ORBITAR` de `fase1_text_commands.py`.
 
