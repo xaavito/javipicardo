@@ -186,10 +186,101 @@ hay una **tripulación** a bordo. Tres piezas que se suman:
 Es la idea más ambiciosa de la wishlist, pero también la que más cambia la
 experiencia. Se puede hacer por partes, en el orden de abajo.
 
-### 3.1 Wake word (reemplazar el push-to-talk)
+---
+
+### 3.0 El diseño que define todo: llamar al oficial ES el wake word
+
+> **Decidido el 18/09 (Javi), después de la charla con Pato.** Reemplaza al
+> push-to-talk y reencuadra §3.1, §3.2 y §3.3: no son tres features sueltas,
+> son **una sola mecánica**.
+
+**Cómo se usa:** el capitán llama a un oficial por su nombre o su rol
+—*"computadora"*, *"alférez"*, *"comandante"*, *"timonel"*— y eso hace **tres
+cosas a la vez**:
+
+1. **Activa la escucha** (lo que hoy hace F12).
+2. **Hace aparecer a ese personaje** en la interfaz, con su retrato
+   pre-generado.
+3. **Enruta la orden**: cada rol ejecuta lo suyo. Órdenes de pilotaje las
+   ejecuta el timonel, órdenes de disparo el artillero, y así.
+
+**Por qué esto es mejor que un wake word cualquiera, y no sólo por el clima:**
+
+- **Enrutar por oficial acota el vocabulario, o sea que mejora la precisión.**
+  Si decís "artillero", el sistema ya sabe que lo que viene es una orden de
+  armas: el parser puede evaluar primero ese subconjunto y el LLM puede recibir
+  **sólo las tools de ese rol** en vez de las 32. Menos candidatos es menos
+  chance de confundir "fuego" con otra cosa. Es una mejora de precisión real,
+  no decoración.
+- **Es el filtro de falsos positivos que un micrófono siempre abierto
+  necesita.** La regla "si no arranca con el nombre de un oficial, se
+  descarta" es dura y barata, y ataca justo el riesgo de la escucha continua.
+- **El juego ya define el plantel** (ver abajo), así que no hay que inventar
+  roles ni decidir qué comando le toca a quién: ya está decidido por el manual.
+
+### 3.0.1 El plantel sale del propio juego
+
+El Officer MFD de SFC (pág. 102 del manual) ya tiene los oficiales, y **coinciden
+casi uno a uno con nuestras categorías de comandos**. Colores de uniforme según
+la época TNG de las imágenes de referencia del README:
+
+| Oficial | Cómo llamarlo | Qué comandos ejecuta | Uniforme |
+|---|---|---|---|
+| **Timón** (Helm) | "timonel", "piloto", "alférez" | velocidad, alto total, orbitar, maniobras evasivas, seguir/perseguir, combos de aproximación | Rojo (mando) |
+| **Armas** (Weapons) | "artillero", "oficial de armas", "táctico" | disparar, alpha strike, ataque total, selección y ciclado de objetivos, memoria de targets | Dorado (operaciones) |
+| **Defensa** (Defense) | "escudos", "oficial de defensa" | escudos al máximo, alerta roja, ECM/ECCM, camuflaje | Dorado |
+| **Ciencias** (Science) | "ciencias", "oficial científico" | deep scan / escaneo profundo, sensores | Azul |
+| **Ingeniería** (Repair) | "ingeniero", "jefe de máquinas" | reparaciones, energía (todavía sin comandos nuestros) | Dorado |
+| **Computadora** | "computadora" | **comodín**: acepta cualquier orden y la enruta sola, que es exactamente lo que hace el sistema hoy | — (voz sin cara, o cara neutra) |
+
+Notas de diseño:
+
+- **"Alférez" y "comandante" son rangos, no roles.** Conviene que cada oficial
+  tenga nombre, raza, rol **y** rango, y una lista de alias por los que
+  responde. Así "alférez" puede mapear al timonel (el alférez suele estar en el
+  timón, como Crusher en TNG) sin que el modelo de datos mienta.
+- **"Computadora" es el comodín y conviene que exista siempre**: si no te
+  acordás a quién le toca, se lo pedís a la computadora y funciona como hoy.
+- **Si le pedís a un oficial algo que no es suyo**, hay dos salidas y las dos
+  son baratas: que lo ejecute igual pero conteste el que corresponde, o que el
+  oficial te lo devuelva en personaje ("eso es del timonel, capitán"). La
+  segunda tiene más gracia y además sirve de señal de error entendible.
+- El mapeo rol → comandos **no hay que escribirlo a mano**:
+  `catalogo_comandos.py` ya tiene los comandos agrupados; es agregarle un campo
+  `oficial` a cada entrada.
+
+### 3.0.2 Consecuencia que reordena todo: el STT local deja de ser opcional
+
+Con push-to-talk, el STT se llama **una vez por orden**. Con micrófono siempre
+abierto, hay que transcribir **todo lo que se escucha** para poder chequear si
+empieza con el nombre de un oficial.
+
+**Eso hace inviable el STT de nube**: pagarías la API por cada cosa que se diga
+en la habitación, y sumarías 1.5-3s a cada una. Con `faster-whisper` local es
+gratis y corre en ~0.3s.
+
+> O sea que la **prueba #13 (STT local) pasa de ser "la última mejora de
+> latencia" a ser un requisito de este diseño.** Sube al tope de la lista otra
+> vez, ahora por una razón distinta.
+
+### 3.0.3 Lo que se pierde al sacar el push-to-talk (decirlo, no esconderlo)
+
+- **El PTT marca exactamente cuándo termina la orden**; sin él hay que detectar
+  el final por silencio (VAD), lo que **agrega entre 0.3 y 1 segundo** de
+  espera. Manos libres cuesta latencia: es un intercambio, no una mejora pura.
+  Mitigable con un umbral de silencio corto (300-500ms).
+- **Falsos positivos**: hablar con alguien y que se cuele una orden. El nombre
+  del oficial al principio es un filtro fuerte, pero conviene igual una tecla
+  de mute rápida y algún comando de cancelación.
+- **No borrar el push-to-talk: dejarlo como modo alternativo** detrás de una
+  constante. En un ambiente ruidoso, o para grabar una demo, sigue siendo el
+  más confiable.
+
+### 3.1 Wake word: cómo implementarlo (detalle técnico)
 
 Hoy usamos push-to-talk (F12) porque es simple y de baja latencia. Un wake
-word permite manos libres — importante si estás peleando con el mouse.
+word permite manos libres — importante si estás peleando con el mouse. Con el
+diseño de §3.0, el wake word **es el nombre del oficial**.
 
 - **Opciones:** `openWakeWord` o `Porcupine` (Picovoice) son las librerías
   típicas; ambas corren local y liviano. Porcupine permite entrenar palabras
@@ -355,3 +446,113 @@ anotado en §3.2).
   **mostrar** video dentro de la interfaz? Son dos trabajos distintos.
 - ¿La interfaz es para el que está jugando (segundo monitor, al lado del juego)
   o para mostrarle el proyecto a otro? Cambia bastante el diseño.
+
+### 5.6 El ejemplo que pasó Pato: qué hace exactamente
+
+`https://github.com/patopitaluga/ejemplo-agente-realtime` (el `package.json` se
+llama **"voicecommander"**: lo armó para esto). Node + Express + `openai`, y
+son tres endpoints:
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /` | Sirve `views/index.html` |
+| `GET /session` | Crea un **client secret efímero** de la **Realtime API** (`openai.realtime.clientSecrets.create`) con la config de sesión: modelo `gpt-realtime`, `output_modalities: ['audio']`, las **tools**, `turn_detection: server_vad`, voz `alloy` e `instructions` |
+| `POST /tool_calls` | **Recibe la tool call y la ejecuta.** En el ejemplo es un `send_email` que sólo loguea |
+
+Y el browser (`views/index.html`): captura PCM con un **AudioWorklet** y abre
+un **WebSocket directo a `wss://api.openai.com/v1/realtime`** con la key
+efímera. **El audio nunca pasa por el server.** El server sólo firma la sesión
+y recibe las tool calls.
+
+**Lo importante para nosotros:** en esa arquitectura, el trabajo del server es
+*firmar la sesión y ejecutar tool calls*. O sea que **`POST /tool_calls` es
+exactamente donde va nuestro `ejecutar_accion()`**. Encaja solo.
+
+Y algo que resuelve un problema que teníamos abierto: **`turn_detection:
+server_vad`** — la API detecta cuándo dejaste de hablar. Es justo lo que §3.0.3
+marcaba como el costo de sacar el push-to-talk.
+
+### 5.7 ¿Se puede usar Node para el input? (la pregunta directa)
+
+**Técnicamente sí, pero es la peor parte para migrar, y no hace falta.**
+
+Lo que ya sabemos de la Fase 0, y es evidencia dura: el juego es de 2000
+(DirectX 7/8) y **sólo reaccionó a `pydirectinput`**, que manda **scancodes**
+vía `SendInput` (`KEYEVENTF_SCANCODE`). `pyautogui`, que usa virtual-keys y
+mensajes de ventana, **no hizo nada**. Los juegos con DirectInput leen
+scancodes, no virtual-keys.
+
+Las opciones en Node tienen justo ese problema:
+
+| Opción | Estado |
+|---|---|
+| `robotjs` | Sin mantenimiento hace años, compila con node-gyp, y manda **virtual-keys** — el enfoque que ya probamos que no funciona acá |
+| `@nut-tree/nut-js` | Activo, pero cambió de licencia, y también es virtual-key por defecto |
+| FFI (`koffi`/`ffi-napi`) llamando `SendInput` a mano | **Funcionaría**, porque podés setear el flag de scancode — pero es marshalling de structs de Win32 escrito a mano |
+
+Y el requisito de **correr como Administrador** (UIPI) no cambia con el
+lenguaje: es del sistema operativo, no de Python.
+
+> Traducido: migrar el input a Node es **re-hacer la Fase 0 entera**, con
+> librerías que arrancan con el enfoque que ya sabemos que falla, para ganar
+> cero. La parte que *no* hay que tocar es justo esa.
+
+**Y no hay que elegir**, porque el server de Pato hace muy poco: `/session` son
+~20 líneas y el SDK de Python tiene el mismo `realtime.client_secrets.create`;
+`/tool_calls` es donde enchufamos lo nuestro. **Portar sus dos endpoints a
+Python (FastAPI) es muchísimo menos trabajo que resolver el input en Node**, y
+el `index.html` se reusa tal cual: el browser habla con OpenAI, no con el
+server, así que le da igual en qué lenguaje esté.
+
+> La otra opción —dejar su server Node y que le pegue a un microservicio Python
+> que aprieta teclas— son 3 procesos y 2 lenguajes para no ganar nada. Sólo
+> tiene sentido si el objetivo es no tocarle el código a él.
+
+### 5.8 La bifurcación real que abre la Realtime API
+
+Hay que decirlo de frente: **esto es exactamente el "audio directo al LLM" que
+Pato propuso en la Sesión #1 y que rechazamos dos veces** — ahora con código
+andando. Y en la Sesión #2 ya habíamos admitido que la medición corría a su
+favor (el STT es el 80% del tiempo). Con la Realtime API el argumento se
+termina de dar vuelta.
+
+**Lo que ganamos:** detección de fin de turno (`server_vad`), voz de salida
+—el punto 3 de su agenda, gratis—, tool calls nativas, y el browser como
+interfaz para los puntos 2 y 4.
+
+**Lo que perdemos:** el **parser de reglas deja de interpretar**. Era el camino
+local, gratis y de microsegundos que resolvía la mayoría de los comandos y que
+defendimos dos veces. Con Realtime, todo pasa por la API.
+
+Tres formas de resolverlo:
+
+- **Opción A — Realtime para todo.** Lo más rápido de demostrar. Se paga API
+  por todo el audio, y se pierde el camino offline.
+- **Opción B — Realtime + nuestro ejecutor detrás de `/tool_calls`.**
+  La interpretación la hace el modelo, pero las teclas las sigue apretando el
+  código validado, con sus guardas. Es lo que el ejemplo de Pato ya es, con
+  nuestro `ejecutar_accion()` en lugar del `send_email`. **La base sensata.**
+- **Opción C — Wake word local que abre el micrófono.** Como el browser decide
+  **cuándo manda audio**, se puede detectar el nombre del oficial en local
+  (gratis) y recién ahí empezar a streamear. Acota el costo, conserva el manos
+  libres, y **mantiene vivo el diseño de §3.0**.
+
+**Recomendación: B como base, y C encima cuando el costo moleste.** Las dos son
+compatibles: C es una compuerta delante de B.
+
+**A chequear antes de comprometerse:**
+
+- **Precio por minuto de audio** de `gpt-realtime` (entrada y salida). Con
+  micrófono siempre abierto es *el* número que decide si hace falta la Opción C.
+  No inventar el dato: mirarlo.
+- **El esquema de tools cambia de forma**: Realtime las quiere planas
+  (`{type, name, description, parameters}`) y Chat Completions anidadas
+  (`{type, function: {...}}`). `catalogo_comandos.generar_tools_openai()` ya
+  genera todo dinámicamente, así que es una función adaptadora corta, no un
+  rediseño.
+- **El diseño de oficiales (§3.0) sobrevive**: el enrutamiento por rol se
+  expresa en las `instructions`, y `voice` es por sesión — o sea que **una voz
+  por oficial** sale de cambiar la sesión o abrir una por oficial.
+- **Qué pasa si se cae internet.** Hoy el parser local responde igual; con
+  Realtime, no. Vale decidir si queremos un modo degradado (parser + teclas,
+  sin voz) o no.

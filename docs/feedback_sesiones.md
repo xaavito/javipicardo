@@ -137,11 +137,11 @@ Textual, en el orden en que la dio:
 
 | # | Lo que pidió Pato | Cómo estamos | Estado |
 |---|---|---|---|
-| 1 | **Probar push to talk** | Ya usamos push-to-talk (F12, hook global vía `keyboard`, anda con el juego en foco). Falta aclarar a qué apunta: ¿probar alternativas (wake word / VAD), otra tecla, o cómo sobrevive el PTT al cliente browser del punto 5? | ⏳ **A aclarar con él** |
+| 1 | **Probar push to talk** | **Resuelto el mismo día, con propuesta propia:** no dejar push-to-talk. Se llama al oficial por su nombre ("computadora", "alférez", "timonel") y eso hace tres cosas a la vez — activa la escucha, muestra a ese personaje, y **enruta la orden a su rol**. Diseño completo en `WISHLIST.md` §3.0 | ✅ Definido |
 | 2 | **Generar imágenes de pilotos, oficiales** | Analizado hace rato en `WISHLIST.md` §3.3: retratos por IA **pre-generados una vez** y guardados en disco (generarlos en vivo es inviable por tiempo y costo), plantel fijo de 4-6 oficiales, opcionalmente 2-3 expresiones cada uno | ⏳ Comprometido |
 | 3 | **Contestar con voz de computadora** | Analizado en `WISHLIST.md` §3.2: TTS con una voz por oficial, cacheando las frases fijas. Clave de latencia: **ejecutar la tecla primero** y que la voz suene mientras el juego ya reaccionó | ⏳ Comprometido |
 | 4 | **¿Videítos del juego?** | Nuevo, y lo dijo con signo de pregunta. Sin analizar: no está claro si es grabar clips del juego o mostrar video en la interfaz | ⏳ **A aclarar con él** |
-| 5 | **Cliente browser + server Python en background** | Nuevo como arquitectura. Analizado en caliente en `WISHLIST.md` §5 | ⏳ Comprometido |
+| 5 | **Cliente browser + server Python en background** | Nuevo como arquitectura. Analizado en `WISHLIST.md` §5. **Pasó además un ejemplo andando** (`patopitaluga/ejemplo-agente-realtime`, cuyo `package.json` se llama "voicecommander"): Node + Express que firma una sesión de la **Realtime API** y un browser que abre WebSocket directo contra OpenAI. Analizado en §5.6-§5.8 | ⏳ Comprometido |
 
 **Lo que ordena esta agenda:** los puntos 2, 3 y 4 son cosas que hay que
 **mostrar o reproducir en algún lado**, y hoy no existe ese lugar — la consola
@@ -153,6 +153,33 @@ captura de voz define qué arquitectura es posible. Ver `WISHLIST.md` §5.
 **Restricción dura que no cambia:** la inyección de teclas tiene que seguir
 viviendo en el proceso Python corriendo **como Administrador** — un browser no
 puede mandar teclas al juego. Cualquier cliente web es interfaz, no control.
+
+### 7. El ejemplo de Pato da vuelta una discusión vieja, y hay que decirlo
+
+Su ejemplo usa la **Realtime API**: el browser manda audio por WebSocket
+directo a OpenAI y recibe **tool calls** y **audio de vuelta**. Eso es,
+literalmente, el **"audio directo al LLM" que propuso en la Sesión #1 y que
+rechazamos dos veces** — ahora con código funcionando. En la Sesión #2 ya
+habíamos reconocido que la medición corría a su favor (el STT resultó ser el
+80% del tiempo de un comando); con esto el argumento se termina de dar vuelta.
+
+Resuelve además tres cosas que teníamos abiertas: `turn_detection: server_vad`
+detecta el fin de turno (el costo que §3.0.3 le atribuía a sacar el
+push-to-talk), el audio de salida cubre su punto 3 sin trabajo extra, y su
+`POST /tool_calls` es exactamente donde entra nuestro `ejecutar_accion()`.
+
+**Lo que se pierde y hay que decidir:** el parser de reglas deja de
+interpretar. Era el camino local, gratis y de microsegundos. Tres opciones en
+`WISHLIST.md` §5.8; la recomendación es **Realtime + nuestro ejecutor detrás de
+`/tool_calls`**, y agregarle un **wake word local** que decida cuándo se manda
+audio si el costo por minuto molesta.
+
+**Sobre Node:** no conviene mover el input. El juego es de 2000 y sólo responde
+a `SendInput` con **scancodes** (`pydirectinput`); `pyautogui`, que usa
+virtual-keys, no hizo nada — y las librerías de Node (`robotjs`, `nut.js`)
+arrancan justo con el enfoque que ya sabemos que falla. Sus dos endpoints, en
+cambio, son ~20 líneas portables a FastAPI, y el `index.html` se reusa tal cual
+porque el browser habla con OpenAI, no con el server.
 
 ### Compromisos para la próxima charla (viernes)
 
