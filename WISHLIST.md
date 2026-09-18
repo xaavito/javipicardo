@@ -6,16 +6,24 @@ con el análisis técnico ya hecho para no tener que re-pensarlo cuando se retom
 
 ## Orden de prioridad acordado
 
-1. **PRIMERO: probar y estabilizar lo que ya existe.** Ver `PRUEBAS.md` — hay
-   13 pruebas pendientes en la máquina Windows (latencia, STT nuevo, teclas de
-   numpad, combos). No tiene sentido agregar features encima de algo no probado.
-2. **DESPUÉS:** bajar la latencia (§2 — el mayor ahorro está en calibrar las
-   pausas, que es una prueba ya lista de correr).
-3. **MÁS ADELANTE, a elección según qué se extrañe más al jugar:**
+> **Reescrito el 18/09:** en la Sesión #2 Pato revisó todo lo hecho, lo aprobó,
+> y puso una **agenda nueva** que cambia el orden — el proyecto pasa de
+> "estabilizar el control por voz" a **construir una interfaz**. Varias de
+> estas ideas dejaron de ser "algún día" y son pedidos. Ver
+> `docs/feedback_sesiones.md` §6.
+
+1. **Cliente browser + server Python (§5)** — pedido de Pato, y es lo que
+   **habilita** los otros dos pedidos: hoy no hay dónde mostrar una cara ni
+   dónde reproducir una voz.
+2. **Tripulación virtual (§3)** — pedida también: retratos de oficiales (§3.3)
+   y respuestas habladas (§3.2). Empezar por la versión de texto, que no
+   necesita ningún modelo.
+3. **Lo que quedaba de antes**, ahora por detrás de la agenda:
+   - Bajar la latencia (§2): queda **sólo el STT local**, prueba #13 de
+     `PRUEBAS.md`. Lo demás ya se hizo y está medido.
    - Encadenar comandos (§1).
-   - Tripulación virtual: oficiales que contestan, con cara y voz (§3).
-   - Fase 6 del ROADMAP (rumbo absoluto por click). **Bajó de prioridad** al
-     confirmarse que Follow Target ya vira la nave hacia un objetivo.
+   - Fase 6 del ROADMAP (rumbo absoluto por click), la de menos urgencia desde
+     que se confirmó que Follow Target ya vira la nave.
 
 ## Índice
 
@@ -23,8 +31,9 @@ con el análisis técnico ya hecho para no tener que re-pensarlo cuando se retom
 |---|---|---|
 | 1 | Encadenar comandos en una sola orden | analizada, no implementada |
 | 2 | Bajar más la latencia | analizada, herramienta lista |
-| 3 | Tripulación virtual (wake word + oficiales con cara y voz) | analizada, no implementada |
+| 3 | Tripulación virtual (wake word + oficiales con cara y voz) | **pedida por Pato (18/09)**, no implementada |
 | 4 | Otras ideas sueltas | sin analizar |
+| 5 | Cliente browser + server Python en background | **pedida por Pato (18/09)**, analizada |
 
 ---
 
@@ -156,6 +165,14 @@ el tiempo de STT percibido, a costa de bastante complejidad.
 
 ## 3. Tripulación virtual: wake word + oficiales que contestan con cara
 
+> **Pedida por Pato el 18/09** (puntos 2 y 3 de su agenda): "generar imágenes
+> de pilotos, oficiales" y "contestar con voz de computadora". Deja de ser
+> wishlist. El análisis de abajo ya estaba escrito y sigue valiendo; lo único
+> que cambia es que **§3.3 (retratos) y §3.2 (voz) pasan a ser el trabajo**, y
+> que los dos necesitan primero el §5 para tener dónde mostrarse. El orden
+> sugerido en §3.5 sigue siendo bueno: texto por oficial primero, que no
+> necesita ningún modelo.
+
 **La idea:** dejar de ser "un sistema que aprieta teclas" y pasar a sentir que
 hay una **tripulación** a bordo. Tres piezas que se suman:
 
@@ -257,3 +274,84 @@ word permite manos libres — importante si estás peleando con el mouse.
   hard) están sólo como botones del Helm MFD, sin hotkey (`SFCquick.pdf`
   pág. 9). O sea que el HET 180° por voz **no es posible hoy** sin control de
   mouse. Queda a la espera de la Fase 6.
+
+---
+
+## 5. Cliente browser + server Python en background
+
+> **Pedido por Pato el 18/09** (punto 5 de su agenda). Análisis hecho el mismo
+> día, en caliente.
+
+**Qué es:** partir el sistema en dos procesos en la misma máquina — un **server
+Python** que sigue haciendo lo que hace hoy (STT, parser, LLM, inyección de
+teclas) y una **página en el browser** como interfaz. No es el "Escenario B"
+del README, que separaba en dos máquinas por red: acá las dos piezas viven en
+la Windows y hablan por `localhost`.
+
+**Por qué va primero:** los otros dos pedidos (retratos de oficiales,
+respuestas habladas) necesitan **un lugar donde mostrarse y sonar**, y hoy no
+existe: la consola es todo lo que hay. Dibujar encima del juego no es opción,
+es frágil y puede romper el render de DirectX (ya anotado en §3.3). Una ventana
+de browser al lado del juego —que corre en ventana vía DxWnd— resuelve eso sin
+tocar el juego.
+
+### 5.1 La restricción que no se negocia
+
+**La inyección de teclas se queda en el proceso Python corriendo como
+Administrador.** Un browser no puede mandar teclas al juego, y el requisito de
+privilegios elevados viene de la Fase 0 (UIPI de Windows). O sea: **el cliente
+web es interfaz, nunca control.** Todo lo que hoy funciona —parser, ejecutor,
+foco de ventana, guardas— se queda donde está y no se reescribe.
+
+### 5.2 Dónde vive el micrófono: la decisión que define todo
+
+Acá se cruza con el punto 1 de la agenda ("probar push to talk"), y es la
+decisión de arquitectura real:
+
+- **Opción A — Micrófono y push-to-talk se quedan en Python; el browser sólo
+  muestra.** El server le empuja eventos a la página (transcripción, acción
+  ejecutada, respuesta del oficial) por WebSocket o SSE. **Recomendada para
+  empezar:** nada de lo que anda hoy cambia, el browser es puramente aditivo, y
+  el hook global de `keyboard` ya funciona con el juego en foco.
+- **Opción B — El micrófono se muda al browser** (`getUserMedia`). Problema
+  serio: **mientras jugás, el foco lo tiene el juego, no el tab del browser**, y
+  una página no puede capturar una tecla global. Con esta opción el
+  push-to-talk **deja de ser posible** y hay que ir sí o sí a wake word o VAD
+  permanente (§3.1), con los falsos positivos que eso trae.
+- **Opción C — Híbrida.** Tecla global y micrófono en Python, y además un botón
+  de "hablar" en la página para cuando estás mirando la interfaz.
+
+> Esto probablemente explica por qué Pato puso "probar push to talk" **primero**
+> en la lista: es lo que define si el cliente puede ser A o tiene que ser B.
+> **Confirmarlo con él antes de escribir código.**
+
+### 5.3 Forma mínima que tendría
+
+- Server HTTP + WebSocket en el mismo proceso que el loop actual. `fastapi` +
+  `uvicorn` alcanza y sobra; `flask` + `flask-sock` también.
+- **Ojo:** el loop de hoy es bloqueante (`while True` + `keyboard.is_pressed`),
+  así que el server va en un **thread aparte**, o el loop se reescribe async.
+  Es el único cambio estructural real sobre el código actual.
+- Escuchar **sólo en `127.0.0.1`**: no hay razón para exponerlo a la red.
+- La página arranca mostrando lo que hoy va a consola (transcripción, acción,
+  desglose de tiempos). Eso solo ya es entregable y demostrable, y no rompe
+  nada de lo que anda.
+- Después se le cuelgan encima los retratos (§3.3), el texto del oficial (§3.2)
+  y, si aplica, el video (punto 4 de la agenda, todavía sin definir).
+
+### 5.4 Ventaja secundaria que vale la pena
+
+**El audio de salida sale gratis.** Reproducir el TTS desde el browser evita
+meter reproducción de audio en Python, que en Windows es más molesto de lo que
+parece. Riesgos a tener en cuenta: el juego y el browser peleando por el
+dispositivo de audio, y el volumen del juego tapando la voz del oficial (ya
+anotado en §3.2).
+
+### 5.5 Qué preguntar antes de escribir código
+
+- ¿"Probar push to talk" apunta a elegir entre las opciones A/B/C de §5.2, a
+  probar otra tecla, o a probar wake word?
+- ¿"Videítos del juego" es **grabar** clips (para mostrar el proyecto) o
+  **mostrar** video dentro de la interfaz? Son dos trabajos distintos.
+- ¿La interfaz es para el que está jugando (segundo monitor, al lado del juego)
+  o para mostrarle el proyecto a otro? Cambia bastante el diseño.

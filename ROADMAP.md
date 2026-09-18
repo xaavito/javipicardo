@@ -1042,6 +1042,46 @@ Agents SDK quedan evaluados y pospuestos, con la justificación de por qué,
 documentada arriba, para no tener que re-analizarlo si se vuelve a plantear
 más adelante).
 
+### Sesión #2 — viernes 18/09/2026: todo aprobado, y agenda nueva
+
+> 📋 Resumen ejecutivo en tabla: `docs/feedback_sesiones.md` → **Sesión #2**.
+
+Se repasó todo lo construido desde la Sesión #1 y **quedó aprobado, sin
+correcciones**. Los dos compromisos de esa charla están cerrados: el STT nuevo
+se midió en vivo (4 de 5 frases perfectas, 1.5-3.1s) y los dos puntos no
+adoptados se explicaron — de los cuales **uno cambió de estado con la
+medición**: el STT resultó ser el 80% del tiempo de un comando, así que mandar
+audio directo al LLM ya no se puede descartar por costo. Se mantiene igual el
+plan de probar primero `faster-whisper` local, que a 0.2-0.4s ganaría en
+latencia y en costo conservando el parser gratis.
+
+**Pato puso una agenda nueva de 5 puntos**, que mueve el proyecto de
+"estabilizar el control por voz" a **construir una interfaz**:
+
+1. Probar push to talk.
+2. Generar imágenes de pilotos, oficiales.
+3. Contestar con voz de computadora.
+4. ¿Videítos del juego?
+5. Cliente browser + server Python en background.
+
+**Lectura de esa agenda:** los puntos 2, 3 y 4 necesitan **un lugar donde
+mostrarse y sonar**, y hoy no existe — la consola es todo lo que hay. El punto
+5 es ese lugar, así que **habilita a los otros tres** y va primero. Y el punto 1
+puede ser un requisito del 5: un tab de browser no puede capturar una tecla
+global mientras el foco lo tiene el juego, así que dónde vive el micrófono
+define qué arquitectura es posible. Análisis completo en `WISHLIST.md` §5.
+
+**Restricción que no cambia:** la inyección de teclas se queda en el proceso
+Python como Administrador. Un cliente web es interfaz, nunca control.
+
+Dos puntos admiten varias lecturas y hay que aclararlos antes de escribir
+código: qué quiere decir "probar push to talk" (¿alternativas al PTT? ¿otra
+tecla? ¿wake word?) y si "videítos del juego" es grabar clips o mostrar video
+en la interfaz.
+
+**Costo de esta agenda:** la prueba #13 (STT local), que era la última palanca
+grande de latencia, queda sin correr por ahora.
+
 ### Segunda pasada sobre el mismo feedback (con lectura de la guía oficial)
 
 Se volvió a plantear el mismo feedback, esta vez leyendo a fondo la guía

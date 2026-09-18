@@ -54,10 +54,15 @@ conscientes de no adoptar (con motivo, ver abajo).
 
 ## Sesión #2 — viernes 18/09/2026
 
-**Estado general: both commitments from Session #1 are done**, and the new STT
-was measured live. The measurement flipped one of the previous conclusions, and
-the vocabulary biasing left a finding worth telling. Written on **17/09, before
-the meeting** — the table of what Pato suggests tomorrow is further down.
+**Tema:** review of everything built since Session #1, and a **new agenda** of
+requests.
+**Estado general: everything built was reviewed and approved.** No corrections
+came out of it and both Session #1 commitments are closed, so the meeting moved
+on to the new agenda in section 6 — which points the project at a **UI layer**
+for the first time.
+
+Sections 1 to 5 were written on 17/09, before the meeting, as the progress
+report. Section 6 is what came out of it.
 
 ### 1. Session #1 commitments — done
 
@@ -126,15 +131,41 @@ so it cannot happen again.
   Diagnostics were added to chase it.
 - **Single next step**: local STT. It is the last big latency lever.
 
-### Lo que sugirió Pato en esta charla (completar después)
+### 6. La agenda nueva que puso Pato
 
-| # | Lo que sugirió Pato | Cómo estábamos | Qué se hizo | Estado |
-|---|---|---|---|---|
-| 1 |  |  |  |  |
+Textual, en el orden en que la dio:
+
+| # | Lo que pidió Pato | Cómo estamos | Estado |
+|---|---|---|---|
+| 1 | **Probar push to talk** | Ya usamos push-to-talk (F12, hook global vía `keyboard`, anda con el juego en foco). Falta aclarar a qué apunta: ¿probar alternativas (wake word / VAD), otra tecla, o cómo sobrevive el PTT al cliente browser del punto 5? | ⏳ **A aclarar con él** |
+| 2 | **Generar imágenes de pilotos, oficiales** | Analizado hace rato en `WISHLIST.md` §3.3: retratos por IA **pre-generados una vez** y guardados en disco (generarlos en vivo es inviable por tiempo y costo), plantel fijo de 4-6 oficiales, opcionalmente 2-3 expresiones cada uno | ⏳ Comprometido |
+| 3 | **Contestar con voz de computadora** | Analizado en `WISHLIST.md` §3.2: TTS con una voz por oficial, cacheando las frases fijas. Clave de latencia: **ejecutar la tecla primero** y que la voz suene mientras el juego ya reaccionó | ⏳ Comprometido |
+| 4 | **¿Videítos del juego?** | Nuevo, y lo dijo con signo de pregunta. Sin analizar: no está claro si es grabar clips del juego o mostrar video en la interfaz | ⏳ **A aclarar con él** |
+| 5 | **Cliente browser + server Python en background** | Nuevo como arquitectura. Analizado en caliente en `WISHLIST.md` §5 | ⏳ Comprometido |
+
+**Lo que ordena esta agenda:** los puntos 2, 3 y 4 son cosas que hay que
+**mostrar o reproducir en algún lado**, y hoy no existe ese lugar — la consola
+es todo lo que tenemos. El punto 5 es ese lugar. Así que **el 5 habilita al 2,
+3 y 4**, y el 1 puede ser un requisito del 5: un tab de browser no puede
+capturar una tecla global mientras el foco lo tiene el juego, así que la
+captura de voz define qué arquitectura es posible. Ver `WISHLIST.md` §5.
+
+**Restricción dura que no cambia:** la inyección de teclas tiene que seguir
+viviendo en el proceso Python corriendo **como Administrador** — un browser no
+puede mandar teclas al juego. Cualquier cliente web es interfaz, no control.
 
 ### Compromisos para la próxima charla (viernes)
-- ⏳
-- 🗣️
+
+- ⏳ **Arrancar por el punto 5** (server Python + cliente browser), que es lo
+  que habilita el resto, y llevar algo andando aunque sea mínimo: una página
+  que muestre lo que hoy se ve en consola.
+- ⏳ **Punto 3 en su versión barata primero**: respuestas de texto por oficial,
+  que ya se pueden hacer sin ningún modelo, antes de meter TTS.
+- ⏳ **Punto 2**: generar el plantel de oficiales una vez y dejarlo en disco.
+- 🗣️ **Preguntarle qué quiso decir con "probar push to talk"** y con "videítos
+  del juego" — las dos admiten varias lecturas y cambian bastante el trabajo.
+- 🗣️ Contar que el STT local (prueba #13) quedó sin correr: se lo comió la
+  agenda nueva. Es la última palanca grande de latencia.
 
 ---
 
