@@ -384,6 +384,42 @@ diseño de §3.0, el wake word **es el nombre del oficial**.
 - **Ojo con el audio del juego:** si el juego está fuerte, la voz del oficial
   se puede perder. Quizá haya que bajar el volumen del juego o usar auriculares.
 
+#### 3.2.1 Los tres caminos, según qué arquitectura gane
+
+| Camino | Cómo | Cuándo conviene |
+|---|---|---|
+| **A. Sale gratis con Realtime** | `output_modalities: ['audio']` + `voice` en la config de sesión (§5.6). El modelo **ya contesta hablando**, no hay paso de TTS | Si vamos por la arquitectura del ejemplo de Pato. Cero trabajo extra |
+| **B. TTS de OpenAI** | Una llamada aparte: texto → audio (`gpt-4o-mini-tts`, o `tts-1` que es la rápida). Una voz por oficial | Si el sistema sigue siendo el de hoy y queremos calidad alta |
+| **C. TTS local** | `piper` (rápido, offline, gratis, voces descargables) o `pyttsx3` (usa las voces SAPI que Windows ya tiene) | **Se puede hacer HOY, sin server, sin browser y sin internet** |
+
+> **El camino C merece atención**: `pyttsx3` sobre las voces que Windows ya
+> trae son dos líneas de código y ninguna dependencia nueva de peso. Y que
+> suene **robótico no es un defecto acá, es el personaje**: "contestar con voz
+> de computadora" es literalmente lo que pidió Pato. O sea que hay una versión
+> de este punto que se puede tener andando **antes** que el server y el
+> browser, y que ya es demostrable.
+
+#### 3.2.2 El problema que aparece al juntar voz con micrófono abierto
+
+Con push-to-talk esto no existía. Con el diseño de §3.0 (micrófono siempre
+escuchando) sí: **la voz del oficial la va a escuchar el micrófono**, y el
+sistema puede terminar hablándose a sí mismo — peor todavía con
+`turn_detection: server_vad`, que va a interpretar esa voz como un turno.
+
+Tres salidas, de más simple a más cara:
+
+1. **Silenciar el micrófono mientras suena el TTS.** Controlamos las dos
+   puntas, así que es cuestión de cortar la captura mientras dura el audio y
+   reanudarla al terminar. Es la solución barata y suficiente.
+2. **Auriculares.** Resuelve esto y el problema del volumen del juego de una.
+3. **Cancelación de eco** (`echoCancellation` de `getUserMedia` en el browser).
+   Existe, pero está pensada para llamadas, no para esto.
+
+**Consecuencia de diseño:** mientras habla un oficial, el capitán **no puede
+dar una orden nueva**. Con respuestas de una línea no molesta; si las
+respuestas se ponen largas, sí. Argumento para que los oficiales sean
+**breves** — que además es lo que suena bien en un puente de nave.
+
 ### 3.3 Oficiales con cara generada por IA
 
 - **Idea:** cada oficial es un personaje con **raza** (klingon, vulcano,
