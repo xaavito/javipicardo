@@ -224,21 +224,94 @@ El Officer MFD de SFC (pág. 102 del manual) ya tiene los oficiales, y **coincid
 casi uno a uno con nuestras categorías de comandos**. Colores de uniforme según
 la época TNG de las imágenes de referencia del README:
 
-| Oficial | Cómo llamarlo | Qué comandos ejecuta | Uniforme |
-|---|---|---|---|
-| **Timón** (Helm) | "timonel", "piloto", "alférez" | velocidad, alto total, orbitar, maniobras evasivas, seguir/perseguir, combos de aproximación | Rojo (mando) |
-| **Armas** (Weapons) | "artillero", "oficial de armas", "táctico" | disparar, alpha strike, ataque total, selección y ciclado de objetivos, memoria de targets | Dorado (operaciones) |
-| **Defensa** (Defense) | "escudos", "oficial de defensa" | escudos al máximo, alerta roja, ECM/ECCM, camuflaje | Dorado |
-| **Ciencias** (Science) | "ciencias", "oficial científico" | deep scan / escaneo profundo, sensores | Azul |
-| **Ingeniería** (Repair) | "ingeniero", "jefe de máquinas" | reparaciones, energía (todavía sin comandos nuestros) | Dorado |
-| **Computadora** | "computadora" | **comodín**: acepta cualquier orden y la enruta sola, que es exactamente lo que hace el sistema hoy | — (voz sin cara, o cara neutra) |
+| Oficial | Nombre | Raza | Rango | Alias por los que responde | Qué ejecuta | Uniforme |
+|---|---|---|---|---|---|---|
+| **Timón** (Helm) | **T'Lara** | Vulcana | Alférez | "timonel", "piloto", "alférez", "lara" | velocidad, alto total, orbitar, maniobras evasivas, seguir/perseguir, combos de aproximación | Rojo (mando) |
+| **Armas** (Weapons) | **Korak** | Klingon | Teniente | "artillero", "armas", "korak" | disparar, alpha strike, ataque total, selección y ciclado de objetivos, memoria de targets | Dorado (operaciones) |
+| **Defensa** (Defense) | **Sunek** | Andoriano | Teniente | "defensa", "táctico", "sunek" | escudos al máximo, alerta roja, ECM/ECCM, camuflaje | Dorado |
+| **Ciencias** (Science) | **Delon** | Trill | Teniente | "ciencias", "científico", "delon" | escaneo profundo / deep scan, sensores | Azul |
+| **Ingeniería** (Repair) | **Grax** | Boliano | Comandante | "ingeniero", "ingeniería", "grax" | reparaciones, energía (todavía sin comandos nuestros) | Dorado |
+| **Computadora** | — | — | — | "computadora" | **comodín**: acepta cualquier orden y la enruta sola, que es lo que hace el sistema hoy | — (sin cara, o panel LCARS) |
+
+**Los nombres están elegidos con un criterio técnico, no sólo estético:** son el
+vocabulario del wake word, así que tienen que **distinguirse entre sí al oído
+de un STT**. Por eso arrancan con consonantes distintas (**L**ara, **K**orak,
+**S**unek, **D**elon, **G**rax) y tienen distinta cantidad de sílabas. Un
+"Kor'lath" o un "T'Prynn" suenan mejor pero los transcribe mal, y si dos
+nombres riman el enrutado se vuelve una lotería.
+
+> Regla práctica: **los alias de rol** ("timonel", "artillero") son el camino
+> confiable y **los nombres propios** son el inmersivo. Que respondan por los
+> dos, y que el sistema no dependa del nombre propio para funcionar.
+
+### 3.0.1b Chequeo de colisiones: ningún alias puede ser una palabra de comando
+
+Esto hay que hacerlo **antes** de fijar los alias, porque un alias que además
+es un comando rompe las dos cosas:
+
+**Colisión real, medida** — se corrió cada alias candidato por
+`parsear_comando()`:
+
+| Alias descartado | Qué devuelve hoy | Por qué se descarta |
+|---|---|---|
+| ~~"escudos"~~ para Defensa | **`ambiguo`** | Choca de verdad: es el comando "escudos al máximo" y ya está en `FRASES_AMBIGUAS`. Queda **"defensa"** |
+
+**Descartados por precaución, no por colisión** (el chequeo dice que hoy están
+libres, pero igual no conviene usarlos):
+
+| Alias | Qué devuelve hoy | Por qué igual no |
+|---|---|---|
+| "jefe de máquinas" | `unknown` — **no choca** | "máquinas" en plural no matchea `\bmaquina\b`, así que técnicamente se podría. Pero depender de que el STT no coma la "s" es frágil. Queda **"ingeniero"** |
+| "comandante" | `unknown` — **no choca** | No es colisión: es que **el rango lo tienen varios** oficiales, así que no sirve para enrutar. Sirve para dirigirse al capitán |
+| "táctico" para Armas | `unknown` | Se lo lleva Defensa, para que los dos oficiales no compitan por la misma palabra |
+
+**Los 17 alias propuestos dan `unknown`**, o sea que ninguno le roba un match a
+un comando: "timonel", "piloto", "alférez", "lara", "artillero", "armas",
+"korak", "defensa", "táctico", "sunek", "ciencias", "científico", "delon",
+"ingeniero", "ingeniería", "grax", "computadora".
+
+También se midió el parecido fonético entre alias: el único par que pasa el
+umbral es "ingeniero"/"ingeniería" (0.84), que son **del mismo oficial**, así
+que da igual. Ningún par de oficiales distintos se parece.
+
+> Cuando se implemente, esto **no** se chequea a ojo: se agrega al
+> `verificar_cobertura()` de `catalogo_comandos.py` un chequeo que falle si un
+> alias de oficial matchea alguna frase del parser. El mismo tipo de guarda que
+> ya nos salvó del catálogo desincronizado.
+
+### 3.0.1c La forma que tendría en código
+
+Un `oficiales.py` con la tabla de arriba como dato, y el resto derivado:
+
+```python
+OFICIALES = {
+    "timon": {
+        "nombre": "T'Lara", "raza": "vulcana", "rango": "alferez",
+        "alias": ["timonel", "piloto", "alferez", "lara"],
+        "uniforme": "rojo", "voz": "<una de las voces de la API>",
+        "retrato": "images/oficiales/tlara.png",
+    },
+    ...
+}
+```
+
+El mapeo **rol → comandos no se escribe a mano**: se le agrega un campo
+`oficial` a cada entrada del catálogo, que ya está agrupado por tipo. Con eso
+sale gratis lo de §3.0: filtrar las tools que ve el LLM según a quién llamaste.
 
 Notas de diseño:
 
-- **"Alférez" y "comandante" son rangos, no roles.** Conviene que cada oficial
-  tenga nombre, raza, rol **y** rango, y una lista de alias por los que
-  responde. Así "alférez" puede mapear al timonel (el alférez suele estar en el
-  timón, como Crusher en TNG) sin que el modelo de datos mienta.
+- **"Alférez" y "comandante" son rangos, no roles.** Por eso cada oficial tiene
+  nombre, raza, rol **y** rango, con los alias aparte. Así "alférez" mapea al
+  timonel (el alférez suele estar en el timón, como Crusher en TNG) sin que el
+  modelo de datos mienta.
+- **Los retratos se generan una vez** con el prompt armado desde la misma
+  tabla: raza + rol + color de uniforme + puente estilo TNG, en los dos estilos
+  de `images/image.png` (ilustrado y fotorrealista). Hay que elegir uno y que
+  todo el plantel sea coherente — mezclar estilos se nota feo.
+- **Una voz por oficial**: Korak grave, T'Lara plana y monótona (es vulcana),
+  Grax cálido. La voz es por sesión en la Realtime API, así que sale de
+  configurarla al abrir la sesión del oficial.
 - **"Computadora" es el comodín y conviene que exista siempre**: si no te
   acordás a quién le toca, se lo pedís a la computadora y funciona como hoy.
 - **Si le pedís a un oficial algo que no es suyo**, hay dos salidas y las dos
