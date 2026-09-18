@@ -557,6 +557,34 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[18/09] Los oficiales ya contestan (punto 3 de la agenda de Pato, versión
+  mínima).** Aclarado el alcance: las respuestas son **acuses de recibo**, no
+  conversación — "sí, capitán", "no sé cómo, capitán". Eso cambia la solución
+  técnica: con un set de frases **fijo y chico** conviene generar el audio
+  **una sola vez** con las voces buenas y guardarlo en disco, en vez de
+  sintetizar en vivo. Sale más barato, suena mejor que un TTS local, y
+  reproducir un wav tarda ~0ms.
+  - `scripts/oficiales.py`: el plantel como dato (nombre, raza, rango, alias,
+    uniforme) y el reparto de comandos **por tecla**, que es el átomo que
+    devuelve el parser y no se rompe al agregar sinónimos. Cuatro desenlaces
+    (ok / no entendido / ambiguo / no soportado) con varias variantes cada uno
+    para que no suene siempre igual.
+  - `scripts/generar_voces.py`: genera los **21 wav** con `gpt-4o-mini-tts`,
+    una voz y un tono por oficial. Se corre una vez; vuelve a generar sólo lo
+    que falta.
+  - Reproducción con **`winsound`**, que es de la librería estándar de Windows:
+    **cero dependencias nuevas**, y en modo asíncrono, así que no bloquea el
+    loop de comandos.
+  - **El acuse va al final de `ejecutar_accion()`**, con la tecla ya mandada:
+    el juego reacciona mientras suena la voz, en vez de sentirse lento.
+  - Todo opcional y degradable: sin `oficiales.py` el sistema funciona igual,
+    sin wav generados imprime la frase y sigue, y `VOZ_ACTIVADA = False` deja
+    sólo el texto.
+  - Validado con mocks: 21 órdenes enrutadas al oficial correcto, los tres
+    desenlaces de error van a la Computadora, "ayuda" no lleva acuse, los
+    nombres de archivo son ASCII puro, y **las teclas enviadas no cambian**.
+  - [ ] Pendiente en vivo: prueba **#20** de `PRUEBAS.md`.
+
 - **[17/09] Test #18 closed: `pydirectinput.PAUSE = 0` is safe, modifiers
   included.** The two fragile steps passed in the game — "alpha strike"
   (`shift`+`z`) and "ataquen con todo" (Max ECM + alpha strike) both work, and

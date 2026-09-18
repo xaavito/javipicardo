@@ -310,6 +310,36 @@ presses no key, without spending an LLM call either.
       `FRASES_AMBIGUAS`
 - Notes:
 
+### 20. Los oficiales contestan (texto, y voz si están los wav)
+
+**Why it matters:** first piece of Pato's agenda that can be shown without the
+browser or the server existing. The answers are acknowledgements only — "sí,
+capitán" — so the phrase set is fixed and small, which is why the audio is
+generated once to disk instead of synthesised live: better voices, no per-use
+cost, and playing a file adds ~0ms to a command.
+
+**How to test it, text first (needs nothing installed):**
+1. `python scripts\fase1_text_commands.py`
+2. "alerta roja" → **Sunek** answers · "media máquina" → **T'Lara** ·
+   "disparar" → **Korak** · "escaneo profundo" → **Delon**
+3. Something unknown ("hola qué tal") → **Computadora** says it does not know
+   how; "máquina" → it asks you to be more precise.
+4. Confirm the answer comes **after** the key, never before.
+
+**Then the voice:**
+5. `python scripts\generar_voces.py` (once, needs `OPENAI_API_KEY`). It writes
+   21 wav files to `audio/oficiales/`.
+6. Repeat step 2 and listen. The voices should be different per officer.
+7. Check it does not get in the way: the sound plays **async**, so the next
+   command should not have to wait for it.
+
+- [ ] Text: ⬜ the right officer answers · ⬜ wrong routing (say which)
+- [ ] Voice: ⬜ sounds · ⬜ nothing plays · ⬜ it plays but lags the command
+- [ ] Do the voices work with the game audio on, or do they get buried?
+- [ ] `VOZ_ACTIVADA = False` in `oficiales.py` turns the audio off and leaves
+      the text
+- Notes (phrases to change, voices that do not fit the character):
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -341,6 +371,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 19 (+ 4b)
+- **Pruebas completadas:** ____ / 20 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

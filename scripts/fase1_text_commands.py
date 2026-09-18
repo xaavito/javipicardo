@@ -74,6 +74,13 @@ import ctypes
 import pydirectinput
 import pygetwindow as gw
 
+# Acuse de recibo hablado (opcional, ver oficiales.py). Si no esta el modulo,
+# todo sigue funcionando exactamente igual, sin voz.
+try:
+    import oficiales
+except ImportError:
+    oficiales = None
+
 # pydirectinput pausa 0.1s despues de CADA llamada elemental (~0.3s por press):
 # medido el 17/09, era todo el costo de ejecucion que quedaba. Ver ROADMAP.
 PAUSA_INTERNA_PYDIRECTINPUT = 0.0
@@ -942,6 +949,11 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
     # para poder seguir escribiendo el proximo comando comodamente.
     if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
         enfocar_consola()
+
+    # El oficial contesta AL FINAL, con la tecla ya mandada: asi el juego ya
+    # reacciono mientras suena la voz, en vez de sentirse lento.
+    if oficiales is not None:
+        oficiales.responder(accion)
 
 
 # ---------------------------------------------------------------------------
