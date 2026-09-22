@@ -62,10 +62,16 @@ ESTILOS = {
 }
 
 # Como se ve cada uniforme, en la epoca de las imagenes de referencia.
+# El panel de color va en el PECHO y los hombros en negro. Sin aclararlo sale
+# a veces la variante invertida (hombros de color, pecho negro), que existe de
+# verdad pero desentona con el resto del plantel.
 UNIFORMES = {
-    "rojo": "a burgundy red and black command-division uniform",
-    "dorado": "a mustard gold and black operations-division uniform",
-    "azul": "a teal blue and black sciences-division uniform",
+    "rojo": "a uniform whose chest panel is burgundy red, with black "
+            "shoulders and black sleeves",
+    "dorado": "a uniform whose chest panel is mustard gold, with black "
+              "shoulders and black sleeves",
+    "azul": "a uniform whose chest panel is teal blue, with black shoulders "
+            "and black sleeves",
 }
 
 # Rasgos por raza. Sin nombrar franquicias ni personajes: se describe el
@@ -94,8 +100,12 @@ RAZAS = {
                  "deep-set eyes, no beard at all, a clean-shaven face with "
                  "softer rounded cheeks, and long hair pulled back into a "
                  "braid. Gruff stubborn expression",
-    "betazoide": "entirely solid black eyes with no visible iris, dark wavy "
-                 "hair, warm empathic expression",
+    # 22/09: salio con ojos normales y orejas puntiagudas, o sea leida como
+    # vulcana. Los ojos negros son EL rasgo, y hay que negar las orejas.
+    "betazoide": "completely black eyes - the entire eyeball solid black with "
+                 "no visible white and no visible iris, like pools of ink - "
+                 "and plain rounded human ears, definitely not pointed ears. "
+                 "Dark wavy hair, warm empathic expression",
 }
 
 SEXOS = {"femenino": "female", "masculino": "male"}
