@@ -335,6 +335,8 @@ cost, and playing a file adds ~0ms to a command.
 
 - [ ] Text: ⬜ the right officer answers · ⬜ wrong routing (say which)
 - [ ] Voice: ⬜ sounds · ⬜ nothing plays · ⬜ it plays but lags the command
+- [ ] Portraits: ⬜ the 7 came out usable · ⬜ some need their RAZAS entry
+      tweaked and a `--rehacer` (say which)
 - [ ] Do the voices work with the game audio on, or do they get buried?
 - [ ] `VOZ_ACTIVADA = False` in `oficiales.py` turns the audio off and leaves
       the text

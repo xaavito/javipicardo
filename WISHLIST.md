@@ -224,14 +224,25 @@ El Officer MFD de SFC (pág. 102 del manual) ya tiene los oficiales, y **coincid
 casi uno a uno con nuestras categorías de comandos**. Colores de uniforme según
 la época TNG de las imágenes de referencia del README:
 
-| Oficial | Nombre | Raza | Rango | Alias por los que responde | Qué ejecuta | Uniforme |
-|---|---|---|---|---|---|---|
-| **Timón** (Helm) | **T'Lara** | Vulcana | Alférez | "timonel", "piloto", "alférez", "lara" | velocidad, alto total, orbitar, maniobras evasivas, seguir/perseguir, combos de aproximación | Rojo (mando) |
-| **Armas** (Weapons) | **Korak** | Klingon | Teniente | "artillero", "armas", "korak" | disparar, alpha strike, ataque total, selección y ciclado de objetivos, memoria de targets | Dorado (operaciones) |
-| **Defensa** (Defense) | **Sunek** | Andoriano | Teniente | "defensa", "táctico", "sunek" | escudos al máximo, alerta roja, ECM/ECCM, camuflaje | Dorado |
-| **Ciencias** (Science) | **Delon** | Trill | Teniente | "ciencias", "científico", "delon" | escaneo profundo / deep scan, sensores | Azul |
-| **Ingeniería** (Repair) | **Grax** | Boliano | Comandante | "ingeniero", "ingeniería", "grax" | reparaciones, energía (todavía sin comandos nuestros) | Dorado |
-| **Computadora** | — | — | — | "computadora" | **comodín**: acepta cualquier orden y la enruta sola, que es lo que hace el sistema hoy | — (sin cara, o panel LCARS) |
+| Oficial | Nombre | Raza | Sexo | Rango | Alias | Qué ejecuta | Uniforme |
+|---|---|---|---|---|---|---|---|
+| **Timón** | **T'Lara** | Vulcana | F | Alférez | timonel · piloto · alférez · lara | velocidad, alto total, orbitar, evasivas, seguir, combos de aproximación | Rojo (mando) |
+| **Armas** | **Korak** | Klingon | M | Teniente | artillero · armas · korak | disparar, alpha strike, ataque total, targeting y memoria de objetivos | Dorado (ops) |
+| **Defensa** | **Zheva** | Andoriana | F | Teniente | defensa · táctico · zheva | escudos, alerta roja, ECM/ECCM, camuflaje | Dorado |
+| **Ciencias** | **Delon** | Trill | M | Teniente | ciencias · científico · delon | escaneo profundo, sensores | Azul (ciencias) |
+| **Ingeniería** | **Grax** | Boliano | M | Comandante | ingeniero · ingeniería · grax | reparaciones, energía *(sin comandos nuestros todavía)* | Dorado |
+| **Seguridad** | **Pell** | Tellarita | F | Teniente | seguridad · marines · pell | abordajes, hit and run *(sin comandos nuestros todavía)* | Dorado |
+| **Comunicaciones** | **Nima** | Betazoide | F | Alférez | comunicaciones · nima | *(sin comandos nuestros todavía)* | Dorado |
+| **Computadora** | — | — | — | — | computadora | **comodín**: acepta cualquier orden y la enruta sola | — (sin cara) |
+
+Siete puestos, **siete razas conocidas distintas**, y el plantel balanceado en
+sexo (4 F / 3 M). El capitán sos vos, de rojo, como en `images/image.png`.
+Los colores siguen las divisiones de la época TNG: mando en rojo, operaciones
+en dorado, ciencias en azul — así el uniforme ya dice de qué se ocupa cada uno.
+
+Tres puestos (Ingeniería, Seguridad, Comunicaciones) **todavía no tienen
+comandos nuestros**, pero el juego sí los tiene: existen en el Officer MFD y
+son por dónde crecer cuando se agreguen reparaciones, energía o abordajes.
 
 **Los nombres están elegidos con un criterio técnico, no sólo estético:** son el
 vocabulario del wake word, así que tienen que **distinguirse entre sí al oído

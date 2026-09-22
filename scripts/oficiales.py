@@ -51,6 +51,7 @@ OFICIALES = {
     "timon": {
         "nombre": "T'Lara",
         "raza": "vulcana",
+        "sexo": "femenino",
         "rango": "alferez",
         "alias": ["timonel", "piloto", "alferez", "lara"],
         "uniforme": "rojo",
@@ -59,22 +60,25 @@ OFICIALES = {
     "armas": {
         "nombre": "Korak",
         "raza": "klingon",
+        "sexo": "masculino",
         "rango": "teniente",
         "alias": ["artillero", "armas", "korak"],
         "uniforme": "dorado",
         "teclas": {"z", "y", "t", "`", "\\", "5", "6", "7", "8"},
     },
     "defensa": {
-        "nombre": "Sunek",
-        "raza": "andoriano",
+        "nombre": "Zheva",
+        "raza": "andoriana",
+        "sexo": "femenino",
         "rango": "teniente",
-        "alias": ["defensa", "tactico", "sunek"],
+        "alias": ["defensa", "tactico", "zheva"],
         "uniforme": "dorado",
         "teclas": {"r", "k", "x", "f"},
     },
     "ciencias": {
         "nombre": "Delon",
         "raza": "trill",
+        "sexo": "masculino",
         "rango": "teniente",
         "alias": ["ciencias", "cientifico", "delon"],
         "uniforme": "azul",
@@ -83,10 +87,30 @@ OFICIALES = {
     "ingenieria": {
         "nombre": "Grax",
         "raza": "boliano",
+        "sexo": "masculino",
         "rango": "comandante",
         "alias": ["ingeniero", "ingenieria", "grax"],
         "uniforme": "dorado",
         # Sin comandos todavia: el juego tiene reparaciones y energia, nosotros no.
+        "teclas": set(),
+    },
+    "seguridad": {
+        "nombre": "Pell",
+        "raza": "tellarita",
+        "sexo": "femenino",
+        "rango": "teniente",
+        "alias": ["seguridad", "marines", "pell"],
+        "uniforme": "dorado",
+        # Hit and run raids y abordajes existen en el juego, sin comandos nuestros.
+        "teclas": set(),
+    },
+    "comunicaciones": {
+        "nombre": "Nima",
+        "raza": "betazoide",
+        "sexo": "femenino",
+        "rango": "alferez",
+        "alias": ["comunicaciones", "comunicacion", "nima"],
+        "uniforme": "dorado",
         "teclas": set(),
     },
     # Comodin: contesta lo que no es de nadie en particular, y todos los
@@ -94,6 +118,7 @@ OFICIALES = {
     "computadora": {
         "nombre": "Computadora",
         "raza": None,
+        "sexo": None,
         "rango": None,
         "alias": ["computadora"],
         "uniforme": None,
@@ -125,6 +150,8 @@ RESPUESTAS = {
         "defensa": ["Sí, capitán.", "Afirmativo.", "Hecho, capitán."],
         "ciencias": ["Sí, capitán.", "Afirmativo, capitán."],
         "ingenieria": ["Sí, capitán.", "En camino, capitán."],
+        "seguridad": ["Sí, capitán.", "Entendido, capitán."],
+        "comunicaciones": ["Sí, capitán.", "En ello, capitán."],
         "computadora": ["Afirmativo.", "Orden ejecutada."],
     },
     # El parser y el LLM no entendieron la orden.
@@ -251,7 +278,8 @@ if __name__ == "__main__":
     print("=== Plantel ===")
     for clave, d in OFICIALES.items():
         teclas = ", ".join(sorted(d["teclas"])) or "(sin comandos propios)"
-        print(f"  {d['nombre']:12} {clave:12} teclas: {teclas}")
+        raza = d["raza"] or "-"
+        print(f"  {d['nombre']:12} {clave:16} {raza:12} teclas: {teclas}")
 
     print("\n=== Frases a generar en audio ===")
     total = 0

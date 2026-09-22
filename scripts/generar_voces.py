@@ -27,22 +27,28 @@ MODELO_TTS = "gpt-4o-mini-tts"
 
 # Una voz por oficial. La idea es que se distingan entre si; ajustar a gusto
 # despues de escucharlas. Ver la lista de voces disponibles en la doc de OpenAI.
+# Sin haberlas escuchado no hay forma de acertarle: ajustar despues de oirlas
+# y volver a correr con --rehacer.
 VOZ_POR_OFICIAL = {
-    "timon": "shimmer",       # T'Lara, vulcana: plana y monotona
-    "armas": "onyx",          # Korak, klingon: grave
-    "defensa": "echo",        # Sunek, andoriano
-    "ciencias": "fable",      # Delon, trill
-    "ingenieria": "alloy",    # Grax, boliano: calido
-    "computadora": "nova",    # la voz del sistema
+    "timon": "shimmer",         # T'Lara, vulcana, femenina: plana y monotona
+    "armas": "onyx",            # Korak, klingon, masculino: grave
+    "defensa": "coral",         # Zheva, andoriana, femenina
+    "ciencias": "echo",         # Delon, trill, masculino
+    "ingenieria": "alloy",      # Grax, boliano, masculino: calido
+    "seguridad": "sage",        # Pell, tellarita, femenina: aspera
+    "comunicaciones": "nova",   # Nima, betazoide, femenina: calida
+    "computadora": "ballad",    # la voz del sistema, sin cuerpo
 }
 
 # Instruccion de tono por oficial (el modelo de TTS nuevo la acepta).
 TONO_POR_OFICIAL = {
     "timon": "Habla de forma neutra y sin emocion, como una vulcana.",
     "armas": "Habla con energia marcial, breve y seguro.",
-    "defensa": "Habla con calma profesional.",
+    "defensa": "Habla con calma profesional y alerta.",
     "ciencias": "Habla con precision, tono academico.",
     "ingenieria": "Habla en tono calido y campechano.",
+    "seguridad": "Habla con voz aspera y directa, sin adornos.",
+    "comunicaciones": "Habla en tono calido y atento.",
     "computadora": "Habla como la computadora de una nave: neutra y clara.",
 }
 
