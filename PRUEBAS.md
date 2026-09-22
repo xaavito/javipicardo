@@ -12,6 +12,32 @@ requieren validación en vivo.
 **Preparación (siempre):** juego abierto **desde DxWnd** · consola **como
 Administrador** · misión con la nave pudiendo moverse.
 
+### Qué necesita cada prueba (leer antes de arrancar)
+
+No todas necesitan lo mismo, y varias fallan "porque sí" si el estado de la
+partida no es el correcto — sobre todo las que dependen de tener un objetivo
+seleccionado o energía de movimiento libre.
+
+| Prueba | ¿Juego? | Estado de la partida que necesita |
+|---|---|---|
+| Pre-vuelo (`catalogo_comandos.py`, `oficiales.py`) | **No** | Nada. Corre en cualquier lado |
+| #20 oficiales | No hace falta | Con el juego se ve además que la tecla llega; sin él, sólo el texto y la voz |
+| #19 ambigüedad | **No** | Ninguno: justamente no tiene que mandar teclas |
+| #10 no soportados | **No** | Ninguno: tampoco manda teclas |
+| #15 velocidad % | **Sí** | Nave **libre de moverse**, fuera de combate para poder mirar el HUD |
+| #4 evasivas | **Sí** | A **cuarto de máquina** (necesita 6 puntos de energía libres), **camuflaje apagado**, y el **Helm MFD abierto** |
+| #8 targeting | **Sí** | **Varios contactos a la vista**, y al menos dos hostiles |
+| #5 memoria de targets | **Sí** | **2-3 enemigos** distintos, para poder cambiar de objetivo y volver |
+| #6 y #7 combos | **Sí** | Enemigos a distancia, con **espacio para acelerar** sin chocar |
+| #16 fallback del LLM | No hace falta | Ninguno: lo que se mira es la consola |
+| #9 STT | **Sí** | Cualquiera: se mira la transcripción, no el efecto |
+| #13 STT local | No hace falta | Ninguno para medir latencia; con juego para confirmar que además ejecuta |
+| #11 hotkeys | **Sí** | En el menú **Options → Hotkeys**, no en misión |
+| #12 foco | **Sí** | Nave libre de moverse, y la consola **al frente** |
+
+> Las que dicen "No hace falta" igual conviene hacerlas con el juego abierto si
+> ya está: no molesta, y de paso se confirma que la tecla llega.
+
 ---
 
 ## 🔴 Prioridad ALTA — bloquean o invalidan otras cosas

@@ -242,14 +242,26 @@ def _nombre_archivo(clave_oficial, frase):
     return f"{clave_oficial}__{limpio.strip('_')}.wav"
 
 
+# Para avisar una sola vez por corrida, en vez de en cada comando.
+_ya_avise_sin_audio = False
+
+
 def reproducir(clave_oficial, frase):
     """Reproduce el wav de esa frase si existe. Asincrono: no bloquea el loop
     de comandos. Devuelve True si sono algo."""
+    global _ya_avise_sin_audio
+
     if not VOZ_ACTIVADA or winsound is None:
         return False
 
     ruta = os.path.join(DIR_AUDIO, _nombre_archivo(clave_oficial, frase))
     if not os.path.isfile(ruta):
+        # Que la falta de sonido nunca sea silenciosa: si no se avisa, parece
+        # que la voz fallo cuando en realidad nunca se genero el archivo.
+        if not _ya_avise_sin_audio:
+            _ya_avise_sin_audio = True
+            print(f"  [!] No hay audio generado ({os.path.abspath(ruta)}). "
+                  f"Corre `python generar_voces.py` para tener voz.")
         return False
 
     try:

@@ -18,6 +18,7 @@ Vuelve a generar solo lo que falta. Para rehacer todo:
 
 import os
 import sys
+import wave
 
 from openai import OpenAI
 
@@ -25,6 +26,13 @@ import config
 import oficiales
 
 MODELO_TTS = "gpt-4o-mini-tts"
+
+# Formato PCM crudo (24000 Hz, 16 bits, mono) y la cabecera wav la escribimos
+# nosotros. Con response_format="wav" la API manda el audio en streaming y deja
+# el tamanio del chunk "data" en 0x7FFFFFFF (indeterminado): el archivo suena
+# en un reproductor tolerante, pero winsound lee esa cabecera, ve 4 GB de audio
+# en un archivo de 88 KB y no reproduce NADA, sin dar error.
+PCM_CANALES, PCM_BYTES, PCM_HZ = 1, 2, 24000
 
 # Una voz por oficial. La idea es que se distingan entre si; ajustar a gusto
 # despues de escucharlas. Ver la lista de voces disponibles en la doc de OpenAI.
@@ -80,16 +88,18 @@ def main():
                     continue
 
                 try:
-                    # wav y no mp3: winsound (que es lo que usa oficiales.py
-                    # para reproducir) solo lee wav.
                     respuesta = cliente.audio.speech.create(
                         model=MODELO_TTS,
                         voice=VOZ_POR_OFICIAL.get(clave, "nova"),
                         input=frase,
                         instructions=TONO_POR_OFICIAL.get(clave, ""),
-                        response_format="wav",
+                        response_format="pcm",
                     )
-                    respuesta.write_to_file(ruta)
+                    with wave.open(ruta, "wb") as w:
+                        w.setnchannels(PCM_CANALES)
+                        w.setsampwidth(PCM_BYTES)
+                        w.setframerate(PCM_HZ)
+                        w.writeframes(respuesta.content)
                     generados += 1
                     print(f"  OK  {nombre}  ({clave}: \"{frase}\")")
                 except Exception as e:
