@@ -80,14 +80,8 @@ def _cliente():
         except Exception:
             # STT on the local backend, or soundfile not installed: this
             # module opens its own client.
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                raise RuntimeError(
-                    "No se encontro la variable de entorno OPENAI_API_KEY. "
-                    "Ver docstring de este archivo / stt_openai.py para como "
-                    "configurarla."
-                )
-            _cliente_cacheado = OpenAI(api_key=api_key)
+            import config
+            _cliente_cacheado = OpenAI(api_key=config.api_key())
     return _cliente_cacheado
 
 

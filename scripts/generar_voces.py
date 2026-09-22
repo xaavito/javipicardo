@@ -21,6 +21,7 @@ import sys
 
 from openai import OpenAI
 
+import config
 import oficiales
 
 MODELO_TTS = "gpt-4o-mini-tts"
@@ -56,11 +57,12 @@ TONO_POR_OFICIAL = {
 def main():
     rehacer = "--rehacer" in sys.argv
 
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        print("[!] Falta la variable de entorno OPENAI_API_KEY. "
-              "Ver stt_openai.py para como configurarla.")
+    try:
+        api_key = config.api_key()
+    except RuntimeError as e:
+        print(f"[!] {e}")
         return 1
+    print(f"API key: {config.de_donde_salio()}")
 
     cliente = OpenAI(api_key=api_key)
     os.makedirs(oficiales.DIR_AUDIO, exist_ok=True)

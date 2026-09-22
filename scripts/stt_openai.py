@@ -45,6 +45,8 @@ import unicodedata
 import soundfile as sf
 from openai import OpenAI
 
+import config
+
 # Modelo de transcripcion de OpenAI.
 # - "gpt-4o-mini-transcribe" (ACTUAL): mas nuevo, mas preciso y mas barato que
 #   whisper-1, y es el que recomienda la guia oficial de Speech-to-Text de
@@ -90,13 +92,7 @@ _cliente_cacheado = None
 def _cliente():
     global _cliente_cacheado
     if _cliente_cacheado is None:
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError(
-                "No se encontro la variable de entorno OPENAI_API_KEY. Ver "
-                "docstring de este archivo para como configurarla."
-            )
-        _cliente_cacheado = OpenAI(api_key=api_key)
+        _cliente_cacheado = OpenAI(api_key=config.api_key())
     return _cliente_cacheado
 
 
