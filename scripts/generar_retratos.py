@@ -40,16 +40,24 @@ TAMANIO = "1024x1024"
 # ilustracion con fotorrealismo se nota feo cuando se ven juntos.
 #   "ilustrado"      -> perdona mejor las caras generadas y se lee bien en chico
 #   "fotorrealista"  -> mas impactante de a uno, mas dificil de mantener parejo
-ESTILO = "ilustrado"
+ESTILO = "fotorrealista"
 
 ESTILOS = {
     "ilustrado": (
         "digital comic-book illustration, bold clean linework, cel shading, "
         "rich saturated color"
     ),
+    # Los rasgos se piden como PROTESIS Y MAQUILLAJE sobre un actor real, que
+    # es lo que de verdad se ve en la serie - sin eso el modelo tiende a
+    # dibujar un monstruo. El resto de la descripcion (lente, luz, encuadre)
+    # esta para que las siete fotos parezcan de la misma sesion.
     "fotorrealista": (
-        "photorealistic portrait photography, shallow depth of field, "
-        "cinematic lighting"
+        "photorealistic cinematic film still from a live-action television "
+        "series. The alien features are practical prosthetic makeup and "
+        "appliances applied to a real human actor, with visible natural skin "
+        "texture and pores. Shot on an 85mm lens at eye level, soft key light "
+        "from the left, gentle fill, shallow depth of field, neutral color "
+        "grading, no stylisation"
     ),
 }
 
