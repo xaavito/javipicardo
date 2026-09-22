@@ -150,6 +150,12 @@ EXIT_KEY = "esc"
 SAMPLE_RATE = 16000  # Hz, el que espera Whisper
 CHANNELS = 1
 
+# Dispositivo de entrada. None = el default de Windows. Si hay varios
+# microfonos (tipico al enchufar un auricular Bluetooth, que aparece como dos
+# dispositivos distintos), poner aca el NUMERO que muestra:
+#     python probar_microfono.py
+DISPOSITIVO_ENTRADA = None
+
 # Below this many seconds the recording is a push-to-talk tap, not an order.
 # It is not sent to the API: an audio with no speech makes the model answer
 # with the vocabulary prompt itself (see es_eco_del_prompt in stt_openai.py).
@@ -180,7 +186,8 @@ def grabar_mientras_se_mantiene_apretada(tecla):
     print(f"[grabando... mantene apretada '{tecla}' y hablá, soltá al terminar]")
 
     with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
-                         dtype='float32', callback=callback):
+                         dtype='float32', device=DISPOSITIVO_ENTRADA,
+                         callback=callback):
         while keyboard.is_pressed(tecla):
             time.sleep(0.01)
 
@@ -247,7 +254,7 @@ def precalentar_microfono():
     """
     try:
         with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
-                            dtype='float32'):
+                            dtype='float32', device=DISPOSITIVO_ENTRADA):
             pass
         return True
     except Exception as e:
@@ -263,7 +270,12 @@ def precalentar_todo():
 
     t0 = time.time()
     ok_mic = precalentar_microfono()
-    print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} "
+    try:
+        info = sd.query_devices(DISPOSITIVO_ENTRADA, "input")
+        cual = info["name"]
+    except Exception:
+        cual = "desconocido"
+    print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} -> {cual} "
           f"({time.time() - t0:.2f}s)")
 
     if STT_BACKEND == "openai":
@@ -318,6 +330,13 @@ def main():
         if keyboard.is_pressed(PUSH_TO_TALK_KEY):
             t0 = time.time()
             audio = grabar_mientras_se_mantiene_apretada(PUSH_TO_TALK_KEY)
+
+            if audio.size:
+                pico = float(np.max(np.abs(audio)))
+                if pico < 0.001:
+                    print(f"[el microfono grabo SILENCIO ({pico:.5f} de pico). "
+                          f"Corre probar_microfono.py para ver por que]\n")
+                    continue
 
             duracion = audio.size / SAMPLE_RATE
             if duracion < MIN_DURACION_AUDIO_SEG:

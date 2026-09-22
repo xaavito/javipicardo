@@ -368,6 +368,36 @@ cost, and playing a file adds ~0ms to a command.
       the text
 - Notes (phrases to change, voices that do not fit the character):
 
+### 21. Micrófono Bluetooth: fase2 dejó de escuchar
+
+**Por qué importa:** al conectar un auricular BT con micrófono, `fase2` no
+capta nada. Windows expone **cada auricular BT como dos dispositivos**: el
+perfil **A2DP** (buen sonido, **sin micrófono**) y el **HFP/Hands-Free** (hay
+micrófono, pero la salida baja a calidad teléfono). Si Windows quedó en A2DP,
+el micrófono no existe para las aplicaciones y se graba silencio **sin ningún
+error**.
+
+**Cómo probarlo:**
+1. `python scripts\probar_microfono.py`
+2. Mirá la lista: tiene que aparecer el auricular **con canales de entrada** y
+   con `16000 Hz mono: OK`. Si aparece dos veces, el que sirve es el que dice
+   *Hands-Free* o *Headset*, no el que dice *Stereo*.
+3. Mientras graba los 4 segundos, **hablá**: la barra de nivel tiene que
+   moverse.
+4. Si el default no es el que querés: `python scripts\probar_microfono.py 3`
+   (el número que muestra la lista) y probá ése.
+5. Cuando encuentres el bueno, ponelo en `fase2_voice_commands.py`:
+   `DISPOSITIVO_ENTRADA = 3`
+
+- [ ] **Resultado:** ⬜ OK, captura voz · ⬜ silencio absoluto · ⬜ muy bajo
+- [ ] Número de dispositivo que funcionó: ______
+- [ ] ¿Windows lo puso en Hands-Free automáticamente, o hubo que forzarlo en
+      Configuración → Sonido?
+- **Ojo con la contrapartida:** en modo Hands-Free, **la voz de los oficiales
+  también suena a teléfono**, porque es el mismo dispositivo. Si molesta, la
+  salida se puede dejar en los parlantes y usar el BT sólo como micrófono.
+- Notas:
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -399,6 +429,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 20 (+ 4b)
+- **Pruebas completadas:** ____ / 21 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**
