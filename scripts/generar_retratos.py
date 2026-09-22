@@ -69,12 +69,23 @@ RAZAS = {
                "brow, fierce proud expression, dark warrior complexion",
     "andoriana": "pale blue skin, white hair, two slender antennae rising "
                  "from the forehead, sharp alert expression",
-    "trill": "a line of dark brown spots running down each side of the face "
-             "from forehead to neck, warm human-like features",
-    "boliano": "light blue skin, completely bald, a vertical cartilage ridge "
-               "running down the middle of the face, friendly expression",
-    "tellarita": "stocky build, porcine snout-like nose, small deep-set eyes, "
-                 "coarse facial hair, gruff stubborn expression",
+    "trill": "two neat symmetrical lines of dark brown spots, one down each "
+             "side of the face only, from the hairline past the temple and "
+             "down the neck, leaving the centre of the face clear. Warm "
+             "human-like features",
+    # 22/09: la primera version salio como un humano calvo pintado de azul.
+    # La cresta es EL rasgo boliano, asi que hay que insistir mucho con ella.
+    "boliano": "light blue skin, completely bald, and a thick raised vertical "
+               "cartilage ridge that bisects the whole face, starting at the "
+               "top of the bald scalp and running down the forehead, between "
+               "the eyes, along the nose and to the upper lip, clearly raised "
+               "and casting its own shadow. Friendly open expression",
+    # 22/09: pedida femenina, salio inequivocamente masculina (barba tupida).
+    # Se sacan los rasgos que empujaban a eso y se agregan senales femeninas.
+    "tellarita": "stocky build, porcine snout-like upturned nose, small "
+                 "deep-set eyes, no beard at all, a clean-shaven face with "
+                 "softer rounded cheeks, and long hair pulled back into a "
+                 "braid. Gruff stubborn expression",
     "betazoide": "entirely solid black eyes with no visible iris, dark wavy "
                  "hair, warm empathic expression",
 }
