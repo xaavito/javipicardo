@@ -312,6 +312,12 @@ def precalentar_todo():
 
 
 def main():
+    if oficiales is not None and oficiales.PANEL_WEB \
+            and oficiales.panel_web is not None:
+        url = oficiales.panel_web.iniciar()
+        if url:
+            print(f"Panel de la tripulacion: {url}  (abrilo al lado del juego)")
+
     print("=== SFC Voice Commander - Fase 2: comandos por VOZ ===")
     print(f"Push-to-talk: mantené apretada '{PUSH_TO_TALK_KEY}' mientras hablás.")
     print(f"Presioná '{EXIT_KEY}' para salir.\n")
