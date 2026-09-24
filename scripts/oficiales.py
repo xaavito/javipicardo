@@ -31,6 +31,14 @@ DIR_AUDIO = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # Poner en False para dejar solo el texto, sin reproducir audio.
 VOZ_ACTIVADA = True
 
+# Panel web con el retrato del oficial que contesta (ver panel_web.py).
+PANEL_WEB = True
+
+try:
+    import panel_web
+except ImportError:
+    panel_web = None
+
 # winsound es de la libreria estandar de Windows y reproduce wav sin instalar
 # nada. En la Mac no existe: se degrada a solo texto.
 try:
@@ -283,6 +291,9 @@ def responder(accion):
     quien = datos["nombre"]
     print(f"  [{quien}] {frase}")
     reproducir(clave, frase)
+
+    if PANEL_WEB and panel_web is not None:
+        panel_web.publicar(clave, quien, frase, accion.get("raw"))
 
 
 if __name__ == "__main__":

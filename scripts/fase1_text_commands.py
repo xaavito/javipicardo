@@ -313,16 +313,27 @@ SPEED_WORDS = {
     "avante toda": 4, "velocidad maxima": 4,
 }
 
-# Cantidad aproximada de pulsaciones de S (o A si negativo) para llegar a cada
-# nivel desde una posicion neutra/desconocida. Es una heuristica para validar
-# el flujo end-to-end; no es precisa (ver nota de Fase 3 en el docstring).
-STEPS_VELOCIDAD = {
-    0: ("a", 8),   # frenar fuerte: varios A para asegurar que baje a 0
-    1: ("s", 2),
-    2: ("s", 4),
-    3: ("s", 6),
-    4: ("s", 8),
-}
+# Cuantas pulsaciones de "s" hay desde velocidad 0 hasta la maxima de la nave.
+# NO es un dato del manual: depende de la nave y hay que MEDIRLO. El 8 original
+# se eligio a ojo y por eso "velocidad al 70 por ciento" no llegaba a 3/4
+# (24/09). Medirlo con: python calibrar_velocidad.py
+PASOS_HASTA_MAXIMA = 8
+
+# Pulsaciones para llegar a cada nivel DESDE CERO, derivadas del dato de
+# arriba en vez de estar escritas a mano. El nivel 0 frena con un 25% extra de
+# pulsaciones para asegurar que toque el piso.
+def _steps_velocidad():
+    tope = PASOS_HASTA_MAXIMA
+    return {
+        0: ("a", int(tope * 1.25) + 1),
+        1: ("s", max(1, round(tope * 0.25))),
+        2: ("s", max(1, round(tope * 0.50))),
+        3: ("s", max(1, round(tope * 0.75))),
+        4: ("s", tope),
+    }
+
+
+STEPS_VELOCIDAD = _steps_velocidad()
 
 def pct_a_nivel(pct):
     """Rounds an explicit percentage to the closest of the 5 speed levels.
@@ -969,6 +980,12 @@ def main():
         import llm_fallback
     except ImportError:
         usar_llm_fallback = False
+
+    if oficiales is not None and oficiales.PANEL_WEB \
+            and oficiales.panel_web is not None:
+        url = oficiales.panel_web.iniciar()
+        if url:
+            print(f"Panel de la tripulacion: {url}  (abrilo al lado del juego)")
 
     print("=== SFC Voice Commander - Fase 1: comandos por texto ===")
     print("Escribi un comando (ej: 'alerta roja', 'disparar', 'media maquina')")

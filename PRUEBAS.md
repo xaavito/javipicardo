@@ -176,6 +176,22 @@ the manual puts on EM (SFCfullMan pages 102 and 140):
    actually bound to in this edition. Note this is now unlikely, since the
    other two numpad keys do work.
 
+**Resultado 24/09:** la consola manda `divide` pero en el juego no pasa nada,
+ni se ilumina nada.
+
+**Hipótesis nueva, y encaja con todo lo medido:** de las tres teclas de numpad,
+las dos que funcionan (`–` Orbit, `*` Follow) son teclas **normales**, y la
+única que falla (`/`) es la única **extendida** — su scancode `0x35` necesita
+el flag `E0` para distinguirse de otra tecla. Si `pydirectinput` no lo manda,
+el juego recibe una tecla distinta, que es exactamente el síntoma.
+
+**El test que lo decide, 5 segundos:** apretá **físicamente** el `/` del
+teclado numérico con el juego en foco.
+- Si a mano **sí** funciona → es el flag extendido, y se arregla mandando esa
+  tecla con `SendInput` directo por `ctypes`.
+- Si a mano **tampoco** → el binding del juego es otro: mirar Options → Hotkeys.
+
+- [ ] A mano funciona: ⬜ sí (es el flag) · ⬜ no (es el binding)
 - [ ] Erratic: ⬜ the MFD button lights up · ⬜ nothing at all
 - [ ] Does saying it twice turn it off? ⬜ yes, it toggles · ⬜ no, it stays on
 
@@ -259,7 +275,7 @@ juego vía `prompt`, + `temperature=0`.
 - [ ] Confirmar que **no** tarda (no debería llamar al LLM)
 - Notas:
 
-### 15. Speed by explicit percentage
+### 15. Speed by explicit percentage — el % no llega donde debería
 
 **Why it matters:** "velocidad al 70 por ciento" was parsed but sent no key at
 all, so the order was silently dropped. It now rounds to the closest of the 5
@@ -267,6 +283,19 @@ levels (70% -> level 3, ~75%). Rounding is all we can do before Fase 3, so
 what needs checking is whether it feels right while playing.
 
 **How to test it:** say each phrase and watch the HUD.
+
+**Resultado 24/09:** `alto total` anda; `velocidad al 70 por ciento` **no
+llega a 3/4**. La causa no es el redondeo sino que **nunca se midió cuántos
+pasos tiene el acelerador de la nave**: las 6 pulsaciones salían de un `8` que
+se eligió a ojo en la Fase 1. Ahora `STEPS_VELOCIDAD` se deriva de
+`PASOS_HASTA_MAXIMA`, y ese número se mide con `calibrar_velocidad.py`.
+
+**Antes de repetir esta prueba:**
+1. `python scripts\calibrar_velocidad.py` — acelera de a una pulsación y te
+   pregunta cuándo dejó de subir. Juego abierto, nave libre, HUD a la vista.
+2. Poné el número que te dé en `PASOS_HASTA_MAXIMA`, en
+   `fase1_text_commands.py`.
+3. Recién ahí volvé a la tabla de abajo.
 
 | Phrase | Expected level | Did the ship react? |
 |---|---|---|
