@@ -312,7 +312,7 @@ force the fallback (the console prints "consultando al LLM").
       and 32 commands
 - Notes:
 
-### 19. Palabra suelta ambigua: que no adivine
+### 19. Palabra suelta ambigua: que no adivine — casi cerrada
 
 **Why it matters:** on 17/09 the STT clipped "media máquina" down to
 "Máquina.", the parser did not know it, and **the LLM guessed "cuarto de
@@ -331,7 +331,9 @@ presses no key, without spending an LLM call either.
    F12, so only the tail is recorded. Whatever comes out, the ship must not
    move unless the transcription really is a full command.
 
-- [ ] **Result:** ⬜ explains and does nothing · ⬜ still fires something
+- [x] **24/09:** las cinco palabras sueltas piden desambiguación correctamente.
+- [ ] Falta confirmar que **no** aparece `[consultando al LLM]` en ninguna, y
+      el caso de la frase cortada por voz.
 - [ ] Any other fragment the STT produces often → tell me and it goes in
       `FRASES_AMBIGUAS`
 - Notes:
@@ -359,7 +361,9 @@ cost, and playing a file adds ~0ms to a command.
 7. Check it does not get in the way: the sound plays **async**, so the next
    command should not have to wait for it.
 
-- [ ] Text: ⬜ the right officer answers · ⬜ wrong routing (say which)
+- [x] **24/09, texto:** el oficial correcto contesta en todos los casos.
+- [ ] **Audio:** no sonaba nada por un bug de cabecera en los wav, ya
+      corregido — falta reprobarlo después de un `git pull`.
 - [ ] Voice: ⬜ sounds · ⬜ nothing plays · ⬜ it plays but lags the command
 - [ ] Portraits: ⬜ the 7 came out usable · ⬜ some need their RAZAS entry
       tweaked and a `--rehacer` (say which)
@@ -368,7 +372,7 @@ cost, and playing a file adds ~0ms to a command.
       the text
 - Notes (phrases to change, voices that do not fit the character):
 
-### 21. Micrófono Bluetooth: fase2 dejó de escuchar
+### ~~21. Micrófono Bluetooth: fase2 dejó de escuchar~~
 
 **Por qué importa:** al conectar un auricular BT con micrófono, `fase2` no
 capta nada. Windows expone **cada auricular BT como dos dispositivos**: el
@@ -389,8 +393,13 @@ error**.
 5. Cuando encuentres el bueno, ponelo en `fase2_voice_commands.py`:
    `DISPOSITIVO_ENTRADA = 3`
 
-- [ ] **Resultado:** ⬜ OK, captura voz · ⬜ silencio absoluto · ⬜ muy bajo
-- [ ] Número de dispositivo que funcionó: ______
+- [x] **RESUELTA (24/09):** el micrófono quedó andando. Queda anotado que el
+      **reconocimiento es pobre con el BT**, lo cual es esperable: en perfil
+      Hands-Free el micrófono va comprimido a calidad teléfono, que es justo
+      lo que más le cuesta a un STT. Se va a reintentar con otros micrófonos.
+      **Consecuencia:** la prueba #13 (STT local vs. API) queda **en espera de
+      un micrófono decente** — con audio de teléfono el micrófono domina el
+      resultado y la comparación no mide lo que se quiere medir.
 - [ ] ¿Windows lo puso en Hands-Free automáticamente, o hubo que forzarlo en
       Configuración → Sonido?
 - **Ojo con la contrapartida:** en modo Hands-Free, **la voz de los oficiales
