@@ -391,8 +391,9 @@ cost, and playing a file adds ~0ms to a command.
    command should not have to wait for it.
 
 - [x] **24/09, texto:** el oficial correcto contesta en todos los casos.
-- [ ] **Audio:** no sonaba nada por un bug de cabecera en los wav, ya
-      corregido — falta reprobarlo después de un `git pull`.
+- [x] **24/09, audio: RESUELTO.** ✅ Sonaron las voces correctas de cada
+      oficial. La prueba #20 queda cerrada: el oficial que corresponde al
+      comando contesta, por texto y con su voz.
 - [ ] Voice: ⬜ sounds · ⬜ nothing plays · ⬜ it plays but lags the command
 - [ ] Portraits: ⬜ the 7 came out usable · ⬜ some need their RAZAS entry
       tweaked and a `--rehacer` (say which)
@@ -474,6 +475,72 @@ falta leer el HUD (la misma familia de problema que la Fase 3 y la Fase 6).
 - [ ] ¿Cuál de las tres vías se siente mejor jugando?
 - Notas (si se extraña un comando que hoy no existe, anotarlo acá):
 
+### 23. El panel web: que aparezca la cara del oficial
+
+**Por qué importa:** es el punto 5 de Pato en su versión mínima, y junta sus
+puntos 2, 3 y 5 en una sola demo — decís una orden y aparece el retrato del
+oficial que contesta, con su frase. Sin instalar nada: todo librería estándar.
+
+**Preparación:** `git pull` primero. Los retratos tienen que estar en
+`images/oficiales/` (7 archivos).
+
+**Pasos:**
+1. `python scripts\fase1_text_commands.py`
+2. En las primeras líneas tiene que aparecer:
+   `Panel de la tripulacion: http://127.0.0.1:8765`
+3. Abrí esa URL en el browser. Debería decir *"Esperando órdenes, capitán"*.
+4. Acomodá el browser **al lado** de la ventana del juego (o en otro monitor).
+5. Escribí, uno por uno, y mirá el panel después de cada uno:
+
+| Escribís | Tiene que aparecer |
+|---|---|
+| `alerta roja` | **Zheva** (andoriana, uniforme dorado) |
+| `media maquina` | **T'Lara** (vulcana, uniforme rojo) |
+| `disparar` | **Korak** (klingon) |
+| `escaneo profundo` | **Delon** (trill, uniforme azul) |
+| `hola que tal` | **COMPUTADORA**, sin retrato |
+| `ayuda` | **nada cambia** — la ayuda no lleva acuse de recibo |
+
+6. Repetí un comando ya usado: la frase puede cambiar (hay variantes por
+   oficial), el retrato no.
+
+- [ ] **Resultado:** ⬜ aparecen bien · ⬜ el panel no carga · ⬜ carga pero no
+      cambia · ⬜ falta algún retrato
+- [ ] ¿La ventana del browser le roba el foco al juego? *(no debería: el panel
+      sólo pregunta el estado, no toca nada)*
+- [ ] ¿Se ve bien al lado del juego, o hay que achicarlo?
+
+**Si algo falla:**
+- No aparece la línea de la URL → `PANEL_WEB` está en `False` en `oficiales.py`
+- La URL no abre → el puerto 8765 está ocupado; lo dice en la consola al
+  arrancar. Se cambia `PUERTO` en `panel_web.py`
+- Carga pero el retrato sale roto → falta ese PNG en `images/oficiales/`
+- Carga y no cambia nunca → el panel está andando pero no le llega nada;
+  fijate si la consola imprime la línea `[Nombre] frase`
+
+**Después, por voz:** lo mismo con `fase2_voice_commands.py`. Es el mismo
+panel: la voz no tiene ejecutor propio, usa el de la Fase 1.
+
+### 24. Regenerar los dos retratos que quedaron con defectos
+
+**Pendiente desde el 22/09**, los prompts ya están corregidos y pusheados:
+
+- **`comunicaciones.png` (Nima)** — salió con **ojos normales y orejas
+  puntiagudas**, o sea que lee como vulcana. Los ojos completamente negros son
+  el rasgo betazoide y se perdieron.
+- **`defensa.png` (Zheva)** — salió con la **variante invertida del uniforme**
+  (hombros de color, pecho negro). Es la única del plantel así y se nota al
+  ponerlas juntas.
+
+**Pasos:**
+1. `del images\oficiales\comunicaciones.png images\oficiales\defensa.png`
+2. `python scripts\generar_retratos.py` — regenera sólo esas dos, las otras
+   cinco no se tocan
+3. Pusheá y avisame, que las miro
+
+- [ ] Nima: ⬜ ojos negros y orejas redondas · ⬜ sigue igual
+- [ ] Zheva: ⬜ uniforme como el resto · ⬜ sigue invertido
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -505,6 +572,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 22 (+ 4b)
+- **Pruebas completadas:** ____ / 24 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

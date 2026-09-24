@@ -557,6 +557,12 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[24/09] Prueba #20 cerrada: los oficiales contestan con su voz.** ✅
+  Confirmado en vivo que suena la voz correcta de cada oficial, después de que
+  el juego reaccionó. Con eso queda cumplido el **punto 3 de la agenda de
+  Pato** ("contestar con voz de computadora"), y junto con los retratos del
+  punto 2, hay dos de sus cinco pedidos andando.
+
 - **[24/09] Sesión de pruebas: oficiales OK en texto, ambigüedad OK, y dos
   bugs de audio.** Confirmado en vivo que **el oficial correcto contesta cada
   orden** (prueba #20 en su mitad de texto) y que **las cinco palabras sueltas
