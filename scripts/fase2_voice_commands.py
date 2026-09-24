@@ -312,9 +312,11 @@ def precalentar_todo():
 
 
 def main():
-    if oficiales is not None and oficiales.PANEL_WEB \
-            and oficiales.panel_web is not None:
-        url = oficiales.panel_web.iniciar()
+    # Via fase1: este script no importa oficiales por su cuenta, reusa todo lo
+    # de la Fase 1 (parser, ejecutor, acuses de los oficiales).
+    ofi = getattr(fase1, "oficiales", None)
+    if ofi is not None and ofi.PANEL_WEB and ofi.panel_web is not None:
+        url = ofi.panel_web.iniciar()
         if url:
             print(f"Panel de la tripulacion: {url}  (abrilo al lado del juego)")
 
