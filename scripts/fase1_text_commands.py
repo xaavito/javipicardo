@@ -125,6 +125,11 @@ PAUSA_POST_ENFOQUE = 0.3
 # Measured on 17/09: 0.03s still worked, 0.05s keeps one step of margin.
 PAUSA_ENTRE_TECLAS = 0.05
 
+# Devolver el foco a la consola despues de cada comando. Tiene sentido cuando
+# se ESCRIBE (hay que seguir tipeando ahi), pero no cuando se habla: la Fase 2
+# lo apaga para que el foco se quede en el juego, que es donde tiene que estar.
+DEVOLVER_FOCO_CONSOLA = True
+
 
 # ---------------------------------------------------------------------------
 # 1) Normalizacion de texto
@@ -958,7 +963,9 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
 
     # Si se enfoco el juego para esta accion, volver el foco a la consola
     # para poder seguir escribiendo el proximo comando comodamente.
-    if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
+    if (DEVOLVER_FOCO_CONSOLA
+            and tipo in ("key", "key_combo", "set_speed", "set_speed_pct",
+                         "combo")):
         enfocar_consola()
 
     # El oficial contesta AL FINAL, con la tecla ya mandada: asi el juego ya

@@ -262,6 +262,11 @@ def reproducir(clave_oficial, frase):
     if not VOZ_ACTIVADA or winsound is None:
         return False
 
+    # Si hay una pagina del panel escuchando, el audio lo reproduce ELLA: asi
+    # no se escucha dos veces, y se puede mandar a otro dispositivo que el juego.
+    if (PANEL_WEB and panel_web is not None and panel_web.hay_browser()):
+        return False
+
     ruta = os.path.join(DIR_AUDIO, _nombre_archivo(clave_oficial, frase))
     if not os.path.isfile(ruta):
         # Que la falta de sonido nunca sea silenciosa: si no se avisa, parece
@@ -290,10 +295,14 @@ def responder(accion):
     datos = OFICIALES[clave]
     quien = datos["nombre"]
     print(f"  [{quien}] {frase}")
-    reproducir(clave, frase)
 
+    # El panel primero: si hay browser escuchando, el va a reproducir el audio
+    # y reproducir() se hace a un lado.
     if PANEL_WEB and panel_web is not None:
-        panel_web.publicar(clave, quien, frase, accion.get("raw"))
+        panel_web.publicar(clave, quien, frase, accion.get("raw"),
+                           _nombre_archivo(clave, frase))
+
+    reproducir(clave, frase)
 
 
 if __name__ == "__main__":

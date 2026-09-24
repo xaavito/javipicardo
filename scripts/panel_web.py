@@ -26,21 +26,36 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PUERTO = 8765
-DIR_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "..", "images", "oficiales")
+_AQUI = os.path.dirname(os.path.abspath(__file__))
+DIR_IMAGENES = os.path.join(_AQUI, "..", "images", "oficiales")
+DIR_AUDIO = os.path.join(_AQUI, "..", "audio", "oficiales")
+
+# Cuantos segundos sin que la pagina pregunte el estado para darla por cerrada.
+# Sirve para saber si hay alguien escuchando: si lo hay, el audio lo reproduce
+# el browser; si no, lo reproduce Python (ver oficiales.reproducir).
+SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None,
-           "comando": None, "ts": 0}
+           "comando": None, "audio": None, "ts": 0}
 _lock = threading.Lock()
 _servidor = None
+_ultimo_poll = 0.0
 
 
-def publicar(oficial, nombre, frase, comando):
-    """La llama oficiales.responder() cada vez que contesta alguien."""
+def publicar(oficial, nombre, frase, comando, audio=None):
+    """La llama oficiales.responder() cada vez que contesta alguien. `audio` es
+    el nombre del wav, o None si no hay."""
     with _lock:
         _estado.update({"oficial": oficial, "nombre": nombre, "frase": frase,
-                        "comando": comando, "ts": time.time()})
+                        "comando": comando, "ts": time.time(),
+                        "audio": f"/audio/{audio}" if audio else None})
+
+
+def hay_browser():
+    """True si una pagina pregunto el estado hace poco. Con eso se decide quien
+    reproduce el audio, para no escucharlo dos veces."""
+    return (time.time() - _ultimo_poll) < SEGUNDOS_BROWSER_VIVO
 
 
 PAGINA = """<!doctype html>
@@ -70,7 +85,18 @@ PAGINA = """<!doctype html>
   .comando { margin-top:1.6rem; font-size:.78rem; letter-spacing:.14em;
              text-transform:uppercase; color:#4a5372; }
   .comando b { color:#8fa0d8; font-weight:600; }
+  #sonido { position:fixed; inset:0; display:none; place-items:center;
+            background:rgba(7,9,15,.94); cursor:pointer; z-index:9; }
+  #sonido div { text-align:center; color:#cfd8ff; font-size:1.1rem;
+                line-height:1.7; }
+  #sonido b { display:block; font-size:1.5rem; margin-bottom:.5rem; }
+  #sonido span { color:#5b6690; font-size:.85rem; }
 </style></head><body>
+<div id="sonido"><div>
+  <b>🔊 Activar sonido</b>
+  Click en cualquier lado
+  <span>El browser bloquea el audio hasta que la página se toca una vez</span>
+</div></div>
 <div class="puente">
   <div class="marco">
     <img id="retrato" alt="">
@@ -83,6 +109,25 @@ PAGINA = """<!doctype html>
 </div>
 <script>
 let ultimo = 0;
+let sonidoOk = false;
+const gate = document.getElementById('sonido');
+
+// El browser no deja reproducir audio hasta que el usuario toca la pagina.
+// En vez de pedirlo de entrada, se intenta reproducir y solo si falla se
+// muestra el cartel: asi el que ya interactuo no lo ve nunca.
+gate.addEventListener('click', () => {
+  sonidoOk = true;
+  gate.style.display = 'none';
+  new Audio().play().catch(() => {});
+});
+
+function reproducir(url) {
+  if (!url) return;
+  const a = new Audio(url);
+  a.play().then(() => { sonidoOk = true; })
+   .catch(() => { if (!sonidoOk) gate.style.display = 'grid'; });
+}
+
 async function tick() {
   try {
     const e = await (await fetch('/estado')).json();
@@ -107,6 +152,7 @@ async function tick() {
       document.getElementById('frase').textContent = e.frase || '';
       document.getElementById('comando').innerHTML =
         e.comando ? 'orden: <b>' + e.comando + '</b>' : '';
+      reproducir(e.audio);
     }
   } catch (err) { /* el server todavia no arranco, se reintenta solo */ }
 }
@@ -120,23 +166,29 @@ class _Handler(BaseHTTPRequestHandler):
             self._responder(200, "text/html; charset=utf-8",
                             PAGINA.encode("utf-8"))
         elif self.path.startswith("/estado"):
+            global _ultimo_poll
+            _ultimo_poll = time.time()
             with _lock:
                 cuerpo = json.dumps(_estado).encode("utf-8")
             self._responder(200, "application/json", cuerpo)
         elif self.path.startswith("/retrato/"):
-            self._retrato(self.path.split("?")[0][len("/retrato/"):])
+            self._archivo(DIR_IMAGENES, self.path.split("?")[0][9:],
+                          ".png", "image/png")
+        elif self.path.startswith("/audio/"):
+            self._archivo(DIR_AUDIO, self.path.split("?")[0][7:],
+                          ".wav", "audio/wav")
         else:
             self._responder(404, "text/plain", b"no")
 
-    def _retrato(self, nombre):
+    def _archivo(self, carpeta, nombre, extension, tipo):
         # Solo el nombre de archivo, nunca una ruta: sin esto, un pedido como
-        # /retrato/../../algo saldria de la carpeta de imagenes.
+        # /retrato/../../algo saldria de la carpeta.
         nombre = os.path.basename(nombre)
-        ruta = os.path.join(DIR_IMAGENES, nombre)
-        if not nombre.endswith(".png") or not os.path.isfile(ruta):
-            return self._responder(404, "text/plain", b"no hay retrato")
+        ruta = os.path.join(carpeta, nombre)
+        if not nombre.endswith(extension) or not os.path.isfile(ruta):
+            return self._responder(404, "text/plain", b"no esta")
         with open(ruta, "rb") as f:
-            self._responder(200, "image/png", f.read())
+            self._responder(200, tipo, f.read())
 
     def _responder(self, codigo, tipo, cuerpo):
         self.send_response(codigo)
@@ -167,7 +219,8 @@ def iniciar():
 
 if __name__ == "__main__":
     url = iniciar()
-    publicar("armas", "Korak", "Armas listas.", "disparar")
+    publicar("armas", "Korak", "Armas listas.", "disparar",
+             "armas__armas_listas.wav")
     print(f"Panel de prueba en {url} — Ctrl+C para salir")
     try:
         while True:

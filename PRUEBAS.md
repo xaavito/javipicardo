@@ -521,6 +521,36 @@ oficial que contesta, con su frase. Sin instalar nada: todo librería estándar.
 **Después, por voz:** lo mismo con `fase2_voice_commands.py`. Es el mismo
 panel: la voz no tiene ejecutor propio, usa el de la Fase 1.
 
+#### 23b. El audio ahora lo reproduce la página
+
+**Qué cambió:** si hay una página del panel abierta, **el audio lo toca el
+browser**, no Python. Si no la hay, lo sigue tocando Python como antes. El
+sistema lo detecta solo: la página pregunta el estado cada 300ms, y si hace más
+de 3 segundos que nadie pregunta, se da por cerrada.
+
+**Y el foco:** por **voz**, el script ya **no le devuelve el foco a la
+consola** — se queda en el juego, que es donde tiene que estar. Por texto sigue
+volviendo, porque ahí sí hay que seguir escribiendo.
+
+**Pasos:**
+1. Con el panel abierto, dar una orden. La primera vez el browser **bloquea el
+   audio** y aparece un cartel **"🔊 Activar sonido"**: click en cualquier lado
+   y listo, no vuelve a aparecer.
+2. Confirmar que la voz **se escucha una sola vez**, no dos.
+3. Cerrar la pestaña del panel, esperar 3 segundos y dar otra orden → la voz
+   tiene que volver a salir por Python.
+4. Volver a abrir el panel y dar otra → vuelve a salir por el browser.
+5. Por voz (`fase2`), después de una orden: **el foco tiene que quedar en el
+   juego**, no saltar a la consola.
+
+- [ ] ⬜ se escucha una vez · ⬜ se escucha doble · ⬜ no se escucha
+- [ ] El cartel de activar sonido: ⬜ apareció y se fue con un click · ⬜ no
+      apareció (ya habías tocado la página) · ⬜ quedó trabado
+- [ ] Con el panel cerrado, ¿vuelve el audio por Python? ⬜ sí · ⬜ no
+- [ ] Por voz, ¿el foco se queda en el juego? ⬜ sí · ⬜ salta a la consola
+- **Ventaja de tener el audio en el browser:** se le puede mandar a un
+  dispositivo distinto del juego, y el volumen se regula aparte.
+
 ### 24. Regenerar los dos retratos que quedaron con defectos
 
 **Pendiente desde el 22/09**, los prompts ya están corregidos y pusheados:

@@ -314,6 +314,10 @@ def precalentar_todo():
 def main():
     # Via fase1: este script no importa oficiales por su cuenta, reusa todo lo
     # de la Fase 1 (parser, ejecutor, acuses de los oficiales).
+    # Por voz no se escribe en la consola: el hook de F12 es global y el panel
+    # muestra lo que pasa. Que el foco se quede en el juego.
+    fase1.DEVOLVER_FOCO_CONSOLA = False
+
     ofi = getattr(fase1, "oficiales", None)
     if ofi is not None and ofi.PANEL_WEB and ofi.panel_web is not None:
         url = ofi.panel_web.iniciar()
