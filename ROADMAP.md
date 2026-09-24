@@ -557,6 +557,32 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[24/09] Sesión de pruebas: oficiales OK en texto, ambigüedad OK, y dos
+  bugs de audio.** Confirmado en vivo que **el oficial correcto contesta cada
+  orden** (prueba #20 en su mitad de texto) y que **las cinco palabras sueltas
+  ambiguas piden desambiguación** sin ejecutar nada (#19).
+  - **Bug 1: no sonaba ningún wav.** Los nombres de archivo coincidían y el
+    formato era correcto (mono, 16 bits, 24 kHz), pero la cabecera declaraba
+    **2.147.483.647 frames** (`0x7FFFFFFF`): pedirle `wav` a la API de TTS
+    devuelve el audio en streaming, con el tamaño del chunk `data`
+    indeterminado, así que un archivo de 88 KB dice contener 4 GB. Los
+    reproductores tolerantes lo aguantan; `winsound` lee esa cabecera y **no
+    reproduce nada, sin tirar error**. El generador ahora pide **PCM crudo** y
+    escribe la cabecera con el módulo `wave`; los 25 archivos ya generados se
+    repararon en el lugar, sin volver a pagarlos.
+  - **Bug 2: micrófono Bluetooth mudo.** Windows expone cada auricular BT como
+    **dos dispositivos**: A2DP (buen sonido, **sin micrófono**) y HFP (con
+    micrófono, salida a calidad teléfono). En A2DP se graba silencio sin ningún
+    error. Se agregó `scripts/probar_microfono.py` (lista dispositivos, prueba
+    si aceptan 16 kHz mono, graba con medidor de nivel) y
+    `DISPOSITIVO_ENTRADA` en la Fase 2 para fijar cuál usar.
+  - **Dato que reordena una prueba:** con el BT el reconocimiento es pobre, y
+    es esperable — en Hands-Free el micrófono va comprimido a calidad teléfono,
+    que es justo lo que peor transcribe un STT. Por eso la **prueba #13 (STT
+    local vs. API) queda en espera de un micrófono decente**: con ese audio, el
+    micrófono domina el resultado y la comparación no mide lo que se quiere
+    medir.
+
 - **[18/09] Los oficiales ya contestan (punto 3 de la agenda de Pato, versión
   mínima).** Aclarado el alcance: las respuestas son **acuses de recibo**, no
   conversación — "sí, capitán", "no sé cómo, capitán". Eso cambia la solución

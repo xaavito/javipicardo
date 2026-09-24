@@ -407,6 +407,44 @@ error**.
   salida se puede dejar en los parlantes y usar el BT sólo como micrófono.
 - Notas:
 
+### 22. Aparece una nave: marcarla como objetivo e ir hacia ella
+
+**No es para ahora** — queda anotada para cuando haya tiempo de jugar en serio.
+
+**Qué se quiere saber:** en medio de una misión aparece un contacto nuevo.
+¿Qué se dice para que la nave lo tome como objetivo y navegue hasta él?
+
+**Lo que hay hoy**, y por qué puede no alcanzar:
+
+| Comando | Qué hace | Cuándo falla |
+|---|---|---|
+| `vamos al enemigo mas cercano` | `` ` `` + Follow + 6× `s` | Si el que apareció **no es el más cercano**, te manda a otro |
+| `busca un enemigo` | `y` + Follow + 6× `s` | Cicla al **siguiente** del ciclo, no al que vos viste. Puede tardar varios intentos |
+| A mano | `siguiente enemigo` hasta verlo seleccionado → `seguir a esa nave` → `media maquina` | Funciona siempre, pero son tres órdenes y hay que mirar el HUD entre una y otra |
+
+**La limitación de fondo, que conviene tener presente:** el sistema **es
+ciego**. No sabe qué naves hay ni cuál apareció — sólo el jugador lo ve en
+pantalla. Por eso "esa nave" únicamente puede significar *el objetivo que está
+seleccionado ahora*. Para que exista un "marcá la que acaba de aparecer" haría
+falta leer el HUD (la misma familia de problema que la Fase 3 y la Fase 6).
+
+**Cómo probarlo:**
+1. Misión con enemigos que **entren en escena** en distintos momentos, no todos
+   al principio.
+2. Cuando aparezca uno nuevo, probar `vamos al enemigo mas cercano` y anotar si
+   agarró **ése** o agarró otro.
+3. Si agarró otro: probar `busca un enemigo` y contar **cuántas veces** hay que
+   repetirlo hasta llegar al que querías.
+4. Probar la vía manual de tres órdenes y comparar cuál se siente mejor jugando.
+5. Una vez enganchado, mirar si **Follow lo sigue** cuando el enemigo maniobra,
+   o si hay que volver a darle rumbo.
+
+- [ ] ¿El combo agarra al que apareció, o a otro? ______
+- [ ] Repeticiones de `busca un enemigo` hasta el correcto: ______
+- [ ] ¿Follow lo mantiene mientras el enemigo maniobra? ⬜ sí · ⬜ se pierde
+- [ ] ¿Cuál de las tres vías se siente mejor jugando?
+- Notas (si se extraña un comando que hoy no existe, anotarlo acá):
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -438,6 +476,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 21 (+ 4b)
+- **Pruebas completadas:** ____ / 22 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

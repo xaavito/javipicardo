@@ -143,6 +143,32 @@ Textual, en el orden en que la dio:
 | 4 | **¿Videítos del juego?** | Nuevo, y lo dijo con signo de pregunta. Sin analizar: no está claro si es grabar clips del juego o mostrar video en la interfaz | ⏳ **A aclarar con él** |
 | 5 | **Cliente browser + server Python en background** | Nuevo como arquitectura. Analizado en `WISHLIST.md` §5. **Pasó además un ejemplo andando** (`patopitaluga/ejemplo-agente-realtime`, cuyo `package.json` se llama "voicecommander"): Node + Express que firma una sesión de la **Realtime API** y un browser que abre WebSocket directo contra OpenAI. Analizado en §5.6-§5.8 | ⏳ Comprometido |
 
+### 6b. Estado de la agenda al jueves 24/09, para la charla del viernes
+
+| # | Pedido | Estado | Qué se puede mostrar |
+|---|---|---|---|
+| 2 | Imágenes de pilotos y oficiales | ✅ **Hecho** | **7 retratos fotorrealistas**, uno por puesto, siete razas distintas y balanceado en sexo. Se generan desde la tabla del plantel, no a mano. Faltan regenerar 2 con el prompt corregido |
+| 3 | Contestar con voz de computadora | ✅ **Hecho** | 25 frases generadas, **el oficial que corresponde al comando contesta** y habla. Confirmado en texto el 24/09; el audio tuvo un bug de cabecera ya corregido |
+| 1 | Probar push to talk | 🔶 **Diseñado, sin implementar** | Propuesta propia: **sacar el push-to-talk** y llamar al oficial por su nombre, que además **enruta la orden a su rol** y acota el vocabulario. Ver `WISHLIST.md` §3.0 |
+| 5 | Cliente browser + server Python | 🔶 **Analizado, sin arrancar** | Su propio ejemplo resuelve más de lo que parece: `server_vad`, voz de salida y tool calls. Análisis y la bifurcación que abre, en `WISHLIST.md` §5.6-§5.8 |
+| 4 | ¿Videítos del juego? | ⏳ **A aclarar** | Admite dos lecturas muy distintas: grabar clips, o mostrar video en la interfaz |
+
+**Dos cosas para plantearle:**
+
+1. **Su ejemplo de Realtime nos da vuelta el argumento del audio directo**, y
+   conviene decirlo nosotros. Con `server_vad` resuelve además el fin de turno,
+   que era el costo que le veíamos a sacar el push-to-talk.
+2. **Lo que se pierde es el parser local**, que era el camino gratis y de
+   microsegundos. La propuesta es Realtime + nuestro ejecutor detrás de
+   `/tool_calls`, y un wake word local que decida cuándo se manda audio si el
+   costo por minuto molesta.
+
+**Lo que no se avanzó, con el motivo:** la prueba #13 (STT local), que era la
+última palanca grande de latencia. Primero se la comió esta agenda, y ahora
+además **quedó en espera de un micrófono decente**: el Bluetooth graba a
+calidad teléfono y con ese audio la comparación no mide el modelo, mide el
+micrófono.
+
 **Lo que ordena esta agenda:** los puntos 2, 3 y 4 son cosas que hay que
 **mostrar o reproducir en algún lado**, y hoy no existe ese lugar — la consola
 es todo lo que tenemos. El punto 5 es ese lugar. Así que **el 5 habilita al 2,
