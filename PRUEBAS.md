@@ -706,6 +706,21 @@ cuándo terminar. Pensado para cuando ya estás con el mouse en el juego.
       instante después de apretar)*
 - [ ] ¿Molesta que el click le saque el foco al juego?
 
+**25/09 · activación por hover** (`ACTIVAR_POR_HOVER = True` en
+`panel_web.py`): con sólo pasar el mouse por encima, sin click. La ventaja real
+es que **el hover NO le roba el foco al juego y el click sí**. La contra es que
+el mouse cruza el botón yendo a otro lado, así que hay dos retardos:
+`ESPERA_PARA_ENTRAR_MS = 250` (hay que quedarse encima antes de arrancar) y
+`ESPERA_PARA_SALIR_MS = 350` (sigue grabando un momento al salir, para que un
+temblor no te corte la frase).
+
+- [ ] ⬜ arranca al pasar el mouse · ⬜ no arranca · ⬜ arranca solo al cruzarlo
+- [ ] **Lo que hay que medir:** jugando normal, ¿cuántas veces arrancó sola por
+      cruzar el botón? ______ en ____ minutos
+- [ ] Si arranca de más: subir `ESPERA_PARA_ENTRAR_MS` a 400-500
+- [ ] Si te corta frases: subir `ESPERA_PARA_SALIR_MS`
+- [ ] ¿Se confirma que **no** le saca el foco al juego, a diferencia del click?
+
 #### 25b · Modo `"activa"` — micrófono siempre abierto
 
 > Con el micrófono cableado del 25/09 este modo pasa a ser viable de verdad: el

@@ -36,10 +36,31 @@ DIR_AUDIO = os.path.join(_AQUI, "..", "audio", "oficiales")
 # el browser; si no, lo reproduce Python (ver oficiales.reproducir).
 SEGUNDOS_BROWSER_VIVO = 3.0
 
+# Como se activa el boton de hablar:
+#   False -> mantener apretado con el mouse (click)
+#   True  -> con solo pasar el mouse por encima, sin click
+#
+# El hover tiene una ventaja concreta: NO le roba el foco al juego, y un click
+# si. La contra es que el mouse cruza el boton yendo a otro lado, asi que se
+# usan dos retardos (ver ESPERA_* abajo) para que un cruce al pasar no dispare
+# una grabacion.
+ACTIVAR_POR_HOVER = True
+
+# Cuanto hay que quedarse encima ANTES de empezar a grabar. Filtra los cruces
+# de paso.
+ESPERA_PARA_ENTRAR_MS = 250
+
+# Cuanto se sigue grabando despues de salirse. Evita que un temblor de mano te
+# corte la frase por la mitad.
+ESPERA_PARA_SALIR_MS = 350
+
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None, "comando": None,
            "audio": None, "uniforme": None, "velocidad": None, "tecla": None,
-           "ts": 0, "boton": False, "mic_web": False}
+           "ts": 0, "boton": False, "mic_web": False,
+           "hover": ACTIVAR_POR_HOVER,
+           "espera_entrar": ESPERA_PARA_ENTRAR_MS,
+           "espera_salir": ESPERA_PARA_SALIR_MS}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
@@ -170,6 +191,9 @@ PAGINA = """<!doctype html>
             padding:.6rem .8rem; user-select:none; -webkit-user-select:none;
             transition:background .15s; }
   #hablar:hover { background:var(--melon); }
+  /* En modo hover el borde avisa que el boton esta "armado". */
+  #hablar[data-hover="1"] { outline:2px dashed var(--melon); outline-offset:-6px; }
+  #hablar[data-hover="1"].grabando { outline-color:#fff; }
   #hablar.grabando { background:var(--ladrillo); color:#fff;
                      animation:titilar 1s ease-in-out infinite; }
   #hablar.oculto { display:none; }
@@ -382,6 +406,7 @@ async function tick() {
       reproducir(e.audio);
     }
     mostrarBoton(!!e.boton);
+    configurarBoton(e);
     if (e.mic_web && !micActivo) iniciarMicWeb();
   } catch (err) { /* el server todavia no arranco, se reintenta solo */ }
 }
@@ -393,8 +418,7 @@ async function avisar(activo) {
   if (activo === apretado) return;
   apretado = activo;
   btn.classList.toggle('grabando', activo);
-  btn.innerHTML = activo ? '&#9679;<br>Grabando&hellip;<br>solta al<br>terminar'
-                         : '&#9679;<br>Mantene<br>apretado<br>para hablar';
+  textoBoton(activo);
   try {
     await fetch('/hablar', {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -402,11 +426,66 @@ async function avisar(activo) {
   } catch (e) {}
 }
 
-btn.addEventListener('mousedown', () => avisar(true));
-btn.addEventListener('touchstart', (e) => { e.preventDefault(); avisar(true); });
-['mouseup','mouseleave','touchend','touchcancel'].forEach(
-  ev => btn.addEventListener(ev, () => avisar(false)));
-window.addEventListener('blur', () => avisar(false));
+// Dos formas de activarlo. El modo hover lo decide el server (estado.hover).
+let porHover = false, tEntrar = null, tSalir = null;
+let esperaEntrar = 250, esperaSalir = 350;
+
+function configurarBoton(estado) {
+  if (porHover === !!estado.hover) return;
+  porHover = !!estado.hover;
+  esperaEntrar = estado.espera_entrar || 250;
+  esperaSalir = estado.espera_salir || 350;
+  btn.dataset.hover = porHover ? '1' : '0';
+  textoBoton(false);
+}
+
+function textoBoton(grabando) {
+  if (grabando) {
+    btn.innerHTML = '&#9679;<br>Grabando&hellip;<br>' +
+      (porHover ? 'sali para<br>terminar' : 'solta al<br>terminar');
+  } else {
+    btn.innerHTML = porHover
+      ? '&#9679;<br>Pasa el mouse<br>por aca<br>para hablar'
+      : '&#9679;<br>Mantene<br>apretado<br>para hablar';
+  }
+}
+
+// --- por click (mantener apretado) ---
+btn.addEventListener('mousedown', () => { if (!porHover) avisar(true); });
+btn.addEventListener('touchstart', (e) => {
+  if (porHover) return;
+  e.preventDefault(); avisar(true);
+});
+['mouseup','touchend','touchcancel'].forEach(
+  ev => btn.addEventListener(ev, () => { if (!porHover) avisar(false); }));
+
+// --- por hover, con los dos retardos ---
+btn.addEventListener('mouseenter', () => {
+  if (!porHover) return;
+  clearTimeout(tSalir); tSalir = null;
+  if (apretado) return;
+  // Quedarse un rato antes de arrancar: asi cruzar el boton de paso no graba.
+  tEntrar = setTimeout(() => avisar(true), esperaEntrar);
+});
+
+btn.addEventListener('mouseleave', () => {
+  clearTimeout(tEntrar); tEntrar = null;
+  if (!porHover) { avisar(false); return; }
+  // Y un margen al salir, para no cortar la frase por un temblor de mano.
+  tSalir = setTimeout(() => avisar(false), esperaSalir);
+});
+
+// Si la ventana pierde el mouse del todo, cortar sin esperar.
+window.addEventListener('blur', () => {
+  clearTimeout(tEntrar); clearTimeout(tSalir);
+  avisar(false);
+});
+document.addEventListener('mouseleave', () => {
+  if (!porHover) return;
+  clearTimeout(tEntrar);
+  clearTimeout(tSalir);
+  avisar(false);
+});
 
 function mostrarBoton(si) { btn.classList.toggle('oculto', !si); }
 
