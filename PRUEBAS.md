@@ -110,7 +110,20 @@ Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
 > `fase1_text_commands.py`, subirla a `0.02`, después `0.05`, y en último caso
 > volver a `0.1` y re-correr `calibrar_latencia.py`.
 
-### 13. Local STT (`tiny`) vs. the API — the biggest saving left
+### 13. STT local (`tiny`) vs. la API — DESTRABADA, y ahora es la primera
+
+> **25/09: se reemplazó el Bluetooth por un micrófono físico cableado.** Esta
+> prueba estaba en espera justamente por eso, y ahora es **la más importante de
+> la lista**, por dos razones a la vez: es la última palanca grande de
+> latencia, y es lo que hace **gratis** a la escucha activa (#25b) — con
+> micrófono siempre abierto hay que transcribir todo lo que se escucha, y eso
+> con la API se paga por frase.
+
+**Antes de empezar:** `python scripts\probar_microfono.py` para ver con qué
+número aparece el micrófono nuevo, y ponerlo en `DISPOSITIVO_ENTRADA`. De paso
+anotá el **RMS de la sala en silencio**, que sirve para ajustar `UMBRAL_VOZ` de
+la escucha activa.
+
 
 **Why it matters:** with the pauses already calibrated, the **STT is now
 60-70% of the total** (1.7-3.1s out of 3.5-5.8s). The API sits well above the
@@ -423,6 +436,9 @@ error**.
 5. Cuando encuentres el bueno, ponelo en `fase2_voice_commands.py`:
    `DISPOSITIVO_ENTRADA = 3`
 
+- [x] **25/09: reemplazado por un micrófono físico cableado**, que evita el
+      códec Bluetooth por completo. Correr `probar_microfono.py` para fijarlo
+      en `DISPOSITIVO_ENTRADA`.
 - [x] **RESUELTA (24/09):** el micrófono quedó andando. Queda anotado que el
       **reconocimiento es pobre con el BT**, lo cual es esperable: en perfil
       Hands-Free el micrófono va comprimido a calidad teléfono, que es justo
@@ -594,6 +610,10 @@ cuándo terminar. Pensado para cuando ya estás con el mouse en el juego.
 
 #### 25b · Modo `"activa"` — micrófono siempre abierto
 
+> Con el micrófono cableado del 25/09 este modo pasa a ser viable de verdad: el
+> Bluetooth entregaba audio de calidad teléfono, que es lo peor para detectar
+> un nombre al principio de la frase.
+
 **No hay botón ni tecla: se llama al oficial por su nombre.** Eso es lo que
 distingue una orden de una charla — si la frase no empieza llamando a alguien,
 se descarta sin ejecutar nada.
@@ -619,7 +639,8 @@ arrancar.
 - [ ] **El eco:** mientras habla un oficial el micrófono se silencia solo.
       ¿Se escuchó a sí mismo alguna vez?
 - [ ] Si agarra ruido de fondo: subir `UMBRAL_VOZ`. Si se come el principio:
-      bajarlo, o subir `PRE_ROLL`
+      bajarlo, o subir `PRE_ROLL`. El RMS que mide `probar_microfono.py` con la
+      sala en silencio es el piso: `UMBRAL_VOZ` tiene que quedar por encima
 
 ---
 
