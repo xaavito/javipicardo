@@ -93,6 +93,8 @@ import keyboard
 # internet) u "openai" (API de Whisper de OpenAI, requiere API key e
 # internet, generalmente mas rapida/precisa). Ver README para el detalle de
 # como configurar OPENAI_API_KEY.
+# DECIDIDO 25/09: todo online. "local" queda como salida de emergencia, sin
+# mantenimiento — perdio en latencia Y en precision contra la API (ver ROADMAP).
 STT_BACKEND = "openai"
 
 if STT_BACKEND == "local":

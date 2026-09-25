@@ -46,6 +46,7 @@ import re
 import catalogo_comandos as cc
 
 # Backend a usar: "ollama" (local) o "openai" (API, requiere OPENAI_API_KEY).
+# DECIDIDO 25/09: todo online. El backend "ollama" queda sin mantenimiento.
 LLM_BACKEND = "openai"
 
 # Modelo de Ollama a usar (si LLM_BACKEND == "ollama").

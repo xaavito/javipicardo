@@ -23,6 +23,31 @@ con Pato (una tabla por sesión, lista para mandar por Slack).
 
 ## 0. Estado actual (resumen — ver `ROADMAP.md` para el detalle completo)
 
+> ### ⚠️ Decisión del 25/09: todo online, contra OpenAI
+>
+> **Se descartó correr modelos locales.** Ni STT (`faster-whisper`) ni LLM
+> (Ollama). Buena parte de este README fue escrito cuando el plan era al revés
+> —secciones 2.1, 2.4 y parte de la 1 recomiendan modelos locales— así que esos
+> tramos quedan como **historial, no como plan**.
+>
+> **Por qué:** se probó `faster-whisper` el 25/09 y perdió en latencia **y** en
+> precisión contra la API. Y la dirección que tomó el proyecto —Agents SDK,
+> modelo de voz en vivo— es online de punta a punta, así que mantener dos
+> caminos era pagar complejidad por un camino que ya no se usa.
+>
+> **Lo que se acepta al decidir esto**, dicho explícitamente:
+> - **Sin internet no hay control por voz.** Antes el parser de reglas resolvía
+>   la mayoría de los comandos sin red; ahora la transcripción siempre sale.
+> - **Se paga por uso.** Por eso la compuerta es el **botón/hover** del panel:
+>   se manda audio sólo cuando se pide, no todo lo que se escucha.
+> - **El micrófono siempre abierto queda como modo disponible pero no
+>   recomendado**, hasta ver el costo por minuto.
+>
+> El código de los backends locales **no se borró todavía** (`STT_BACKEND =
+> "local"` y `LLM_BACKEND = "ollama"` siguen ahí): quedan como camino de
+> emergencia hasta que la arquitectura nueva esté andando. No se mantienen.
+
+
 - **Fase 0 (validación de input) — ✅ completa.** El juego identificado es
   **Star Trek: Starfleet Command Gold Edition** (SFC1 + expansiones). Corre en
   pantalla completa exclusiva; se resolvió el modo ventana con **DxWnd** (no

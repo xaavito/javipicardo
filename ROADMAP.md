@@ -557,6 +557,28 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[25/09] DECISIÓN: se descarta correr modelos locales. Todo online.**
+  Ni STT local (`faster-whisper`) ni LLM local (Ollama).
+  - **Por qué:** el local se probó y perdió las dos comparaciones (ver la
+    entrada de abajo), y la dirección que tomó el proyecto —Agents SDK, modelo
+    de voz en vivo— es online de punta a punta. Mantener dos caminos era pagar
+    complejidad por uno que ya no se usa.
+  - **Lo que se acepta, dicho explícitamente:** sin internet no hay control por
+    voz (antes el parser resolvía la mayoría sin red), y se paga por uso.
+  - **La consecuencia encadenada, resuelta:** el STT local era la respuesta al
+    costo de la escucha permanente. Sin él, **la compuerta es el botón/hover**
+    del panel, que ya está hecho: se manda audio sólo cuando se pide. La
+    experiencia de llamar al oficial por su nombre se conserva —se aprieta o se
+    pasa el mouse y se dice "artillero, fuego"—, lo único que se pierde es el
+    manos libres total. El modo de micrófono siempre abierto queda disponible
+    pero **no recomendado** hasta ver el costo por minuto.
+  - **El código local no se borra todavía.** `STT_BACKEND = "local"` y
+    `LLM_BACKEND = "ollama"` quedan como salida de emergencia hasta que la
+    arquitectura nueva esté andando, pero **no se mantienen**. Si siguen sin
+    usarse cuando eso pase, se borran.
+  - Queda marcado en el README, que fue escrito con el plan inverso: sus
+    secciones 2.1 y 2.4 recomiendan modelos locales y pasan a ser historial.
+
 - **[25/09] Prueba #13 medida: el STT local, tal como estaba, PERDIÓ.** Con
   micrófono cableado y las mismas 5 frases:
 

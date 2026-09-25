@@ -159,11 +159,10 @@ era ~0.35s y no 0.05s.
 - `gpt-4o-mini-transcribe` (actual) ya es el rápido de la familia nueva.
 - **`whisper-1` puede ser más rápido** para audios muy cortos (menos overhead
   de modelo), aunque menos preciso. Vale medirlo con el desglose de tiempos.
-- **`faster-whisper` local con modelo `tiny`/`base`**: elimina el round-trip
-  de red por completo. En un i7 moderno, `tiny` transcribe una frase corta en
-  ~0.2-0.4s. Como nuestro vocabulario es **acotado y cerrado**, un modelo
-  chico puede alcanzar perfectamente — y el parser de reglas tolera bastante
-  error de transcripción. **Es la opción con mayor potencial de mejora.**
+- ~~**`faster-whisper` local**~~ — **descartado el 25/09**: se decidió que
+  todo va online contra OpenAI. Se probó igual y perdió las dos comparaciones,
+  latencia **y** precisión (ver `ROADMAP.md`, 25/09). El "0.2-0.4s" que decía
+  acá era una estimación mía y era equivocada.
 - Ya está soportado: es cambiar `STT_BACKEND = "local"` y `MODEL_SIZE`.
 
 ### 2.3 Streaming de audio (más ambicioso)
@@ -350,7 +349,10 @@ Notas de diseño:
   `catalogo_comandos.py` ya tiene los comandos agrupados; es agregarle un campo
   `oficial` a cada entrada.
 
-### 3.0.2 Consecuencia que reordena todo: el STT local deja de ser opcional
+### 3.0.2 El costo de escuchar todo, y cómo queda resuelto
+
+> **Reescrito el 25/09.** Esta sección proponía STT local como requisito. Ya no
+> hay modelo local en el plan, así que la respuesta es otra.
 
 Con push-to-talk, el STT se llama **una vez por orden**. Con micrófono siempre
 abierto, hay que transcribir **todo lo que se escucha** para poder chequear si
@@ -360,9 +362,16 @@ empieza con el nombre de un oficial.
 en la habitación, y sumarías 1.5-3s a cada una. Con `faster-whisper` local es
 gratis y corre en ~0.3s.
 
-> O sea que la **prueba #13 (STT local) pasa de ser "la última mejora de
-> latencia" a ser un requisito de este diseño.** Sube al tope de la lista otra
-> vez, ahora por una razón distinta.
+**Sin modelo local, la salida es la compuerta:** el **botón / hover** del
+panel decide cuándo se manda audio, así que se paga sólo lo que se dice a
+propósito. Y como el hover no le roba el foco al juego, cuesta casi lo mismo
+que no tener botón.
+
+> O sea que **el micrófono siempre abierto pasa a ser un modo disponible pero
+> no recomendado**, hasta que se mire el costo por minuto. La experiencia de
+> llamar al oficial por su nombre (§3.0) **se conserva igual**: se aprieta o se
+> pasa el mouse, y se dice "artillero, fuego". Lo único que se pierde es el
+> manos libres total.
 
 ### 3.0.3 Lo que se pierde al sacar el push-to-talk (decirlo, no esconderlo)
 

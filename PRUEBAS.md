@@ -119,12 +119,16 @@ Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
 
 ### 13. STT local (`tiny`) vs. la API — DESTRABADA, y es la primera
 
-> ⏸️ **EN PAUSA (25/09).** Perdió la primera vuelta y el afinado quedó sin
-> reprobar, pero sobre todo: es una prueba de cronómetro, y por ahora no
-> estamos midiendo tiempos. **Se retoma cuando vuelva a importar** — que va a
-> ser cuando se decida el tema del micrófono siempre abierto, porque ahí el STT
-> local deja de ser una mejora y pasa a ser el requisito que hace viable el
-> costo.
+> ❌ **DESCARTADA (25/09): se decidió que todo va online, contra OpenAI.**
+> Ya no hay modelo local en el plan, así que esta prueba no tiene a quién
+> comparar. Queda el registro de la primera vuelta más abajo, que es un dato
+> útil igual: `tiny` perdió en latencia **y** en precisión.
+>
+> **Lo que esta prueba venía a resolver y quedó sin resolver:** el STT local
+> era la respuesta al costo de tener el micrófono siempre abierto. Sin él, la
+> compuerta es el **botón / hover**, que ya está hecho — se paga sólo lo que se
+> dice a propósito. La escucha permanente (#25b) queda como modo disponible
+> pero **no recomendado**, hasta ver el costo por minuto.
 >
 > **25/09: micrófono físico cableado.** Esta prueba esperaba exactamente eso.
 > Es la más importante por dos razones que se suman: es la última palanca
@@ -745,9 +749,10 @@ temblor no te corte la frase).
 distingue una orden de una charla — si la frase no empieza llamando a alguien,
 se descarta sin ejecutar nada.
 
-⚠️ **Con `STT_BACKEND = "openai"` esto se paga por cada frase que escuche.**
-Para este modo conviene el STT local (prueba #13). El script lo avisa al
-arrancar.
+⚠️ **Se paga por cada frase que escuche.** Desde el 25/09 no hay backend
+local, así que este modo cobra todo lo que oiga. **Por eso la compuerta
+recomendada es el botón/hover**, que hace pagar sólo lo dicho a propósito.
+Usar este modo para probar, no para dejarlo abierto.
 
 1. `MODO_ESCUCHA = "activa"`
 2. Correr `fase2` y hablar normal, sin tocar nada
