@@ -235,11 +235,11 @@ PAGINA = """<!doctype html>
   /* --- consola de la nave --- */
   .consola { display:flex; flex-direction:column; gap:6px; }
   .consola svg { width:100%; height:auto; display:block; }
-  .nave-linea { fill:none; stroke:var(--acento); stroke-width:3;
-                transition:stroke .4s; }
+  .nave-linea { fill:none; stroke:var(--acento); stroke-width:2.2;
+                stroke-linejoin:round; transition:stroke .4s; }
   .nave-relleno { fill:var(--acento); opacity:.16; transition:fill .4s; }
-  .nave-tenue { fill:none; stroke:var(--acento); stroke-width:1.5;
-                opacity:.45; transition:stroke .4s; }
+  .nave-tenue { fill:none; stroke:var(--acento); stroke-width:1;
+                opacity:.5; stroke-linecap:round; transition:stroke .4s; }
 
   /* Lecturas: bloques LCARS con lo ULTIMO QUE MANDAMOS. */
   .lectura { display:grid; grid-template-columns:76px 1fr; gap:4px;
@@ -266,7 +266,7 @@ PAGINA = """<!doctype html>
 <div class="lcars">
   <div class="izq">
     <div class="codo"></div>
-    <div class="bloque b1">LCARS<br>47-1701</div>
+    <div class="bloque b1">LCARS<br>47-2258</div>
     <div class="bloque b2">PUENTE<br>&nbsp;<br>TRIPULACION</div>
     <div class="luces">
       <div class="luz titila"></div><div class="luz titila"></div>
@@ -300,25 +300,50 @@ PAGINA = """<!doctype html>
       </div>
 
       <div class="consola">
-        <!-- Silueta en SVG: sin archivos externos, y toma el color de division
-             del oficial que esta hablando. -->
-        <svg viewBox="0 0 240 300" aria-label="Nave">
-          <ellipse class="nave-relleno" cx="120" cy="74" rx="86" ry="56"/>
-          <ellipse class="nave-linea"   cx="120" cy="74" rx="86" ry="56"/>
-          <ellipse class="nave-tenue"   cx="120" cy="74" rx="52" ry="33"/>
-          <ellipse class="nave-tenue"   cx="120" cy="74" rx="16" ry="10"/>
-          <path class="nave-relleno" d="M107 124 L111 170 L129 170 L133 124 Z"/>
-          <path class="nave-linea"   d="M107 124 L111 170 L129 170 L133 124"/>
-          <path class="nave-relleno"
-                d="M94 172 q26 -12 52 0 l9 74 q-35 17 -70 0 Z"/>
-          <path class="nave-linea"
-                d="M94 172 q26 -12 52 0 l9 74 q-35 17 -70 0 Z"/>
-          <path class="nave-linea" d="M100 200 L52 236"/>
-          <path class="nave-linea" d="M140 200 L188 236"/>
-          <rect class="nave-relleno" x="20" y="226" width="34" height="72" rx="17"/>
-          <rect class="nave-linea"   x="20" y="226" width="34" height="72" rx="17"/>
-          <rect class="nave-relleno" x="186" y="226" width="34" height="72" rx="17"/>
-          <rect class="nave-linea"   x="186" y="226" width="34" height="72" rx="17"/>
+        <!-- Nave propia, vista superior. El layout platillo + casco +
+             dos gondolas es convencion del genero; el dibujo, las
+             proporciones y los detalles son nuestros, y no lleva matricula
+             ni marcas de ninguna serie. -->
+        <svg viewBox="0 0 240 320" aria-label="Nave">
+          <g class="nave-relleno">
+            <ellipse cx="120" cy="76" rx="80" ry="60"/>
+            <path d="M106 130 C106 146 108 152 110 160 L130 160
+                     C132 152 134 146 134 130 Z"/>
+            <path d="M120 155 C146 158 154 176 152 200 C150 232 140 258 120 270
+                     C100 258 90 232 88 200 C86 176 94 158 120 155 Z"/>
+            <path d="M146 194 L188 220 L194 234 L152 212 Z"/>
+            <path d="M94 194 L52 220 L46 234 L88 212 Z"/>
+            <rect x="182" y="206" width="26" height="98" rx="13"/>
+            <rect x="32" y="206" width="26" height="98" rx="13"/>
+          </g>
+
+          <g class="nave-linea">
+            <ellipse cx="120" cy="76" rx="80" ry="60"/>
+            <path d="M106 130 C106 146 108 152 110 160 L130 160
+                     C132 152 134 146 134 130"/>
+            <path d="M120 155 C146 158 154 176 152 200 C150 232 140 258 120 270
+                     C100 258 90 232 88 200 C86 176 94 158 120 155 Z"/>
+            <path d="M146 194 L188 220 L194 234 L152 212 Z"/>
+            <path d="M94 194 L52 220 L46 234 L88 212 Z"/>
+            <rect x="182" y="206" width="26" height="98" rx="13"/>
+            <rect x="32" y="206" width="26" height="98" rx="13"/>
+          </g>
+
+          <!-- Detalle fino: anillos del platillo, puente, deflector,
+               colectores y lineas de casco. Es lo que separa un esquema
+               tecnico de una silueta. -->
+          <g class="nave-tenue">
+            <ellipse cx="120" cy="76" rx="58" ry="43"/>
+            <ellipse cx="120" cy="76" rx="34" ry="25"/>
+            <ellipse cx="120" cy="76" rx="12" ry="9"/>
+            <path d="M40 76 L62 76 M178 76 L200 76"/>
+            <path d="M120 16 L120 34 M120 118 L120 136"/>
+            <ellipse cx="120" cy="172" rx="17" ry="9"/>
+            <path d="M104 196 L136 196 M106 222 L134 222 M110 246 L130 246"/>
+            <ellipse cx="195" cy="218" rx="10" ry="7"/>
+            <ellipse cx="45" cy="218" rx="10" ry="7"/>
+            <path d="M195 232 L195 296 M45 232 L45 296"/>
+          </g>
         </svg>
 
         <div class="tit-consola">ULTIMO QUE MANDAMOS</div>
