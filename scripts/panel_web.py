@@ -38,7 +38,8 @@ SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None, "comando": None,
-           "audio": None, "ts": 0, "boton": False, "mic_web": False}
+           "audio": None, "uniforme": None, "ts": 0, "boton": False,
+           "mic_web": False}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
@@ -65,12 +66,14 @@ def proxima_frase(timeout=0.5):
         return None
 
 
-def publicar(oficial, nombre, frase, comando, audio=None):
+def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None):
     """La llama oficiales.responder() cada vez que contesta alguien. `audio` es
-    el nombre del wav, o None si no hay."""
+    el nombre del wav y `uniforme` el color de division, que la pagina usa como
+    color de acento del LCARS."""
     with _lock:
         _estado.update({"oficial": oficial, "nombre": nombre, "frase": frase,
                         "comando": comando, "ts": time.time(),
+                        "uniforme": uniforme,
                         "audio": f"/audio/{audio}" if audio else None})
 
 
@@ -94,86 +97,140 @@ def hay_browser():
 
 PAGINA = """<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Puente</title>
+<title>LCARS · Puente</title>
 <style>
-  * { box-sizing: border-box; }
-  /* min-height y no height: si el contenido crece, la pagina se estira y se
-     puede scrollear. Con height:100vh + overflow:hidden, al aparecer un
-     oficial el boton de hablar quedaba recortado abajo y no habia forma de
-     llegar a el (bug del 25/09). */
-  body { margin:0; min-height:100vh; display:grid; place-items:center;
-         background:#07090f; color:#e8eaf0;
-         font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
-  /* El padding de abajo deja lugar para el boton, que va fijo al viewport. */
-  .puente { width:min(92vw,520px); text-align:center;
-            padding:1.5rem 1rem 8rem; }
-  /* El retrato se mide tambien contra el ALTO de la ventana: en una ventana
-     baja se achica solo en vez de empujar todo lo demas fuera de la pantalla. */
-  .marco { position:relative; width:min(78vw,42vh,380px); aspect-ratio:1;
-           margin:0 auto 1.4rem; border-radius:50%; overflow:hidden;
-           border:3px solid #2a3350; background:#0d1220;
-           box-shadow:0 0 60px rgba(90,130,255,.18); }
+  /* LCARS (el estilo de las consolas de TNG). Sin fuentes de internet: se usa
+     la pila condensada que Windows ya trae, para que la pagina ande offline. */
+  :root {
+    --negro:#000; --durazno:#ff9966; --melon:#ffcc99; --lila:#cc99cc;
+    --azul:#9999cc; --manteca:#ffcc66; --ladrillo:#cc6666; --celeste:#99ccff;
+    --acento:var(--durazno);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--negro); color:var(--melon);
+         font-family:"Antonio","Oswald","Arial Narrow",Haettenschweiler,
+                     "Franklin Gothic Medium",sans-serif;
+         text-transform:uppercase; letter-spacing:.08em; }
+
+  .lcars { display:grid; grid-template-columns:132px 1fr; gap:10px;
+           min-height:100vh; padding:10px 14px 10px 10px; }
+
+  /* --- columna izquierda: el codo y los bloques --- */
+  .izq { display:flex; flex-direction:column; gap:10px; }
+  .codo { height:110px; background:var(--acento);
+          border-radius:60px 0 0 0; position:relative;
+          transition:background .4s; }
+  .codo::after { content:""; position:absolute; right:-10px; bottom:0;
+                 width:10px; height:34px; background:var(--acento);
+                 transition:background .4s; }
+  .bloque { border-radius:0 0 0 0; padding:.5rem .7rem; text-align:right;
+            font-size:.82rem; color:#000; line-height:1; }
+  .b1 { background:var(--lila); height:64px; }
+  .b2 { background:var(--azul); height:120px; }
+  .b3 { background:var(--manteca); height:46px; }
+  .b4 { background:var(--ladrillo); flex:1; min-height:60px;
+        border-radius:0 0 0 60px; }
+
+  /* --- columna derecha --- */
+  .der { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .barra { display:flex; gap:8px; align-items:center; }
+  .barra .tira { flex:1; height:34px; background:var(--acento);
+                 border-radius:0 34px 34px 0; transition:background .4s; }
+  .barra .rot { font-size:1.05rem; color:var(--acento); white-space:nowrap;
+                transition:color .4s; }
+
+  .centro { flex:1; display:grid; grid-template-columns:auto 1fr; gap:18px;
+            align-items:center; padding:.5rem 0 5rem; }
+  @media (max-width:560px) { .centro { grid-template-columns:1fr; } }
+
+  .marco { position:relative; width:min(38vw,34vh,260px); aspect-ratio:1;
+           border-radius:14px; overflow:hidden; background:#0a0a0a;
+           border:4px solid var(--acento); transition:border-color .4s; }
   .marco img { width:100%; height:100%; object-fit:cover; display:block;
-               opacity:0; transition:opacity .35s ease; }
+               opacity:0; transition:opacity .35s; filter:saturate(.9); }
   .marco img.visible { opacity:1; }
   .vacio { position:absolute; inset:0; display:grid; place-items:center;
-           color:#41496b; font-size:.95rem; padding:2rem; }
-  .nombre { font-size:1.5rem; font-weight:650; letter-spacing:.06em;
-            text-transform:uppercase; color:#cfd8ff; }
-  .rol { font-size:.8rem; letter-spacing:.22em; text-transform:uppercase;
-         color:#5b6690; margin-top:.3rem; }
-  .frase { margin-top:1.5rem; font-size:1.35rem; line-height:1.45;
-           min-height:2.6em; color:#f2f4fa; }
-  .comando { margin-top:1.6rem; font-size:.78rem; letter-spacing:.14em;
-             text-transform:uppercase; color:#4a5372; }
-  .comando b { color:#8fa0d8; font-weight:600; }
-  #sonido { position:fixed; inset:0; display:none; place-items:center;
-            background:rgba(7,9,15,.94); cursor:pointer; z-index:9; }
-  #sonido div { text-align:center; color:#cfd8ff; font-size:1.1rem;
-                line-height:1.7; }
-  #sonido b { display:block; font-size:1.5rem; margin-bottom:.5rem; }
-  #sonido span { color:#5b6690; font-size:.85rem; }
-  /* Fijo al viewport: el boton de hablar tiene que estar SIEMPRE disponible,
-     no importa cuanto contenido haya arriba. */
-  #hablar { position:fixed; left:50%; transform:translateX(-50%);
-            bottom:1.5rem; width:min(88vw,480px); padding:1.1rem; border:none;
-            border-radius:999px; background:#1c2a4d; color:#cfd8ff;
-            font-size:1.05rem; font-weight:600; letter-spacing:.06em;
-            cursor:pointer; user-select:none; -webkit-user-select:none;
-            box-shadow:0 8px 32px rgba(7,9,15,.9);
-            transition:background .15s, transform .1s; z-index:5; }
-  #hablar:hover { background:#24365f; }
-  /* Cuando no hay boton (otros modos), no hay que reservarle lugar. */
-  body.sin-boton .puente { padding-bottom:1.5rem; }
-  #hablar.grabando { background:#8c2231; color:#fff;
-                     transform:translateX(-50%) scale(.99); }
+           color:#3a3a3a; font-size:.8rem; padding:1rem; text-align:center; }
+
+  .datos { min-width:0; }
+  .nombre { font-size:2.6rem; line-height:1; color:var(--acento);
+            transition:color .4s; }
+  .rol { font-size:.85rem; color:var(--lila); margin-top:.35rem; }
+  .frase { margin-top:1.1rem; font-size:1.35rem; line-height:1.3;
+           color:var(--melon); text-transform:none; letter-spacing:.02em;
+           min-height:2.6em; }
+  .comando { margin-top:.9rem; font-size:.78rem; color:var(--azul); }
+  .comando b { color:var(--celeste); }
+  #micestado { font-size:.72rem; color:#6b6b6b; margin-top:.5rem; }
+
+  /* El boton va fijo: tiene que estar SIEMPRE, no importa el contenido. */
+  #hablar { position:fixed; left:152px; right:14px; bottom:14px; height:64px;
+            border:none; border-radius:0 32px 32px 0; background:var(--durazno);
+            color:#000; font-family:inherit; font-size:1.2rem;
+            letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+            user-select:none; -webkit-user-select:none; text-align:right;
+            padding-right:2rem; transition:background .15s; z-index:5; }
+  #hablar:hover { background:var(--melon); }
+  #hablar.grabando { background:var(--ladrillo); color:#fff; }
   #hablar.oculto { display:none; }
+  @media (max-width:560px) { #hablar { left:14px; } }
+
+  #sonido { position:fixed; inset:0; display:none; place-items:center;
+            background:rgba(0,0,0,.94); cursor:pointer; z-index:9; }
+  #sonido div { text-align:center; color:var(--manteca); font-size:1.1rem;
+                line-height:1.8; }
+  #sonido b { display:block; font-size:1.8rem; color:var(--durazno); }
 </style></head><body>
 <div id="sonido"><div>
-  <b>🔊 Activar sonido</b>
+  <b>&#9654; Activar audio</b>
   Click en cualquier lado
-  <span>El browser bloquea el audio hasta que la página se toca una vez</span>
 </div></div>
-<div class="puente">
-  <div class="marco">
-    <img id="retrato" alt="">
-    <div class="vacio" id="vacio">Esperando órdenes, capitán</div>
+
+<div class="lcars">
+  <div class="izq">
+    <div class="codo"></div>
+    <div class="bloque b1">LCARS<br>47-1701</div>
+    <div class="bloque b2">PUENTE<br>&nbsp;<br>TRIPULACION<br>ACTIVA</div>
+    <div class="bloque b3" id="reloj">--:--</div>
+    <div class="bloque b4">SFC<br>COMMANDER</div>
   </div>
-  <div class="nombre" id="nombre"></div>
-  <div class="rol" id="rol"></div>
-  <div class="frase" id="frase"></div>
-  <div class="comando" id="comando"></div>
-  <button id="hablar" class="oculto">🎙 Mantené apretado para hablar</button>
-  <div class="comando" id="micestado"></div>
+
+  <div class="der">
+    <div class="barra">
+      <div class="rot">ESTACION DE MANDO</div>
+      <div class="tira"></div>
+      <div class="rot" id="codigo">0000</div>
+    </div>
+
+    <div class="centro">
+      <div class="marco">
+        <img id="retrato" alt="">
+        <div class="vacio" id="vacio">ESPERANDO<br>ORDENES</div>
+      </div>
+      <div class="datos">
+        <div class="nombre" id="nombre">&mdash;</div>
+        <div class="rol" id="rol">SIN ASIGNAR</div>
+        <div class="frase" id="frase"></div>
+        <div class="comando" id="comando"></div>
+        <div id="micestado"></div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<button id="hablar" class="oculto">&#9679; Mantene apretado para hablar</button>
+
 <script>
 let ultimo = 0;
 let sonidoOk = false;
 const gate = document.getElementById('sonido');
 
-// El browser no deja reproducir audio hasta que el usuario toca la pagina.
-// En vez de pedirlo de entrada, se intenta reproducir y solo si falla se
-// muestra el cartel: asi el que ya interactuo no lo ve nunca.
+// Cada division tiene su color, igual que los uniformes del plantel: la
+// interfaz cambia de acento segun quien este hablando.
+const COLOR_DIVISION = {
+  rojo: '#cc6666', dorado: '#ffcc66', azul: '#99ccff'
+};
+
 gate.addEventListener('click', () => {
   sonidoOk = true;
   gate.style.display = 'none';
@@ -187,6 +244,19 @@ function reproducir(url) {
    .catch(() => { if (!sonidoOk) gate.style.display = 'grid'; });
 }
 
+function pintar(uniforme) {
+  const c = COLOR_DIVISION[uniforme] || '#ff9966';
+  document.documentElement.style.setProperty('--acento', c);
+}
+
+function tictac() {
+  const d = new Date();
+  document.getElementById('reloj').innerHTML =
+    String(d.getHours()).padStart(2,'0') + ':' +
+    String(d.getMinutes()).padStart(2,'0');
+}
+setInterval(tictac, 1000); tictac();
+
 async function tick() {
   try {
     const e = await (await fetch('/estado')).json();
@@ -194,6 +264,10 @@ async function tick() {
       ultimo = e.ts;
       const img = document.getElementById('retrato');
       const vacio = document.getElementById('vacio');
+      pintar(e.uniforme);
+      document.getElementById('codigo').textContent =
+        String(Math.floor(e.ts) % 10000).padStart(4,'0');
+
       if (e.oficial && e.oficial !== 'computadora') {
         img.classList.remove('visible');
         setTimeout(() => {
@@ -204,22 +278,20 @@ async function tick() {
       } else {
         img.classList.remove('visible');
         vacio.style.display = 'grid';
-        vacio.textContent = 'COMPUTADORA';
+        vacio.innerHTML = 'COMPUTADORA';
       }
-      document.getElementById('nombre').textContent = e.nombre || '';
-      document.getElementById('rol').textContent = e.oficial || '';
+      document.getElementById('nombre').textContent = e.nombre || '\u2014';
+      document.getElementById('rol').textContent = e.oficial || 'SIN ASIGNAR';
       document.getElementById('frase').textContent = e.frase || '';
       document.getElementById('comando').innerHTML =
-        e.comando ? 'orden: <b>' + e.comando + '</b>' : '';
+        e.comando ? 'ORDEN: <b>' + e.comando + '</b>' : '';
       reproducir(e.audio);
     }
     mostrarBoton(!!e.boton);
     if (e.mic_web && !micActivo) iniciarMicWeb();
   } catch (err) { /* el server todavia no arranco, se reintenta solo */ }
 }
-// Boton de hablar: mantener apretado, como el push-to-talk pero con el mouse.
-// El audio lo sigue grabando Python; esto solo avisa cuando empezar y cuando
-// terminar, asi no hay que tocar el teclado.
+
 const btn = document.getElementById('hablar');
 let apretado = false;
 
@@ -227,8 +299,8 @@ async function avisar(activo) {
   if (activo === apretado) return;
   apretado = activo;
   btn.classList.toggle('grabando', activo);
-  btn.textContent = activo ? '🔴 Grabando… soltá al terminar'
-                           : '🎙 Mantené apretado para hablar';
+  btn.innerHTML = activo ? '&#9679; Grabando&hellip; solta al terminar'
+                         : '&#9679; Mantene apretado para hablar';
   try {
     await fetch('/hablar', {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -242,32 +314,15 @@ btn.addEventListener('touchstart', (e) => { e.preventDefault(); avisar(true); })
   ev => btn.addEventListener(ev, () => avisar(false)));
 window.addEventListener('blur', () => avisar(false));
 
-// El boton solo aparece si la Fase 2 esta en modo "boton": lo dice el estado.
-function mostrarBoton(si) {
-  btn.classList.toggle('oculto', !si);
-  document.body.classList.toggle('sin-boton', !si);
-}
+function mostrarBoton(si) { btn.classList.toggle('oculto', !si); }
 
 // -------------------------------------------------------------------------
-// Microfono en el browser (modo "web").
-//
-// Por que aca y no en Python: pidiendo echoCancellation, el browser cancela SU
-// PROPIA salida de la entrada. Como la voz de los oficiales suena por esta
-// misma pagina, eso resuelve el eco de raiz, en vez de silenciar el microfono
-// mientras habla el oficial. Ademas trae supresion de ruido y control de
-// ganancia gratis.
-//
-// La deteccion de voz es la de hark (github.com/otalk/hark): medir el volumen
-// cada tanto y disparar al cruzar un umbral. Va escrita a mano y no como
-// dependencia para que la pagina siga andando sin internet.
+// Microfono en el browser (modo "web"). Ver el comentario largo en el modo
+// "web" de fase2_voice_commands.py: la ventaja real es echoCancellation.
+// La deteccion de voz es la idea de hark (github.com/otalk/hark), escrita a
+// mano para que la pagina siga andando sin internet.
 // -------------------------------------------------------------------------
-const VAD = {
-  umbral: 0.015,      // RMS a partir del cual se considera voz
-  silencioCorte: 0.7, // segundos de silencio que cierran la frase
-  preRoll: 0.4,       // segundos guardados ANTES de detectar voz
-  maxFrase: 8.0,
-};
-
+const VAD = { umbral:0.015, silencioCorte:0.7, preRoll:0.4, maxFrase:8.0 };
 let micActivo = false;
 
 async function iniciarMicWeb() {
@@ -323,10 +378,9 @@ async function iniciarMicWeb() {
 
     micActivo = true;
     document.getElementById('micestado').textContent =
-      '🎙 escuchando · ' + Math.round(hz/1000) + ' kHz · eco cancelado';
+      'MIC ' + Math.round(hz/1000) + ' KHZ · ECO CANCELADO';
   } catch (e) {
-    document.getElementById('micestado').textContent =
-      '🎙 sin micrófono: ' + e.name;
+    document.getElementById('micestado').textContent = 'SIN MICROFONO: ' + e.name;
   }
 }
 

@@ -568,6 +568,21 @@ falta leer el HUD (la misma familia de problema que la Fase 3 y la Fase 6).
 
 ### 23. El panel web: que aparezca la cara del oficial
 
+> **25/09: la página pasó a estilo LCARS**, la interfaz de las consolas de TNG.
+> Además del look, el **color de acento cambia según la división del oficial**
+> que está hablando: rojo para mando (T'Lara), dorado para operaciones (Korak,
+> Zheva, Grax, Pell, Nima) y azul para ciencias (Delon). Sale del mismo campo
+> `uniforme` del plantel, así que es el mismo dato que decide el color del
+> uniforme en su retrato.
+>
+> Al reprobarla, mirá también:
+> - [ ] ¿Se lee bien al lado del juego, o el negro sobre negro confunde?
+> - [ ] ¿El acento cambia de color al cambiar de oficial?
+> - [ ] La tipografía condensada sale de las fuentes que Windows ya trae
+>       (Arial Narrow / Haettenschweiler). ¿Se ve condensada o cayó en una
+>       genérica?
+
+
 **Por qué importa:** es el punto 5 de Pato en su versión mínima, y junta sus
 puntos 2, 3 y 5 en una sola demo — decís una orden y aparece el retrato del
 oficial que contesta, con su frase. Sin instalar nada: todo librería estándar.

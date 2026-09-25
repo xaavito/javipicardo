@@ -379,7 +379,7 @@ def responder(accion):
     # y reproducir() se hace a un lado.
     if PANEL_WEB and panel_web is not None:
         panel_web.publicar(clave, quien, frase, accion.get("raw"),
-                           _nombre_archivo(clave, frase))
+                           _nombre_archivo(clave, frase), datos["uniforme"])
 
     reproducir(clave, frase)
 
