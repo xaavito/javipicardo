@@ -849,6 +849,98 @@ def parsear_comando(texto):
 
 
 # ---------------------------------------------------------------------------
+# 3b) Parser ESTRICTO: la frase tiene que SER un comando, no contenerlo.
+#
+# parsear_comando() busca un comando en cualquier parte del texto, que es lo
+# correcto cuando hay un boton o un nombre de oficial de por medio: ahi ya
+# sabemos que lo dicho es una orden. Con el microfono abierto y sin nombre, esa
+# tolerancia es peligrosa: "dale fuego a la parrilla" dispararia las armas.
+#
+# Este parser solo acepta cuando, sacando muletillas y puntuacion, lo que queda
+# ES exactamente una frase de comando. Es el mismo problema de fondo que causo
+# el Alpha Strike del eco del prompt (17/09).
+# ---------------------------------------------------------------------------
+
+# Muletillas candidatas a sacar. OJO: varias de estas aparecen DENTRO de
+# comandos reales ("por ciento", "seguir A esa nave", "VAMOS al enemigo"), asi
+# que no se sacan a ciegas: _relleno_seguro() descarta las que pisen alguna
+# palabra de algun comando. Con eso, agregar una muletilla nueva no puede
+# romper un comando existente por descuido.
+RELLENO_CANDIDATO = {"che", "dale", "por", "favor", "eh", "este", "a", "ver",
+                     "bueno", "ahora", "ya", "vamos", "quiero", "necesito"}
+
+# Muletillas de mas de una palabra, que se sacan enteras y antes que las
+# sueltas: "por favor" se va, pero la "por" de "por ciento" se queda.
+RELLENO_FRASES = ("por favor", "a ver")
+
+_frases_exactas_cache = None
+
+
+def _frases_exactas():
+    """Todas las frases de comando conocidas, normalizadas. Se arman por
+    introspeccion de los diccionarios del modulo, asi que un comando nuevo
+    entra solo, sin tocar nada aca."""
+    global _frases_exactas_cache
+    if _frases_exactas_cache is not None:
+        return _frases_exactas_cache
+
+    frases = set()
+    for nombre, valor in list(globals().items()):
+        if nombre.endswith("_WORDS") and isinstance(valor, (list, dict)):
+            frases.update(normalizar(f) for f in valor)
+    for datos in COMBOS.values():
+        frases.update(normalizar(f) for f in datos["palabras"])
+    for datos in NO_SOPORTADO.values():
+        frases.update(normalizar(f) for f in datos["palabras"])
+
+    _frases_exactas_cache = frases
+    return frases
+
+
+_relleno_cache = None
+
+
+def _relleno_seguro():
+    """Las muletillas que NO aparecen en ningun comando conocido. Las que si
+    aparecen se dejan pasar: sacarlas romperia el comando."""
+    global _relleno_cache
+    if _relleno_cache is None:
+        usadas = set()
+        for frase in _frases_exactas():
+            usadas.update(frase.split())
+        _relleno_cache = RELLENO_CANDIDATO - usadas
+    return _relleno_cache
+
+
+def _limpiar(texto):
+    t = normalizar(texto)
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    t = " ".join(t.split())
+    for frase in RELLENO_FRASES:
+        t = t.replace(frase, " ")
+    seguro = _relleno_seguro()
+    return " ".join(p for p in t.split() if p not in seguro)
+
+
+def parsear_estricto(texto):
+    """Como parsear_comando(), pero solo si la frase ENTERA es un comando.
+    Devuelve unknown para cualquier otra cosa, incluida una charla que
+    mencione una palabra de comando al pasar."""
+    limpio = _limpiar(texto)
+    if not limpio:
+        return {"action": "unknown", "raw": texto}
+
+    # El porcentaje explicito no es una frase fija, es un patron.
+    if re.fullmatch(r"velocidad (al |a )?\d+ (por ciento|%)", limpio):
+        return parsear_comando(limpio)
+
+    if limpio in _frases_exactas():
+        return parsear_comando(limpio)
+
+    return {"action": "unknown", "raw": texto}
+
+
+# ---------------------------------------------------------------------------
 # 4) Ejecutor: accion estructurada -> pulsaciones reales de teclado
 # ---------------------------------------------------------------------------
 

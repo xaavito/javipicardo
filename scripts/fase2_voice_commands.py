@@ -188,6 +188,21 @@ SILENCIO_PARA_CORTAR = 0.7
 # Corte de seguridad: ninguna orden dura mas que esto.
 MAX_DURACION_FRASE = 8.0
 
+# ¿Hace falta nombrar a un oficial para que la orden cuente?
+#
+#   True  -> solo se ejecuta lo que empieza llamando a alguien
+#            ("computadora, alerta roja"). Todo lo demas se ignora.
+#   False -> tambien se aceptan ordenes sueltas ("alerta roja"), pero con el
+#            parser ESTRICTO: la frase tiene que SER un comando, no contenerlo.
+#            Asi "dale fuego a la parrilla" no dispara las armas.
+#
+# Lo unico que aporta el nombre es ese filtro: quien contesta ya se deduce del
+# comando. En False se gana comodidad y se pierde margen: una frase que
+# CASUALMENTE sea exactamente un comando se ejecuta. Y las ordenes en lenguaje
+# libre (las que van al LLM) siguen necesitando el nombre, porque ahi no hay
+# forma de distinguir una orden de una charla.
+EXIGIR_NOMBRE_DE_OFICIAL = True
+
 # Audio que se guarda ANTES de detectar voz. Sin esto se pierde siempre la
 # primera silaba, que justamente es donde esta el nombre del oficial.
 PRE_ROLL = 0.4
@@ -397,10 +412,23 @@ def _procesar_frase(modelo, audio, ofi):
         return 0.0
 
     clave, resto = ofi.detectar_oficial(texto)
+
     if clave is None:
-        # No lo llamaron a nadie: es conversacion, no una orden.
-        print(f"[ignorado, no llama a nadie] \"{texto}\"")
-        return 0.0
+        if EXIGIR_NOMBRE_DE_OFICIAL:
+            print(f"[ignorado, no llama a nadie] \"{texto}\"")
+            return 0.0
+
+        # Sin nombre, el filtro es el parser estricto: la frase entera tiene
+        # que ser un comando. Y no se consulta al LLM: interpretar lenguaje
+        # libre de algo que quiza ni sea una orden es justo lo peligroso.
+        accion = fase1.parsear_estricto(texto)
+        if accion["action"] == "unknown":
+            print(f"[ignorado, no es un comando] \"{texto}\"")
+            return 0.0
+
+        print(f"\n<- \"{texto}\"  (STT: {t1 - t0:.2f}s)")
+        fase1.ejecutar_accion(accion)
+        return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
 
     nombre = ofi.OFICIALES[clave]["nombre"]
     print(f"\n{nombre} <- \"{texto}\"  (STT: {t1 - t0:.2f}s)")

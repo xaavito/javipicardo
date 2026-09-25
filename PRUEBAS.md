@@ -678,6 +678,44 @@ de la página, no como dependencia, para que funcione sin internet.
 > browser. Si la pestaña de fondo no captura bien, quedate con `"activa"`, que
 > captura desde Python y no depende de eso.
 
+### 26. Órdenes sin nombrar al oficial
+
+`EXIGIR_NOMBRE_DE_OFICIAL = False` en `fase2_voice_commands.py` permite decir
+`alerta roja` en vez de `computadora, alerta roja`.
+
+**Qué se pierde, exactamente:** el nombre no decide quién contesta —eso ya sale
+del comando— así que lo único que aporta es **ser el filtro** que separa una
+orden de una charla. Sin él, el filtro pasa a ser el **parser estricto**: la
+frase tiene que **SER** un comando, no contenerlo. Por eso `alerta roja`
+ejecuta y *"la alerta roja del tablero del auto"* no.
+
+**Lo que igual queda expuesto, y hay que medirlo hablando de verdad:** una
+frase que **casualmente sea exactamente** un comando. `parar`, `fuego` y
+`mitad` son palabras comunes y sueltas alcanzan.
+
+**Pasos, con `MODO_ESCUCHA` en `"activa"` o `"web"`:**
+1. Con `EXIGIR_NOMBRE_DE_OFICIAL = True`, confirmá que `alerta roja` suelta
+   **se ignora** (dice *"no llama a nadie"*)
+2. Pasalo a `False` y repetí: ahora tiene que ejecutar
+3. Decí frases que **mencionen** comandos sin serlo: *"che, dale fuego a la
+   parrilla"*, *"hay que parar un poco"*, *"el enemigo más cercano está lejos"*
+   → las tres tienen que decir *"no es un comando"*
+4. **La prueba de verdad:** dejalo en `False` y **tené una conversación normal
+   de 5 minutos** al lado del micrófono, con el juego abierto. Anotá **cada
+   vez** que ejecute algo sin que fuera una orden
+5. Probá lenguaje libre sin nombre: *"che, dale una vuelta alrededor de esa
+   nave"* → **se ignora a propósito**. Sin nombre no se consulta al LLM, porque
+   interpretar libremente algo que quizá ni sea una orden es justo lo riesgoso
+
+- [ ] Falsos positivos en 5 minutos de charla: ______ *(y cuáles)*
+- [ ] ¿Se extraña tener que decir el nombre, o se agradece?
+- [ ] ¿Vale la pena el modo mixto? *(sin nombre para las órdenes cortas, con
+      nombre cuando querés lenguaje libre)*
+
+> **Recomendación:** empezar en `True` y pasar a `False` sólo después del paso
+> 4. En medio de un combate, un falso positivo te acelera la nave o te hace
+> disparar.
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -709,6 +747,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 25 (+ 4b)
+- **Pruebas completadas:** ____ / 26 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**
