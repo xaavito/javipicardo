@@ -149,9 +149,16 @@ Textual, en el orden en que la dio:
 |---|---|---|---|
 | 2 | Imágenes de pilotos y oficiales | ✅ **Hecho** | **7 retratos fotorrealistas**, uno por puesto, siete razas distintas y balanceado en sexo. Se generan desde la tabla del plantel, no a mano. Faltan regenerar 2 con el prompt corregido |
 | 3 | Contestar con voz de computadora | ✅ **Hecho** | 25 frases generadas, **el oficial que corresponde al comando contesta** y habla. Confirmado en texto el 24/09; el audio tuvo un bug de cabecera ya corregido |
-| 1 | Probar push to talk | 🔶 **Diseñado, sin implementar** | Propuesta propia: **sacar el push-to-talk** y llamar al oficial por su nombre, que además **enruta la orden a su rol** y acota el vocabulario. Ver `WISHLIST.md` §3.0 |
-| 5 | Cliente browser + server Python | 🔶 **Analizado, sin arrancar** | Su propio ejemplo resuelve más de lo que parece: `server_vad`, voz de salida y tool calls. Análisis y la bifurcación que abre, en `WISHLIST.md` §5.6-§5.8 |
+| 1 | Probar push to talk | ✅ **Hecho, y de cuatro formas** | `MODO_ESCUCHA` tiene 4 valores: la tecla de siempre, un **botón en el panel** (para no soltar el mouse), **escucha activa** (micrófono abierto, se llama al oficial por su nombre) y **micrófono en el browser** con cancelación de eco. Y `EXIGIR_NOMBRE_DE_OFICIAL` permite además dar órdenes sin nombrar a nadie |
+| 5 | Cliente browser + server Python | ✅ **Andando en su versión mínima** | `panel_web.py`: server de librería estándar (cero dependencias) + página que muestra **el retrato del oficial que contesta, su frase, y reproduce su voz**. Es donde se junta todo: sus puntos 2, 3 y 5 en una sola pantalla |
 | 4 | ¿Videítos del juego? | ⏳ **A aclarar** | Admite dos lecturas muy distintas: grabar clips, o mostrar video en la interfaz |
+
+**Sobre su ejemplo de hark:** sólo **detecta** cuándo hablás (`speaking` /
+`stopped_speaking`), no graba ni manda nada. Igual sirvió: llevó a mover el
+micrófono al browser, y ahí apareció el beneficio que no era obvio —
+`echoCancellation` hace que el browser **cancele su propia salida de la
+entrada**, y como la voz de los oficiales sale por esa misma página, el eco se
+resuelve de raíz y **se le puede hablar encima a un oficial**.
 
 **Dos cosas para plantearle:**
 
