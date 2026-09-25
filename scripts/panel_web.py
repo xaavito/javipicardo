@@ -97,11 +97,19 @@ PAGINA = """<!doctype html>
 <title>Puente</title>
 <style>
   * { box-sizing: border-box; }
-  body { margin:0; height:100vh; display:grid; place-items:center;
-         background:#07090f; color:#e8eaf0; overflow:hidden;
+  /* min-height y no height: si el contenido crece, la pagina se estira y se
+     puede scrollear. Con height:100vh + overflow:hidden, al aparecer un
+     oficial el boton de hablar quedaba recortado abajo y no habia forma de
+     llegar a el (bug del 25/09). */
+  body { margin:0; min-height:100vh; display:grid; place-items:center;
+         background:#07090f; color:#e8eaf0;
          font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
-  .puente { width:min(92vw,520px); text-align:center; }
-  .marco { position:relative; width:min(78vw,380px); aspect-ratio:1;
+  /* El padding de abajo deja lugar para el boton, que va fijo al viewport. */
+  .puente { width:min(92vw,520px); text-align:center;
+            padding:1.5rem 1rem 8rem; }
+  /* El retrato se mide tambien contra el ALTO de la ventana: en una ventana
+     baja se achica solo en vez de empujar todo lo demas fuera de la pantalla. */
+  .marco { position:relative; width:min(78vw,42vh,380px); aspect-ratio:1;
            margin:0 auto 1.4rem; border-radius:50%; overflow:hidden;
            border:3px solid #2a3350; background:#0d1220;
            box-shadow:0 0 60px rgba(90,130,255,.18); }
@@ -125,13 +133,20 @@ PAGINA = """<!doctype html>
                 line-height:1.7; }
   #sonido b { display:block; font-size:1.5rem; margin-bottom:.5rem; }
   #sonido span { color:#5b6690; font-size:.85rem; }
-  #hablar { margin-top:1.8rem; width:100%; padding:1.1rem; border:none;
+  /* Fijo al viewport: el boton de hablar tiene que estar SIEMPRE disponible,
+     no importa cuanto contenido haya arriba. */
+  #hablar { position:fixed; left:50%; transform:translateX(-50%);
+            bottom:1.5rem; width:min(88vw,480px); padding:1.1rem; border:none;
             border-radius:999px; background:#1c2a4d; color:#cfd8ff;
             font-size:1.05rem; font-weight:600; letter-spacing:.06em;
             cursor:pointer; user-select:none; -webkit-user-select:none;
-            transition:background .15s, transform .1s; }
+            box-shadow:0 8px 32px rgba(7,9,15,.9);
+            transition:background .15s, transform .1s; z-index:5; }
   #hablar:hover { background:#24365f; }
-  #hablar.grabando { background:#8c2231; color:#fff; transform:scale(.99); }
+  /* Cuando no hay boton (otros modos), no hay que reservarle lugar. */
+  body.sin-boton .puente { padding-bottom:1.5rem; }
+  #hablar.grabando { background:#8c2231; color:#fff;
+                     transform:translateX(-50%) scale(.99); }
   #hablar.oculto { display:none; }
 </style></head><body>
 <div id="sonido"><div>
@@ -228,7 +243,10 @@ btn.addEventListener('touchstart', (e) => { e.preventDefault(); avisar(true); })
 window.addEventListener('blur', () => avisar(false));
 
 // El boton solo aparece si la Fase 2 esta en modo "boton": lo dice el estado.
-function mostrarBoton(si) { btn.classList.toggle('oculto', !si); }
+function mostrarBoton(si) {
+  btn.classList.toggle('oculto', !si);
+  document.body.classList.toggle('sin-boton', !si);
+}
 
 // -------------------------------------------------------------------------
 // Microfono en el browser (modo "web").
