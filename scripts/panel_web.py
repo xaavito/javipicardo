@@ -21,6 +21,7 @@ SEGURIDAD: escucha solo en 127.0.0.1, no en la red.
 
 import json
 import os
+import queue
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -36,8 +37,8 @@ DIR_AUDIO = os.path.join(_AQUI, "..", "audio", "oficiales")
 SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
-_estado = {"oficial": None, "nombre": None, "frase": None,
-           "comando": None, "audio": None, "ts": 0, "boton": False}
+_estado = {"oficial": None, "nombre": None, "frase": None, "comando": None,
+           "audio": None, "ts": 0, "boton": False, "mic_web": False}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
@@ -49,6 +50,19 @@ _boton = False
 
 def boton_apretado():
     return _boton
+
+
+# Frases que mando la pagina cuando el microfono vive en el browser
+# (MODO_ESCUCHA = "web"). Cada item es (muestras_float32_bytes, sample_rate).
+_frases_web = queue.Queue()
+
+
+def proxima_frase(timeout=0.5):
+    """Devuelve la proxima frase que mando la pagina, o None si no hay."""
+    try:
+        return _frases_web.get(timeout=timeout)
+    except queue.Empty:
+        return None
 
 
 def publicar(oficial, nombre, frase, comando, audio=None):
@@ -64,6 +78,12 @@ def mostrar_boton(si=True):
     """La Fase 2 avisa si esta en modo boton, para que la pagina lo muestre."""
     with _lock:
         _estado["boton"] = bool(si)
+
+
+def pedir_microfono(si=True):
+    """La Fase 2 avisa que el microfono lo maneja la pagina (modo "web")."""
+    with _lock:
+        _estado["mic_web"] = bool(si)
 
 
 def hay_browser():
@@ -129,6 +149,7 @@ PAGINA = """<!doctype html>
   <div class="frase" id="frase"></div>
   <div class="comando" id="comando"></div>
   <button id="hablar" class="oculto">🎙 Mantené apretado para hablar</button>
+  <div class="comando" id="micestado"></div>
 </div>
 <script>
 let ultimo = 0;
@@ -178,6 +199,7 @@ async function tick() {
       reproducir(e.audio);
     }
     mostrarBoton(!!e.boton);
+    if (e.mic_web && !micActivo) iniciarMicWeb();
   } catch (err) { /* el server todavia no arranco, se reintenta solo */ }
 }
 // Boton de hablar: mantener apretado, como el push-to-talk pero con el mouse.
@@ -208,6 +230,96 @@ window.addEventListener('blur', () => avisar(false));
 // El boton solo aparece si la Fase 2 esta en modo "boton": lo dice el estado.
 function mostrarBoton(si) { btn.classList.toggle('oculto', !si); }
 
+// -------------------------------------------------------------------------
+// Microfono en el browser (modo "web").
+//
+// Por que aca y no en Python: pidiendo echoCancellation, el browser cancela SU
+// PROPIA salida de la entrada. Como la voz de los oficiales suena por esta
+// misma pagina, eso resuelve el eco de raiz, en vez de silenciar el microfono
+// mientras habla el oficial. Ademas trae supresion de ruido y control de
+// ganancia gratis.
+//
+// La deteccion de voz es la de hark (github.com/otalk/hark): medir el volumen
+// cada tanto y disparar al cruzar un umbral. Va escrita a mano y no como
+// dependencia para que la pagina siga andando sin internet.
+// -------------------------------------------------------------------------
+const VAD = {
+  umbral: 0.015,      // RMS a partir del cual se considera voz
+  silencioCorte: 0.7, // segundos de silencio que cierran la frase
+  preRoll: 0.4,       // segundos guardados ANTES de detectar voz
+  maxFrase: 8.0,
+};
+
+let micActivo = false;
+
+async function iniciarMicWeb() {
+  if (micActivo) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {
+      echoCancellation: true, noiseSuppression: true, autoGainControl: true}});
+    const ctx = new AudioContext();
+    const codigo = `
+      class Captura extends AudioWorkletProcessor {
+        process(inputs) {
+          const canal = inputs[0] && inputs[0][0];
+          if (canal) this.port.postMessage(new Float32Array(canal));
+          return true;
+        }
+      }
+      registerProcessor('captura', Captura);`;
+    const url = URL.createObjectURL(new Blob([codigo], {type:'text/javascript'}));
+    await ctx.audioWorklet.addModule(url);
+
+    const nodo = new AudioWorkletNode(ctx, 'captura');
+    ctx.createMediaStreamSource(stream).connect(nodo);
+
+    const hz = ctx.sampleRate;
+    const porBloque = 128 / hz;
+    const maxPre = Math.ceil(VAD.preRoll / porBloque);
+    let pre = [], frase = [], grabando = false, silencio = 0;
+
+    nodo.port.onmessage = (ev) => {
+      const b = ev.data;
+      let suma = 0;
+      for (let i = 0; i < b.length; i++) suma += b[i] * b[i];
+      const rms = Math.sqrt(suma / b.length);
+
+      if (!grabando) {
+        pre.push(b);
+        if (pre.length > maxPre) pre.shift();
+        if (rms >= VAD.umbral) { grabando = true; frase = pre.slice(); silencio = 0; }
+        return;
+      }
+      frase.push(b);
+      silencio = rms >= VAD.umbral ? 0 : silencio + porBloque;
+      const largo = frase.length * porBloque;
+      if (silencio < VAD.silencioCorte && largo < VAD.maxFrase) return;
+
+      const total = frase.reduce((n, x) => n + x.length, 0);
+      const junto = new Float32Array(total);
+      let o = 0;
+      for (const x of frase) { junto.set(x, o); o += x.length; }
+      grabando = false; frase = []; pre = []; silencio = 0;
+      if (largo >= 0.3) enviarVoz(junto, hz);
+    };
+
+    micActivo = true;
+    document.getElementById('micestado').textContent =
+      '🎙 escuchando · ' + Math.round(hz/1000) + ' kHz · eco cancelado';
+  } catch (e) {
+    document.getElementById('micestado').textContent =
+      '🎙 sin micrófono: ' + e.name;
+  }
+}
+
+async function enviarVoz(muestras, hz) {
+  try {
+    await fetch('/voz', {method:'POST',
+      headers:{'Content-Type':'application/octet-stream','X-Sample-Rate':hz},
+      body: muestras.buffer});
+  } catch (e) {}
+}
+
 setInterval(tick, 300); tick();
 </script></body></html>"""
 
@@ -234,9 +346,22 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         global _boton
+        largo = int(self.headers.get("Content-Length") or 0)
+
+        if self.path.startswith("/voz"):
+            # Audio crudo (float32) grabado por la pagina. Se manda en binario
+            # y no en base64 para no inflarlo un 33% al pedo.
+            crudo = self.rfile.read(largo)
+            try:
+                hz = int(self.headers.get("X-Sample-Rate") or 48000)
+            except ValueError:
+                hz = 48000
+            if crudo:
+                _frases_web.put((crudo, hz))
+            return self._responder(200, "application/json", b'{"ok":true}')
+
         if not self.path.startswith("/hablar"):
             return self._responder(404, "text/plain", b"no")
-        largo = int(self.headers.get("Content-Length") or 0)
         try:
             datos = json.loads(self.rfile.read(largo) or b"{}")
         except Exception:

@@ -160,6 +160,13 @@ EXIT_KEY = "esc"
 #   "activa"       -> microfono SIEMPRE abierto. No hay boton: se llama al
 #                     oficial por su nombre ("computadora, alerta roja") y eso
 #                     es lo que activa la orden.
+#   "web"          -> igual que "activa", pero el microfono lo maneja la
+#                     PAGINA: graba, corta las frases por volumen y le manda el
+#                     audio a Python. La ventaja real no es de comodidad:
+#                     pidiendo echoCancellation, el browser cancela su propia
+#                     salida de la entrada, y como la voz de los oficiales sale
+#                     por esa misma pagina, el eco se resuelve de raiz en vez
+#                     de silenciar el microfono mientras hablan.
 #
 # En modo activo, el nombre del oficial NO es decoracion: es el filtro que
 # separa una orden de una charla. Todo lo que no empiece llamando a alguien se
@@ -251,6 +258,52 @@ def grabar_mientras(sigue_apretado, etiqueta):
 
 def _rms(bloque):
     return float(np.sqrt(np.mean(bloque ** 2))) if bloque.size else 0.0
+
+
+def _remuestrear(audio, hz_origen, hz_destino=SAMPLE_RATE):
+    """Interpolacion lineal, que para voz y para un STT alcanza de sobra. El
+    browser graba a la frecuencia de la placa (normalmente 48 kHz) y Whisper
+    espera 16 kHz."""
+    if hz_origen == hz_destino or audio.size == 0:
+        return audio
+    n = int(round(audio.size * hz_destino / float(hz_origen)))
+    if n <= 1:
+        return np.array([], dtype=np.float32)
+    viejo = np.linspace(0.0, 1.0, num=audio.size, endpoint=False)
+    nuevo = np.linspace(0.0, 1.0, num=n, endpoint=False)
+    return np.interp(nuevo, viejo, audio).astype(np.float32)
+
+
+def escuchar_desde_la_web(modelo):
+    """El microfono lo maneja la pagina: aca solo se esperan las frases que
+    manda, ya cortadas por su detector de voz."""
+    ofi = getattr(fase1, "oficiales", None)
+    if ofi is None or ofi.panel_web is None:
+        print("[!] El modo 'web' necesita el panel (panel_web.py) y oficiales.py.")
+        return
+
+    panel = ofi.panel_web
+    panel.pedir_microfono(True)
+    print("Abrí el panel en el browser y dale permiso al micrófono.")
+    print("Después hablá normal, llamando a un oficial:")
+    print('   "computadora, alerta roja"   ·   "artillero, fuego"\n')
+
+    while True:
+        if keyboard.is_pressed(EXIT_KEY):
+            print("Saliendo...")
+            panel.pedir_microfono(False)
+            return
+
+        frase = panel.proxima_frase(timeout=0.4)
+        if frase is None:
+            continue
+
+        crudo, hz = frase
+        audio = np.frombuffer(crudo, dtype=np.float32)
+        audio = _remuestrear(audio, hz)
+        if audio.size / SAMPLE_RATE < MIN_DURACION_AUDIO_SEG:
+            continue
+        _procesar_frase(modelo, audio, ofi)
 
 
 def escuchar_activo(modelo):
@@ -433,15 +486,19 @@ def precalentar_todo():
     Ver comentarios en cada funcion de precalentado para el detalle."""
     print("Precalentando (para que el primer comando no tenga delay extra)...")
 
-    t0 = time.time()
-    ok_mic = precalentar_microfono()
-    try:
-        info = sd.query_devices(DISPOSITIVO_ENTRADA, "input")
-        cual = info["name"]
-    except Exception:
-        cual = "desconocido"
-    print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} -> {cual} "
-          f"({time.time() - t0:.2f}s)")
+    if MODO_ESCUCHA == "web":
+        # En este modo Python no toca el microfono: lo abre la pagina.
+        print("  - Microfono: lo maneja el browser, no Python")
+    else:
+        t0 = time.time()
+        ok_mic = precalentar_microfono()
+        try:
+            info = sd.query_devices(DISPOSITIVO_ENTRADA, "input")
+            cual = info["name"]
+        except Exception:
+            cual = "desconocido"
+        print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} -> {cual} "
+              f"({time.time() - t0:.2f}s)")
 
     if STT_BACKEND == "openai":
         t0 = time.time()
@@ -490,7 +547,13 @@ def main():
             print(f"Panel de la tripulacion: {url}  (abrilo al lado del juego)")
 
     print("=== SFC Voice Commander - Fase 2: comandos por VOZ ===")
-    if MODO_ESCUCHA == "boton":
+    if MODO_ESCUCHA == "web":
+        print("Modo: MICRÓFONO EN EL BROWSER (con cancelación de eco)")
+        if STT_BACKEND == "openai":
+            print("  [!] Igual que el modo activo: se transcribe todo lo que")
+            print("      se escucha, y con backend 'openai' eso se paga por")
+            print("      frase. Conviene STT_BACKEND = 'local'.")
+    elif MODO_ESCUCHA == "boton":
         print("Modo: BOTÓN DEL PANEL (sin teclas físicas)")
     elif MODO_ESCUCHA == "activa":
         print("Modo: ESCUCHA ACTIVA (sin botón)")
@@ -508,6 +571,10 @@ def main():
     precalentar_todo()
 
     print("\nListo.\n")
+
+    if MODO_ESCUCHA == "web":
+        escuchar_desde_la_web(modelo)
+        return
 
     if MODO_ESCUCHA == "activa":
         escuchar_activo(modelo)

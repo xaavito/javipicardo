@@ -642,6 +642,42 @@ arrancar.
       bajarlo, o subir `PRE_ROLL`. El RMS que mide `probar_microfono.py` con la
       sala en silencio es el piso: `UMBRAL_VOZ` tiene que quedar por encima
 
+#### 25c · Modo `"web"` — el micrófono lo maneja la página
+
+**Por qué existe, y no es comodidad:** pidiendo `echoCancellation` en
+`getUserMedia`, **el browser cancela su propia salida de la entrada**. Como la
+voz de los oficiales sale por esa misma página, el eco se resuelve de raíz — y
+podés **hablarle encima** a un oficial mientras habla, cosa que con el parche
+de "silenciar el micrófono N segundos" era imposible. De yapa vienen supresión
+de ruido y control de ganancia.
+
+La detección de voz es la idea de **hark** (el proyecto que pasó Pato): medir
+el volumen cada tanto y disparar al cruzar un umbral. Va escrita a mano dentro
+de la página, no como dependencia, para que funcione sin internet.
+
+**Pasos:**
+1. `MODO_ESCUCHA = "web"` en `fase2_voice_commands.py`
+2. Correr `fase2` y abrir el panel
+3. El browser va a **pedir permiso para el micrófono** — dale que sí. Es por
+   única vez, y no hace falta HTTPS porque `127.0.0.1` cuenta como origen
+   seguro
+4. Abajo tiene que decir algo como `🎙 escuchando · 48 kHz · eco cancelado`
+5. Hablá normal, llamando a un oficial: *"computadora, alerta roja"*
+
+- [ ] ⬜ pide permiso y engancha · ⬜ no pide nada · ⬜ pide y falla
+- [ ] ¿Qué dice la línea de estado del micrófono? ______
+- [ ] **La prueba que importa:** dale una orden y, **mientras el oficial
+      contesta**, dale otra encima. ¿La escucha? *(con el modo `activa` esto es
+      imposible por diseño)*
+- [ ] ¿Sigue capturando con la pestaña **de fondo**, con el juego al frente?
+      **Es lo que hay que confirmar sí o sí** — si el browser la congela, este
+      modo no sirve para jugar
+- [ ] El umbral de voz se ajusta en `VAD.umbral` dentro de `panel_web.py`
+
+> **Comparado con `"activa"`:** hace lo mismo, pero el micrófono vive en el
+> browser. Si la pestaña de fondo no captura bien, quedate con `"activa"`, que
+> captura desde Python y no depende de eso.
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
