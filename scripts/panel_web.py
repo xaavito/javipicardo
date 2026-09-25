@@ -38,8 +38,8 @@ SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None, "comando": None,
-           "audio": None, "uniforme": None, "velocidad": None, "ts": 0,
-           "boton": False, "mic_web": False}
+           "audio": None, "uniforme": None, "velocidad": None, "tecla": None,
+           "ts": 0, "boton": False, "mic_web": False}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
@@ -67,7 +67,7 @@ def proxima_frase(timeout=0.5):
 
 
 def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None,
-             velocidad=None):
+             velocidad=None, tecla=None):
     """La llama oficiales.responder() cada vez que contesta alguien. `audio` es
     el nombre del wav y `uniforme` el color de division, que la pagina usa como
     color de acento del LCARS.
@@ -80,6 +80,7 @@ def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None,
         _estado.update({"oficial": oficial, "nombre": nombre, "frase": frase,
                         "comando": comando, "ts": time.time(),
                         "uniforme": uniforme,
+                        "tecla": tecla,
                         "audio": f"/audio/{audio}" if audio else None})
         if velocidad is not None:
             _estado["velocidad"] = velocidad
@@ -120,85 +121,112 @@ PAGINA = """<!doctype html>
                      "Franklin Gothic Medium",sans-serif;
          text-transform:uppercase; letter-spacing:.08em; }
 
-  .lcars { display:grid; grid-template-columns:132px 1fr; gap:10px;
-           min-height:100vh; padding:10px 14px 10px 10px; }
+  /* Alto fijo y filas explicitas: la barra del boton es una fila propia, asi
+     que NO puede quedar tapada aunque el contenido del medio crezca (que fue
+     el bug del 25/09). Lo que scrollea, si hace falta, es solo el centro. */
+  .lcars { display:grid; grid-template-columns:186px 1fr; gap:10px;
+           height:100vh; padding:10px 14px 10px 10px; }
 
-  /* --- columna izquierda: el codo y los bloques --- */
-  .izq { display:flex; flex-direction:column; gap:10px; }
-  .codo { height:110px; background:var(--acento);
-          border-radius:60px 0 0 0; position:relative;
-          transition:background .4s; }
+  /* --- panel principal: la columna izquierda --- */
+  .izq { display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .codo { height:96px; background:var(--acento); border-radius:64px 0 0 0;
+          position:relative; flex:none; transition:background .4s; }
   .codo::after { content:""; position:absolute; right:-10px; bottom:0;
-                 width:10px; height:34px; background:var(--acento);
+                 width:10px; height:30px; background:var(--acento);
                  transition:background .4s; }
-  .bloque { border-radius:0 0 0 0; padding:.5rem .7rem; text-align:right;
-            font-size:.82rem; color:#000; line-height:1; }
-  .b1 { background:var(--lila); height:64px; }
-  .b2 { background:var(--azul); height:120px; }
-  .b3 { background:var(--manteca); height:46px; }
-  .b4 { background:var(--ladrillo); flex:1; min-height:60px;
-        border-radius:0 0 0 60px; }
+  .bloque { padding:.45rem .7rem; text-align:right; font-size:.8rem;
+            color:#000; line-height:1.05; flex:none; }
+  .b1 { background:var(--lila); height:52px; }
+  .b2 { background:var(--azul); height:86px; }
+  .b3 { background:var(--manteca); height:40px; }
+  .b4 { background:var(--ladrillo); height:40px; }
+  .b5 { background:var(--celeste); height:34px; }
+  .relleno { flex:1; min-height:8px; background:#161616;
+             border-radius:0 0 0 24px; }
+
+  /* Titilar: son luces de actividad, no botones de verdad. */
+  @keyframes titilar { 0%,100% { opacity:1 } 50% { opacity:.22 } }
+  .titila { animation:titilar 2.6s ease-in-out infinite; }
+  .luces { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px;
+           flex:none; }
+  .luz { height:22px; border-radius:11px; }
+  .luz:nth-child(1) { background:var(--durazno); animation-duration:2.1s; }
+  .luz:nth-child(2) { background:var(--lila);    animation-duration:3.3s;
+                      animation-delay:.4s; }
+  .luz:nth-child(3) { background:var(--manteca); animation-duration:1.7s;
+                      animation-delay:.9s; }
+  .luz:nth-child(4) { background:var(--celeste); animation-duration:2.9s;
+                      animation-delay:.2s; }
+  .luz:nth-child(5) { background:var(--ladrillo);animation-duration:2.3s;
+                      animation-delay:1.1s; }
+  .luz:nth-child(6) { background:var(--azul);    animation-duration:3.7s;
+                      animation-delay:.6s; }
+
+  /* El boton de hablar: ultimo bloque del panel principal. */
+  #hablar { flex:none; height:112px; border:none; border-radius:0 0 0 64px;
+            background:var(--durazno); color:#000; font-family:inherit;
+            font-size:1.02rem; line-height:1.15; letter-spacing:.1em;
+            text-transform:uppercase; cursor:pointer; text-align:right;
+            padding:.6rem .8rem; user-select:none; -webkit-user-select:none;
+            transition:background .15s; }
+  #hablar:hover { background:var(--melon); }
+  #hablar.grabando { background:var(--ladrillo); color:#fff;
+                     animation:titilar 1s ease-in-out infinite; }
+  #hablar.oculto { display:none; }
 
   /* --- columna derecha --- */
-  .der { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .der { display:grid; grid-template-rows:auto 1fr; gap:10px; min-height:0;
+         min-width:0; }
   .barra { display:flex; gap:8px; align-items:center; }
-  .barra .tira { flex:1; height:34px; background:var(--acento);
-                 border-radius:0 34px 34px 0; transition:background .4s; }
-  .barra .rot { font-size:1.05rem; color:var(--acento); white-space:nowrap;
+  .barra .tira { flex:1; height:32px; background:var(--acento);
+                 border-radius:0 32px 32px 0; transition:background .4s; }
+  .barra .rot { font-size:1rem; color:var(--acento); white-space:nowrap;
                 transition:color .4s; }
 
-  .centro { flex:1; display:grid; grid-template-columns:auto 1fr 210px;
-            gap:18px; align-items:center; padding:.5rem 0 5rem; }
-  @media (max-width:900px) { .centro { grid-template-columns:auto 1fr; }
+  .centro { display:grid; grid-template-columns:auto 1fr 200px; gap:18px;
+            align-items:center; min-height:0; overflow:auto; }
+  @media (max-width:980px) { .centro { grid-template-columns:auto 1fr; }
                              .consola { display:none; } }
-  @media (max-width:560px) { .centro { grid-template-columns:1fr; } }
+  @media (max-width:620px) { .centro { grid-template-columns:1fr; }
+                             .lcars { grid-template-columns:120px 1fr; } }
 
-  /* --- consola de la nave, a la derecha --- */
-  .consola { border-left:3px solid var(--acento); padding-left:12px;
-             transition:border-color .4s; }
+  .marco { position:relative; width:min(34vw,32vh,240px); aspect-ratio:1;
+           border-radius:14px; overflow:hidden; background:#0a0a0a;
+           border:4px solid var(--acento); transition:border-color .4s; }
+  .marco img { width:100%; height:100%; object-fit:cover; display:block;
+               opacity:0; transition:opacity .35s; }
+  .marco img.visible { opacity:1; }
+  .vacio { position:absolute; inset:0; display:grid; place-items:center;
+           color:#3a3a3a; font-size:.78rem; padding:1rem; text-align:center; }
+
+  .datos { min-width:0; }
+  .nombre { font-size:2.5rem; line-height:1; color:var(--acento);
+            transition:color .4s; }
+  .rol { font-size:.82rem; color:var(--lila); margin-top:.3rem; }
+  .frase { margin-top:1rem; font-size:1.3rem; line-height:1.3;
+           color:var(--melon); text-transform:none; letter-spacing:.02em;
+           min-height:2.6em; }
+  #micestado { font-size:.7rem; color:#6b6b6b; margin-top:.6rem; }
+
+  /* --- consola de la nave --- */
+  .consola { display:flex; flex-direction:column; gap:6px; }
   .consola svg { width:100%; height:auto; display:block; }
   .nave-linea { fill:none; stroke:var(--acento); stroke-width:3;
                 transition:stroke .4s; }
   .nave-relleno { fill:var(--acento); opacity:.16; transition:fill .4s; }
   .nave-tenue { fill:none; stroke:var(--acento); stroke-width:1.5;
                 opacity:.45; transition:stroke .4s; }
-  .lectura { display:flex; justify-content:space-between; gap:6px;
-             font-size:.72rem; padding:.3rem 0;
-             border-bottom:1px solid #222; }
-  .lectura span:last-child { color:var(--manteca); }
-  .titulo-consola { font-size:.72rem; color:var(--lila); margin:.8rem 0 .4rem; }
 
-  .marco { position:relative; width:min(38vw,34vh,260px); aspect-ratio:1;
-           border-radius:14px; overflow:hidden; background:#0a0a0a;
-           border:4px solid var(--acento); transition:border-color .4s; }
-  .marco img { width:100%; height:100%; object-fit:cover; display:block;
-               opacity:0; transition:opacity .35s; filter:saturate(.9); }
-  .marco img.visible { opacity:1; }
-  .vacio { position:absolute; inset:0; display:grid; place-items:center;
-           color:#3a3a3a; font-size:.8rem; padding:1rem; text-align:center; }
-
-  .datos { min-width:0; }
-  .nombre { font-size:2.6rem; line-height:1; color:var(--acento);
-            transition:color .4s; }
-  .rol { font-size:.85rem; color:var(--lila); margin-top:.35rem; }
-  .frase { margin-top:1.1rem; font-size:1.35rem; line-height:1.3;
-           color:var(--melon); text-transform:none; letter-spacing:.02em;
-           min-height:2.6em; }
-  .comando { margin-top:.9rem; font-size:.78rem; color:var(--azul); }
-  .comando b { color:var(--celeste); }
-  #micestado { font-size:.72rem; color:#6b6b6b; margin-top:.5rem; }
-
-  /* El boton va fijo: tiene que estar SIEMPRE, no importa el contenido. */
-  #hablar { position:fixed; left:152px; right:14px; bottom:14px; height:64px;
-            border:none; border-radius:0 32px 32px 0; background:var(--durazno);
-            color:#000; font-family:inherit; font-size:1.2rem;
-            letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
-            user-select:none; -webkit-user-select:none; text-align:right;
-            padding-right:2rem; transition:background .15s; z-index:5; }
-  #hablar:hover { background:var(--melon); }
-  #hablar.grabando { background:var(--ladrillo); color:#fff; }
-  #hablar.oculto { display:none; }
-  @media (max-width:560px) { #hablar { left:14px; } }
+  /* Lecturas: bloques LCARS con lo ULTIMO QUE MANDAMOS. */
+  .lectura { display:grid; grid-template-columns:76px 1fr; gap:4px;
+             align-items:stretch; }
+  .lectura .et { background:var(--azul); color:#000; font-size:.62rem;
+                 padding:.3rem .4rem; text-align:right;
+                 border-radius:12px 0 0 12px; }
+  .lectura .va { background:#161616; color:var(--manteca); font-size:.74rem;
+                 padding:.3rem .5rem; border-radius:0 12px 12px 0;
+                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tit-consola { font-size:.66rem; color:var(--lila); margin-top:.4rem; }
 
   #sonido { position:fixed; inset:0; display:none; place-items:center;
             background:rgba(0,0,0,.94); cursor:pointer; z-index:9; }
@@ -215,9 +243,17 @@ PAGINA = """<!doctype html>
   <div class="izq">
     <div class="codo"></div>
     <div class="bloque b1">LCARS<br>47-1701</div>
-    <div class="bloque b2">PUENTE<br>&nbsp;<br>TRIPULACION<br>ACTIVA</div>
+    <div class="bloque b2">PUENTE<br>&nbsp;<br>TRIPULACION</div>
+    <div class="luces">
+      <div class="luz titila"></div><div class="luz titila"></div>
+      <div class="luz titila"></div><div class="luz titila"></div>
+      <div class="luz titila"></div><div class="luz titila"></div>
+    </div>
     <div class="bloque b3" id="reloj">--:--</div>
-    <div class="bloque b4">SFC<br>COMMANDER</div>
+    <div class="bloque b4">SFC</div>
+    <div class="bloque b5 titila">ENLACE</div>
+    <div class="relleno"></div>
+    <button id="hablar" class="oculto">&#9679;<br>Mantene<br>apretado<br>para hablar</button>
   </div>
 
   <div class="der">
@@ -236,13 +272,12 @@ PAGINA = """<!doctype html>
         <div class="nombre" id="nombre">&mdash;</div>
         <div class="rol" id="rol">SIN ASIGNAR</div>
         <div class="frase" id="frase"></div>
-        <div class="comando" id="comando"></div>
         <div id="micestado"></div>
       </div>
 
       <div class="consola">
-        <!-- Silueta de la nave, dibujada en SVG: sin archivos externos, y se
-             tine sola con el color de division del oficial que habla. -->
+        <!-- Silueta en SVG: sin archivos externos, y toma el color de division
+             del oficial que esta hablando. -->
         <svg viewBox="0 0 240 300" aria-label="Nave">
           <ellipse class="nave-relleno" cx="120" cy="74" rx="86" ry="56"/>
           <ellipse class="nave-linea"   cx="120" cy="74" rx="86" ry="56"/>
@@ -262,16 +297,15 @@ PAGINA = """<!doctype html>
           <rect class="nave-linea"   x="186" y="226" width="34" height="72" rx="17"/>
         </svg>
 
-        <div class="titulo-consola">Ultima orden</div>
-        <div class="lectura"><span>Velocidad</span><span id="lv">--</span></div>
-        <div class="lectura"><span>Oficial</span><span id="lo">--</span></div>
-        <div class="lectura"><span>Modo</span><span id="lm">--</span></div>
+        <div class="tit-consola">ULTIMO QUE MANDAMOS</div>
+        <div class="lectura"><div class="et">VELOC</div><div class="va" id="lv">--</div></div>
+        <div class="lectura"><div class="et">TECLA</div><div class="va" id="lt">--</div></div>
+        <div class="lectura"><div class="et">ORDEN</div><div class="va" id="lc">--</div></div>
+        <div class="lectura"><div class="et">MODO</div><div class="va" id="lm">--</div></div>
       </div>
     </div>
   </div>
 </div>
-
-<button id="hablar" class="oculto">&#9679; Mantene apretado para hablar</button>
 
 <script>
 let ultimo = 0;
@@ -336,14 +370,12 @@ async function tick() {
       document.getElementById('nombre').textContent = e.nombre || '\u2014';
       document.getElementById('rol').textContent = e.oficial || 'SIN ASIGNAR';
       document.getElementById('frase').textContent = e.frase || '';
-      document.getElementById('comando').innerHTML =
-        e.comando ? 'ORDEN: <b>' + e.comando + '</b>' : '';
-
       const NIVEL = ['detenida','1/4','1/2','3/4','maxima'];
       document.getElementById('lv').textContent =
         (e.velocidad === null || typeof e.velocidad === 'undefined')
           ? '--' : NIVEL[e.velocidad];
-      document.getElementById('lo').textContent = e.nombre || '--';
+      document.getElementById('lt').textContent = e.tecla || '--';
+      document.getElementById('lc').textContent = e.comando || '--';
       document.getElementById('lm').textContent =
         e.mic_web ? 'voz' : (e.boton ? 'boton' : 'tecla');
 
@@ -361,8 +393,8 @@ async function avisar(activo) {
   if (activo === apretado) return;
   apretado = activo;
   btn.classList.toggle('grabando', activo);
-  btn.innerHTML = activo ? '&#9679; Grabando&hellip; solta al terminar'
-                         : '&#9679; Mantene apretado para hablar';
+  btn.innerHTML = activo ? '&#9679;<br>Grabando&hellip;<br>solta al<br>terminar'
+                         : '&#9679;<br>Mantene<br>apretado<br>para hablar';
   try {
     await fetch('/hablar', {method:'POST',
       headers:{'Content-Type':'application/json'},

@@ -262,6 +262,27 @@ RESPUESTAS["a_la_orden"] = {
 }
 
 
+def _tecla_de(accion):
+    """Que tecla(s) se mandaron al juego, para mostrarlas en la consola. Es
+    literalmente "lo ultimo que apretamos"."""
+    tipo = accion.get("action")
+    if tipo == "key":
+        return accion.get("key")
+    if tipo == "key_combo":
+        return "+".join(accion.get("keys", []))
+    if tipo in ("set_speed", "set_speed_pct"):
+        return "s / a"
+    if tipo == "combo":
+        pasos = []
+        for paso in accion.get("pasos", []):
+            if isinstance(paso, tuple):
+                pasos.append(f"{paso[0]} x{paso[1]}")
+            else:
+                pasos.append(str(paso))
+        return " · ".join(pasos)
+    return None
+
+
 def _nivel_ordenado(accion):
     """Nivel de velocidad 0-4 si esta orden lo fijo, o None. Lo muestra la
     consola de la nave como "ultima orden", no como lectura real."""
@@ -394,7 +415,7 @@ def responder(accion):
     if PANEL_WEB and panel_web is not None:
         panel_web.publicar(clave, quien, frase, accion.get("raw"),
                            _nombre_archivo(clave, frase), datos["uniforme"],
-                           _nivel_ordenado(accion))
+                           _nivel_ordenado(accion), _tecla_de(accion))
 
     reproducir(clave, frase)
 
