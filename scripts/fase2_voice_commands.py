@@ -196,7 +196,7 @@ EXIT_KEY = "esc"
 # separa una orden de una charla. Todo lo que no empiece llamando a alguien se
 # descarta sin ejecutar nada.
 # ---------------------------------------------------------------------------
-MODO_ESCUCHA = "push_to_talk"
+MODO_ESCUCHA = "boton"
 
 # --- Parametros del modo activo (VAD por energia, sin dependencias nuevas) ---
 
@@ -242,7 +242,7 @@ CHANNELS = 1
 # microfonos (tipico al enchufar un auricular Bluetooth, que aparece como dos
 # dispositivos distintos), poner aca el NUMERO que muestra:
 #     python probar_microfono.py
-DISPOSITIVO_ENTRADA = None
+DISPOSITIVO_ENTRADA = 1
 
 # Below this many seconds the recording is a push-to-talk tap, not an order.
 # It is not sent to the API: an audio with no speech makes the model answer
