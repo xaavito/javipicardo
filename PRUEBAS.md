@@ -678,6 +678,14 @@ cuándo terminar. Pensado para cuando ya estás con el mouse en el juego.
 4. Apretá con el mouse **sin soltar**, decí `alerta roja`, soltá
 5. El botón se pone rojo mientras graba
 
+- [x] **25/09: el botón desaparecía después del primer comando.** No se
+      ocultaba: la página tenía alto fijo con `overflow:hidden`, y al aparecer
+      un oficial el contenido pasaba el alto de la ventana y lo recortaba abajo,
+      sin scroll para llegar. Corregido — el botón ahora va **fijo al viewport**
+      y no depende de cuánto contenido haya arriba, y el retrato se mide también
+      contra el alto de la ventana para no empujar nada afuera.
+- [ ] Reprobar después del `git pull`: dar 3-4 órdenes seguidas y confirmar que
+      el botón sigue ahí **siempre**, y que en una ventana chica tampoco se va
 - [ ] ⬜ graba y ejecuta · ⬜ el botón no aparece · ⬜ aparece y no graba
 - [ ] ¿Se corta el principio de lo que decís? *(si pasa, hay que hablar un
       instante después de apretar)*
