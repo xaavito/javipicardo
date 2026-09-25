@@ -80,6 +80,7 @@ duracion de lo hablado. Con el modelo "small" en CPU deberia rondar entre
 Fase 1 (PAUSA_POST_ENFOQUE, definida en fase1_text_commands.py).
 """
 
+import collections
 import sys
 import time
 import queue
@@ -147,6 +148,69 @@ PUSH_TO_TALK_KEY = "f12"
 # Tecla para salir del programa.
 EXIT_KEY = "esc"
 
+# ---------------------------------------------------------------------------
+# Modo de escucha
+#
+#   "push_to_talk" -> mantener F12 mientras se habla (el de siempre)
+#   "boton"        -> mantener apretado el boton del panel web con el MOUSE.
+#                     Igual que el push-to-talk pero sin tocar el teclado, que
+#                     es comodo si ya estas jugando con el mouse. El audio lo
+#                     graba Python igual; la pagina solo avisa cuando empezar
+#                     y cuando terminar.
+#   "activa"       -> microfono SIEMPRE abierto. No hay boton: se llama al
+#                     oficial por su nombre ("computadora, alerta roja") y eso
+#                     es lo que activa la orden.
+#   "web"          -> igual que "activa", pero el microfono lo maneja la
+#                     PAGINA: graba, corta las frases por volumen y le manda el
+#                     audio a Python. La ventaja real no es de comodidad:
+#                     pidiendo echoCancellation, el browser cancela su propia
+#                     salida de la entrada, y como la voz de los oficiales sale
+#                     por esa misma pagina, el eco se resuelve de raiz en vez
+#                     de silenciar el microfono mientras hablan.
+#
+# En modo activo, el nombre del oficial NO es decoracion: es el filtro que
+# separa una orden de una charla. Todo lo que no empiece llamando a alguien se
+# descarta sin ejecutar nada.
+# ---------------------------------------------------------------------------
+MODO_ESCUCHA = "push_to_talk"
+
+# --- Parametros del modo activo (VAD por energia, sin dependencias nuevas) ---
+
+# Nivel RMS por encima del cual se considera que alguien esta hablando. Si
+# agarra ruido de fondo, subirlo; si se come el principio de las frases,
+# bajarlo. Medir el ruido de la sala con probar_microfono.py ayuda.
+UMBRAL_VOZ = 0.015
+
+# Silencio que cierra una frase. Mas corto responde antes pero corta al que
+# habla pausado.
+SILENCIO_PARA_CORTAR = 0.7
+
+# Corte de seguridad: ninguna orden dura mas que esto.
+MAX_DURACION_FRASE = 8.0
+
+# ¿Hace falta nombrar a un oficial para que la orden cuente?
+#
+#   True  -> solo se ejecuta lo que empieza llamando a alguien
+#            ("computadora, alerta roja"). Todo lo demas se ignora.
+#   False -> tambien se aceptan ordenes sueltas ("alerta roja"), pero con el
+#            parser ESTRICTO: la frase tiene que SER un comando, no contenerlo.
+#            Asi "dale fuego a la parrilla" no dispara las armas.
+#
+# Lo unico que aporta el nombre es ese filtro: quien contesta ya se deduce del
+# comando. En False se gana comodidad y se pierde margen: una frase que
+# CASUALMENTE sea exactamente un comando se ejecuta. Y las ordenes en lenguaje
+# libre (las que van al LLM) siguen necesitando el nombre, porque ahi no hay
+# forma de distinguir una orden de una charla.
+EXIGIR_NOMBRE_DE_OFICIAL = True
+
+# Audio que se guarda ANTES de detectar voz. Sin esto se pierde siempre la
+# primera silaba, que justamente es donde esta el nombre del oficial.
+PRE_ROLL = 0.4
+
+# Margen extra despues de que termina de hablar un oficial, antes de volver a
+# escuchar. Evita que el sistema se escuche a si mismo.
+MARGEN_ANTI_ECO = 0.4
+
 SAMPLE_RATE = 16000  # Hz, el que espera Whisper
 CHANNELS = 1
 
@@ -171,11 +235,10 @@ MAX_CARACTERES_COMANDO = 150
 # Captura de audio mientras se mantiene apretada la tecla de push-to-talk
 # ---------------------------------------------------------------------------
 
-def grabar_mientras_se_mantiene_apretada(tecla):
-    """Graba audio del microfono desde que se detecta la tecla apretada hasta
-    que se suelta. Devuelve un array numpy float32 con el audio grabado (o
-    un array vacio si se solto casi al instante, sin alcanzar a grabar
-    nada util)."""
+def grabar_mientras(sigue_apretado, etiqueta):
+    """Graba audio del microfono mientras `sigue_apretado()` devuelva True.
+    Sirve igual para la tecla fisica que para el boton del panel: lo unico que
+    cambia es como se pregunta si todavia esta apretado."""
     bloques = queue.Queue()
 
     def callback(indata, frames, time_info, status):
@@ -183,12 +246,12 @@ def grabar_mientras_se_mantiene_apretada(tecla):
             print(f"  [!] Aviso de audio: {status}")
         bloques.put(indata.copy())
 
-    print(f"[grabando... mantene apretada '{tecla}' y hablá, soltá al terminar]")
+    print(f"[grabando... {etiqueta}]")
 
     with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
                          dtype='float32', device=DISPOSITIVO_ENTRADA,
                          callback=callback):
-        while keyboard.is_pressed(tecla):
+        while sigue_apretado():
             time.sleep(0.01)
 
     print("[grabacion terminada, transcribiendo...]")
@@ -202,6 +265,189 @@ def grabar_mientras_se_mantiene_apretada(tecla):
 
     audio = np.concatenate(trozos, axis=0).flatten()
     return audio
+
+
+# ---------------------------------------------------------------------------
+# Escucha activa: microfono siempre abierto, sin boton
+# ---------------------------------------------------------------------------
+
+def _rms(bloque):
+    return float(np.sqrt(np.mean(bloque ** 2))) if bloque.size else 0.0
+
+
+def _remuestrear(audio, hz_origen, hz_destino=SAMPLE_RATE):
+    """Interpolacion lineal, que para voz y para un STT alcanza de sobra. El
+    browser graba a la frecuencia de la placa (normalmente 48 kHz) y Whisper
+    espera 16 kHz."""
+    if hz_origen == hz_destino or audio.size == 0:
+        return audio
+    n = int(round(audio.size * hz_destino / float(hz_origen)))
+    if n <= 1:
+        return np.array([], dtype=np.float32)
+    viejo = np.linspace(0.0, 1.0, num=audio.size, endpoint=False)
+    nuevo = np.linspace(0.0, 1.0, num=n, endpoint=False)
+    return np.interp(nuevo, viejo, audio).astype(np.float32)
+
+
+def escuchar_desde_la_web(modelo):
+    """El microfono lo maneja la pagina: aca solo se esperan las frases que
+    manda, ya cortadas por su detector de voz."""
+    ofi = getattr(fase1, "oficiales", None)
+    if ofi is None or ofi.panel_web is None:
+        print("[!] El modo 'web' necesita el panel (panel_web.py) y oficiales.py.")
+        return
+
+    panel = ofi.panel_web
+    panel.pedir_microfono(True)
+    print("Abrí el panel en el browser y dale permiso al micrófono.")
+    print("Después hablá normal, llamando a un oficial:")
+    print('   "computadora, alerta roja"   ·   "artillero, fuego"\n')
+
+    while True:
+        if keyboard.is_pressed(EXIT_KEY):
+            print("Saliendo...")
+            panel.pedir_microfono(False)
+            return
+
+        frase = panel.proxima_frase(timeout=0.4)
+        if frase is None:
+            continue
+
+        crudo, hz = frase
+        audio = np.frombuffer(crudo, dtype=np.float32)
+        audio = _remuestrear(audio, hz)
+        if audio.size / SAMPLE_RATE < MIN_DURACION_AUDIO_SEG:
+            continue
+        _procesar_frase(modelo, audio, ofi)
+
+
+def escuchar_activo(modelo):
+    """Loop de escucha continua. Corta las frases por silencio y solo ejecuta
+    las que empiezan llamando a un oficial."""
+    ofi = getattr(fase1, "oficiales", None)
+    if ofi is None:
+        print("[!] El modo activo necesita oficiales.py (es quien sabe los "
+              "nombres por los que se llama a cada uno).")
+        return
+
+    seg_por_bloque = 0.1
+    bloque_n = int(SAMPLE_RATE * seg_por_bloque)
+    cola = queue.Queue()
+
+    def callback(indata, frames, time_info, status):
+        if status:
+            pass  # los overflows ocasionales no valen un print por bloque
+        cola.put(indata.copy())
+
+    pre = collections.deque(maxlen=max(1, int(PRE_ROLL / seg_por_bloque)))
+    grabando = False
+    frase = []
+    silencio = 0.0
+    mudo_hasta = 0.0
+
+    print("Escuchando. Llamá a un oficial por su nombre, por ejemplo:")
+    print('   "computadora, alerta roja"   ·   "artillero, fuego"')
+    print('   "timonel, media máquina"     ·   "Korak" (para que conteste)\n')
+
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS,
+                        dtype='float32', device=DISPOSITIVO_ENTRADA,
+                        blocksize=bloque_n, callback=callback):
+        while True:
+            if keyboard.is_pressed(EXIT_KEY):
+                print("Saliendo...")
+                return
+
+            try:
+                bloque = cola.get(timeout=0.5)
+            except queue.Empty:
+                continue
+
+            # Mientras habla un oficial, no escuchamos: si no, el sistema se
+            # transcribe a si mismo y puede ejecutar lo que acaba de decir.
+            if time.time() < mudo_hasta:
+                grabando, frase, silencio = False, [], 0.0
+                pre.clear()
+                continue
+
+            nivel = _rms(bloque.flatten())
+
+            if not grabando:
+                pre.append(bloque)
+                if nivel >= UMBRAL_VOZ:
+                    grabando = True
+                    frase = list(pre)
+                    silencio = 0.0
+                continue
+
+            frase.append(bloque)
+            silencio = 0.0 if nivel >= UMBRAL_VOZ else silencio + seg_por_bloque
+            largo = len(frase) * seg_por_bloque
+
+            if silencio < SILENCIO_PARA_CORTAR and largo < MAX_DURACION_FRASE:
+                continue
+
+            audio = np.concatenate(frase, axis=0).flatten()
+            grabando, frase, silencio = False, [], 0.0
+            pre.clear()
+
+            if audio.size / SAMPLE_RATE < MIN_DURACION_AUDIO_SEG:
+                continue
+
+            mudo_hasta = _procesar_frase(modelo, audio, ofi)
+
+            # Lo que entro mientras pensabamos no sirve: puede tener la voz del
+            # oficial, o la mitad de otra frase.
+            while not cola.empty():
+                cola.get()
+
+
+def _procesar_frase(modelo, audio, ofi):
+    """Transcribe, mira si llaman a un oficial, y ejecuta. Devuelve hasta
+    cuando hay que dejar de escuchar (mientras contesta el oficial)."""
+    t0 = time.time()
+    texto = transcribir(modelo, audio)
+    t1 = time.time()
+
+    if not texto or len(texto) > MAX_CARACTERES_COMANDO:
+        return 0.0
+
+    clave, resto = ofi.detectar_oficial(texto)
+
+    if clave is None:
+        if EXIGIR_NOMBRE_DE_OFICIAL:
+            print(f"[ignorado, no llama a nadie] \"{texto}\"")
+            return 0.0
+
+        # Sin nombre, el filtro es el parser estricto: la frase entera tiene
+        # que ser un comando. Y no se consulta al LLM: interpretar lenguaje
+        # libre de algo que quiza ni sea una orden es justo lo peligroso.
+        accion = fase1.parsear_estricto(texto)
+        if accion["action"] == "unknown":
+            print(f"[ignorado, no es un comando] \"{texto}\"")
+            return 0.0
+
+        print(f"\n<- \"{texto}\"  (STT: {t1 - t0:.2f}s)")
+        fase1.ejecutar_accion(accion)
+        return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
+
+    nombre = ofi.OFICIALES[clave]["nombre"]
+    print(f"\n{nombre} <- \"{texto}\"  (STT: {t1 - t0:.2f}s)")
+
+    if not resto:
+        # Lo llamaron y nada mas: que conteste y quede a la espera.
+        accion = {"action": "a_la_orden", "oficial": clave, "raw": texto}
+        ofi.responder(accion)
+        return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
+
+    accion = fase1.parsear_comando(resto)
+
+    if accion["action"] == "unknown" and USAR_LLM_FALLBACK:
+        print(f"  [el parser no reconocio '{resto}', consultando al LLM...]")
+        accion = llm_fallback.interpretar_con_llm(resto)
+
+    fase1.ejecutar_accion(accion)
+    print(f"  [tiempos] STT: {t1 - t0:.2f}s | TOTAL: {time.time() - t0:.2f}s")
+    return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
 
 
 # ---------------------------------------------------------------------------
@@ -268,15 +514,19 @@ def precalentar_todo():
     Ver comentarios en cada funcion de precalentado para el detalle."""
     print("Precalentando (para que el primer comando no tenga delay extra)...")
 
-    t0 = time.time()
-    ok_mic = precalentar_microfono()
-    try:
-        info = sd.query_devices(DISPOSITIVO_ENTRADA, "input")
-        cual = info["name"]
-    except Exception:
-        cual = "desconocido"
-    print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} -> {cual} "
-          f"({time.time() - t0:.2f}s)")
+    if MODO_ESCUCHA == "web":
+        # En este modo Python no toca el microfono: lo abre la pagina.
+        print("  - Microfono: lo maneja el browser, no Python")
+    else:
+        t0 = time.time()
+        ok_mic = precalentar_microfono()
+        try:
+            info = sd.query_devices(DISPOSITIVO_ENTRADA, "input")
+            cual = info["name"]
+        except Exception:
+            cual = "desconocido"
+        print(f"  - Microfono: {'OK' if ok_mic else 'FALLO'} -> {cual} "
+              f"({time.time() - t0:.2f}s)")
 
     if STT_BACKEND == "openai":
         t0 = time.time()
@@ -312,30 +562,78 @@ def precalentar_todo():
 
 
 def main():
-    if oficiales is not None and oficiales.PANEL_WEB \
-            and oficiales.panel_web is not None:
-        url = oficiales.panel_web.iniciar()
+    # Via fase1: este script no importa oficiales por su cuenta, reusa todo lo
+    # de la Fase 1 (parser, ejecutor, acuses de los oficiales).
+    # Por voz no se escribe en la consola: el hook de F12 es global y el panel
+    # muestra lo que pasa. Que el foco se quede en el juego.
+    fase1.DEVOLVER_FOCO_CONSOLA = False
+
+    ofi = getattr(fase1, "oficiales", None)
+    if ofi is not None and ofi.PANEL_WEB and ofi.panel_web is not None:
+        url = ofi.panel_web.iniciar()
         if url:
             print(f"Panel de la tripulacion: {url}  (abrilo al lado del juego)")
 
     print("=== SFC Voice Commander - Fase 2: comandos por VOZ ===")
-    print(f"Push-to-talk: mantené apretada '{PUSH_TO_TALK_KEY}' mientras hablás.")
+    if MODO_ESCUCHA == "web":
+        print("Modo: MICRÓFONO EN EL BROWSER (con cancelación de eco)")
+        if STT_BACKEND == "openai":
+            print("  [!] Igual que el modo activo: se transcribe todo lo que")
+            print("      se escucha, y con backend 'openai' eso se paga por")
+            print("      frase. Conviene STT_BACKEND = 'local'.")
+    elif MODO_ESCUCHA == "boton":
+        print("Modo: BOTÓN DEL PANEL (sin teclas físicas)")
+    elif MODO_ESCUCHA == "activa":
+        print("Modo: ESCUCHA ACTIVA (sin botón)")
+        if STT_BACKEND == "openai":
+            print("  [!] OJO: con escucha activa se transcribe TODO lo que se")
+            print("      escucha, y con el backend 'openai' eso se paga por")
+            print("      cada frase. Para este modo conviene STT_BACKEND =")
+            print("      'local' (ver prueba #13).")
+    else:
+        print(f"Push-to-talk: mantené apretada '{PUSH_TO_TALK_KEY}' mientras hablás.")
     print(f"Presioná '{EXIT_KEY}' para salir.\n")
 
     modelo = cargar_modelo()
 
     precalentar_todo()
 
-    print("\nListo. Esperando comandos por voz...\n")
+    print("\nListo.\n")
+
+    if MODO_ESCUCHA == "web":
+        escuchar_desde_la_web(modelo)
+        return
+
+    if MODO_ESCUCHA == "activa":
+        escuchar_activo(modelo)
+        return
+
+    # Que pregunta hay que hacer para saber si el capitan esta hablando, y que
+    # decirle por consola. Lo unico que cambia entre los dos modos.
+    if MODO_ESCUCHA == "boton":
+        panel = ofi.panel_web if ofi is not None else None
+        if panel is None:
+            print("[!] El modo boton necesita el panel web. Volviendo a F12.")
+            apretado = lambda: keyboard.is_pressed(PUSH_TO_TALK_KEY)
+            etiqueta = f"mantene '{PUSH_TO_TALK_KEY}' y hablá"
+        else:
+            panel.mostrar_boton(True)
+            apretado = panel.boton_apretado
+            etiqueta = "soltá el botón al terminar"
+            print("Apretá el botón 🎙 del panel con el mouse y hablá.\n")
+    else:
+        apretado = lambda: keyboard.is_pressed(PUSH_TO_TALK_KEY)
+        etiqueta = f"mantene '{PUSH_TO_TALK_KEY}' y hablá, soltá al terminar"
+        print("Esperando comandos por voz...\n")
 
     while True:
         if keyboard.is_pressed(EXIT_KEY):
             print("Saliendo...")
             break
 
-        if keyboard.is_pressed(PUSH_TO_TALK_KEY):
+        if apretado():
             t0 = time.time()
-            audio = grabar_mientras_se_mantiene_apretada(PUSH_TO_TALK_KEY)
+            audio = grabar_mientras(apretado, etiqueta)
 
             if audio.size:
                 pico = float(np.max(np.abs(audio)))

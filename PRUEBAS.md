@@ -110,7 +110,20 @@ Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
 > `fase1_text_commands.py`, subirla a `0.02`, después `0.05`, y en último caso
 > volver a `0.1` y re-correr `calibrar_latencia.py`.
 
-### 13. Local STT (`tiny`) vs. the API — the biggest saving left
+### 13. STT local (`tiny`) vs. la API — DESTRABADA, y ahora es la primera
+
+> **25/09: se reemplazó el Bluetooth por un micrófono físico cableado.** Esta
+> prueba estaba en espera justamente por eso, y ahora es **la más importante de
+> la lista**, por dos razones a la vez: es la última palanca grande de
+> latencia, y es lo que hace **gratis** a la escucha activa (#25b) — con
+> micrófono siempre abierto hay que transcribir todo lo que se escucha, y eso
+> con la API se paga por frase.
+
+**Antes de empezar:** `python scripts\probar_microfono.py` para ver con qué
+número aparece el micrófono nuevo, y ponerlo en `DISPOSITIVO_ENTRADA`. De paso
+anotá el **RMS de la sala en silencio**, que sirve para ajustar `UMBRAL_VOZ` de
+la escucha activa.
+
 
 **Why it matters:** with the pauses already calibrated, the **STT is now
 60-70% of the total** (1.7-3.1s out of 3.5-5.8s). The API sits well above the
@@ -423,6 +436,9 @@ error**.
 5. Cuando encuentres el bueno, ponelo en `fase2_voice_commands.py`:
    `DISPOSITIVO_ENTRADA = 3`
 
+- [x] **25/09: reemplazado por un micrófono físico cableado**, que evita el
+      códec Bluetooth por completo. Correr `probar_microfono.py` para fijarlo
+      en `DISPOSITIVO_ENTRADA`.
 - [x] **RESUELTA (24/09):** el micrófono quedó andando. Queda anotado que el
       **reconocimiento es pobre con el BT**, lo cual es esperable: en perfil
       Hands-Free el micrófono va comprimido a calidad teléfono, que es justo
@@ -521,6 +537,36 @@ oficial que contesta, con su frase. Sin instalar nada: todo librería estándar.
 **Después, por voz:** lo mismo con `fase2_voice_commands.py`. Es el mismo
 panel: la voz no tiene ejecutor propio, usa el de la Fase 1.
 
+#### 23b. El audio ahora lo reproduce la página
+
+**Qué cambió:** si hay una página del panel abierta, **el audio lo toca el
+browser**, no Python. Si no la hay, lo sigue tocando Python como antes. El
+sistema lo detecta solo: la página pregunta el estado cada 300ms, y si hace más
+de 3 segundos que nadie pregunta, se da por cerrada.
+
+**Y el foco:** por **voz**, el script ya **no le devuelve el foco a la
+consola** — se queda en el juego, que es donde tiene que estar. Por texto sigue
+volviendo, porque ahí sí hay que seguir escribiendo.
+
+**Pasos:**
+1. Con el panel abierto, dar una orden. La primera vez el browser **bloquea el
+   audio** y aparece un cartel **"🔊 Activar sonido"**: click en cualquier lado
+   y listo, no vuelve a aparecer.
+2. Confirmar que la voz **se escucha una sola vez**, no dos.
+3. Cerrar la pestaña del panel, esperar 3 segundos y dar otra orden → la voz
+   tiene que volver a salir por Python.
+4. Volver a abrir el panel y dar otra → vuelve a salir por el browser.
+5. Por voz (`fase2`), después de una orden: **el foco tiene que quedar en el
+   juego**, no saltar a la consola.
+
+- [ ] ⬜ se escucha una vez · ⬜ se escucha doble · ⬜ no se escucha
+- [ ] El cartel de activar sonido: ⬜ apareció y se fue con un click · ⬜ no
+      apareció (ya habías tocado la página) · ⬜ quedó trabado
+- [ ] Con el panel cerrado, ¿vuelve el audio por Python? ⬜ sí · ⬜ no
+- [ ] Por voz, ¿el foco se queda en el juego? ⬜ sí · ⬜ salta a la consola
+- **Ventaja de tener el audio en el browser:** se le puede mandar a un
+  dispositivo distinto del juego, y el volumen se regula aparte.
+
 ### 24. Regenerar los dos retratos que quedaron con defectos
 
 **Pendiente desde el 22/09**, los prompts ya están corregidos y pusheados:
@@ -540,6 +586,135 @@ panel: la voz no tiene ejecutor propio, usa el de la Fase 1.
 
 - [ ] Nima: ⬜ ojos negros y orejas redondas · ⬜ sigue igual
 - [ ] Zheva: ⬜ uniforme como el resto · ⬜ sigue invertido
+
+### 25. Los dos modos nuevos: botón del panel y escucha activa
+
+`MODO_ESCUCHA` en `fase2_voice_commands.py` ahora tiene tres valores. El de
+siempre (`"push_to_talk"`) sigue igual.
+
+#### 25a · Modo `"boton"` — sin teclas físicas
+
+El audio lo sigue grabando Python; la página sólo avisa cuándo empezar y
+cuándo terminar. Pensado para cuando ya estás con el mouse en el juego.
+
+1. `MODO_ESCUCHA = "boton"` en `fase2_voice_commands.py`
+2. Correr `fase2`, abrir el panel
+3. Abajo del retrato aparece **🎙 Mantené apretado para hablar**
+4. Apretá con el mouse **sin soltar**, decí `alerta roja`, soltá
+5. El botón se pone rojo mientras graba
+
+- [ ] ⬜ graba y ejecuta · ⬜ el botón no aparece · ⬜ aparece y no graba
+- [ ] ¿Se corta el principio de lo que decís? *(si pasa, hay que hablar un
+      instante después de apretar)*
+- [ ] ¿Molesta que el click le saque el foco al juego?
+
+#### 25b · Modo `"activa"` — micrófono siempre abierto
+
+> Con el micrófono cableado del 25/09 este modo pasa a ser viable de verdad: el
+> Bluetooth entregaba audio de calidad teléfono, que es lo peor para detectar
+> un nombre al principio de la frase.
+
+**No hay botón ni tecla: se llama al oficial por su nombre.** Eso es lo que
+distingue una orden de una charla — si la frase no empieza llamando a alguien,
+se descarta sin ejecutar nada.
+
+⚠️ **Con `STT_BACKEND = "openai"` esto se paga por cada frase que escuche.**
+Para este modo conviene el STT local (prueba #13). El script lo avisa al
+arrancar.
+
+1. `MODO_ESCUCHA = "activa"`
+2. Correr `fase2` y hablar normal, sin tocar nada
+
+| Decís | Tiene que pasar |
+|---|---|
+| "computadora, alerta roja" | ejecuta, contesta Zheva |
+| "artillero, fuego" | ejecuta, contesta Korak |
+| "timonel, media máquina" | ejecuta, contesta T'Lara |
+| "Korak" (y nada más) | contesta *"¿Sí, capitán?"*, **no ejecuta nada** |
+| "alerta roja" (sin llamar a nadie) | **se ignora** — lo dice en consola |
+| Una charla cualquiera | **se ignora** |
+
+- [ ] ⬜ engancha bien · ⬜ se come el nombre · ⬜ corta antes de que termines
+- [ ] ¿Se ejecutó algo hablando de otra cosa? *(si pasa, anotá la frase)*
+- [ ] **El eco:** mientras habla un oficial el micrófono se silencia solo.
+      ¿Se escuchó a sí mismo alguna vez?
+- [ ] Si agarra ruido de fondo: subir `UMBRAL_VOZ`. Si se come el principio:
+      bajarlo, o subir `PRE_ROLL`. El RMS que mide `probar_microfono.py` con la
+      sala en silencio es el piso: `UMBRAL_VOZ` tiene que quedar por encima
+
+#### 25c · Modo `"web"` — el micrófono lo maneja la página
+
+**Por qué existe, y no es comodidad:** pidiendo `echoCancellation` en
+`getUserMedia`, **el browser cancela su propia salida de la entrada**. Como la
+voz de los oficiales sale por esa misma página, el eco se resuelve de raíz — y
+podés **hablarle encima** a un oficial mientras habla, cosa que con el parche
+de "silenciar el micrófono N segundos" era imposible. De yapa vienen supresión
+de ruido y control de ganancia.
+
+La detección de voz es la idea de **hark** (el proyecto que pasó Pato): medir
+el volumen cada tanto y disparar al cruzar un umbral. Va escrita a mano dentro
+de la página, no como dependencia, para que funcione sin internet.
+
+**Pasos:**
+1. `MODO_ESCUCHA = "web"` en `fase2_voice_commands.py`
+2. Correr `fase2` y abrir el panel
+3. El browser va a **pedir permiso para el micrófono** — dale que sí. Es por
+   única vez, y no hace falta HTTPS porque `127.0.0.1` cuenta como origen
+   seguro
+4. Abajo tiene que decir algo como `🎙 escuchando · 48 kHz · eco cancelado`
+5. Hablá normal, llamando a un oficial: *"computadora, alerta roja"*
+
+- [ ] ⬜ pide permiso y engancha · ⬜ no pide nada · ⬜ pide y falla
+- [ ] ¿Qué dice la línea de estado del micrófono? ______
+- [ ] **La prueba que importa:** dale una orden y, **mientras el oficial
+      contesta**, dale otra encima. ¿La escucha? *(con el modo `activa` esto es
+      imposible por diseño)*
+- [ ] ¿Sigue capturando con la pestaña **de fondo**, con el juego al frente?
+      **Es lo que hay que confirmar sí o sí** — si el browser la congela, este
+      modo no sirve para jugar
+- [ ] El umbral de voz se ajusta en `VAD.umbral` dentro de `panel_web.py`
+
+> **Comparado con `"activa"`:** hace lo mismo, pero el micrófono vive en el
+> browser. Si la pestaña de fondo no captura bien, quedate con `"activa"`, que
+> captura desde Python y no depende de eso.
+
+### 26. Órdenes sin nombrar al oficial
+
+`EXIGIR_NOMBRE_DE_OFICIAL = False` en `fase2_voice_commands.py` permite decir
+`alerta roja` en vez de `computadora, alerta roja`.
+
+**Qué se pierde, exactamente:** el nombre no decide quién contesta —eso ya sale
+del comando— así que lo único que aporta es **ser el filtro** que separa una
+orden de una charla. Sin él, el filtro pasa a ser el **parser estricto**: la
+frase tiene que **SER** un comando, no contenerlo. Por eso `alerta roja`
+ejecuta y *"la alerta roja del tablero del auto"* no.
+
+**Lo que igual queda expuesto, y hay que medirlo hablando de verdad:** una
+frase que **casualmente sea exactamente** un comando. `parar`, `fuego` y
+`mitad` son palabras comunes y sueltas alcanzan.
+
+**Pasos, con `MODO_ESCUCHA` en `"activa"` o `"web"`:**
+1. Con `EXIGIR_NOMBRE_DE_OFICIAL = True`, confirmá que `alerta roja` suelta
+   **se ignora** (dice *"no llama a nadie"*)
+2. Pasalo a `False` y repetí: ahora tiene que ejecutar
+3. Decí frases que **mencionen** comandos sin serlo: *"che, dale fuego a la
+   parrilla"*, *"hay que parar un poco"*, *"el enemigo más cercano está lejos"*
+   → las tres tienen que decir *"no es un comando"*
+4. **La prueba de verdad:** dejalo en `False` y **tené una conversación normal
+   de 5 minutos** al lado del micrófono, con el juego abierto. Anotá **cada
+   vez** que ejecute algo sin que fuera una orden
+5. Probá lenguaje libre sin nombre: *"che, dale una vuelta alrededor de esa
+   nave"* → **se ignora a propósito**. Sin nombre no se consulta al LLM, porque
+   interpretar libremente algo que quizá ni sea una orden es justo lo riesgoso
+
+- [ ] Falsos positivos en 5 minutos de charla: ______ *(y cuáles)*
+- [ ] ¿Se extraña tener que decir el nombre, o se agradece?
+- [ ] ¿Vale la pena el modo mixto? *(sin nombre para las órdenes cortas, con
+      nombre cuando querés lenguaje libre)*
+
+> **Recomendación:** empezar en `True` y pasar a `False` sólo después del paso
+> 4. En medio de un combate, un falso positivo te acelera la nave o te hace
+> disparar.
 
 ---
 
@@ -572,6 +747,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 24 (+ 4b)
+- **Pruebas completadas:** ____ / 26 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

@@ -557,6 +557,38 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[25/09] Micrófono cableado: se destraba la prueba #13 y cambia el orden.**
+  Se reemplazó el auricular Bluetooth por un micrófono físico cableado, que
+  evita el códec HFP y su calidad teléfono. La prueba #13 (STT local vs. API)
+  estaba en espera exactamente por eso y pasa a ser **la primera de la lista**,
+  por dos motivos que ahora se suman: es la última palanca grande de latencia
+  (el STT es ~80% de un comando), y es lo que vuelve **gratis** a la escucha
+  activa, que con micrófono siempre abierto tiene que transcribir todo lo que
+  oye.
+
+- **[25/09] Dos formas nuevas de hablar, sin mantener una tecla.**
+  `MODO_ESCUCHA` toma tres valores; `push_to_talk` sigue igual.
+  - **`boton`**: un botón de mantener apretado en el panel web, para no tocar
+    el teclado mientras se juega con el mouse. El audio lo sigue grabando
+    Python y la página sólo avisa cuándo empezar y terminar, así el manejo del
+    micrófono se queda donde ya funciona. La función de grabar se generalizó a
+    recibir un predicado, así la tecla y el botón comparten todo el camino.
+  - **`activa`**: micrófono siempre abierto, sin disparador. Corte de frases
+    por VAD de energía con **pre-roll**, porque si no se pierde siempre la
+    primera sílaba, que es justo donde está el nombre del oficial. Sólo se
+    ejecuta lo que **empieza llamando a un oficial** — ese es el filtro que
+    separa una orden de una charla. Llamarlo sin darle orden devuelve un
+    "¿Sí, capitán?" en personaje.
+  - Los dos problemas que trae el modo activo quedaron resueltos, no abiertos:
+    el micrófono **se silencia mientras habla un oficial** (usando la duración
+    del wav que acaba de disparar) para que el sistema no se transcriba a sí
+    mismo, y el script **avisa al arrancar** si se usa escucha activa con el
+    backend pago.
+  - Validado con audio sintético inyectado por el callback del stream: una
+    frase que nombra a un oficial ejecuta, una sin nombre no ejecuta y lo
+    informa, una charla cualquiera se ignora, y **el silencio puro no llama al
+    STT ni una vez**.
+
 - **[24/09] Prueba #20 cerrada: los oficiales contestan con su voz.** ✅
   Confirmado en vivo que suena la voz correcta de cada oficial, después de que
   el juego reaccionó. Con eso queda cumplido el **punto 3 de la agenda de
