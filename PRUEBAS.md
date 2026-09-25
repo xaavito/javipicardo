@@ -859,6 +859,114 @@ El LLM ahora puede devolver varias funciones de una sola frase.
 - [ ] ¿El LLM devuelve las dos, o sigue quedándose con una?
 - [ ] Anotá el `[LLM: Xs]`: una cadena no debería costar más que una orden suelta
 
+### 28. Revisión visual del LCARS, jugando de verdad
+
+**Por qué separada de la #23:** la #23 prueba que el panel *funciona*. Ésta
+prueba que **se banca una sesión de juego real al lado**, que es otra cosa. No
+hay que dar órdenes nuevas ni probar comandos: hay que **jugar 15 minutos** con
+el panel abierto y anotar lo que molesta.
+
+**Preparación:** juego y panel acomodados como los vas a usar de verdad.
+Anotá primero el tamaño: juego ______ × ______ · panel ______ × ______.
+
+**Lo que hay que juzgar, en orden de lo que más dudo:**
+
+1. **Las luces que titilan.** Están al lado del juego, en visión periférica,
+   moviéndose todo el tiempo.
+   - [ ] ⬜ dan vida · ⬜ distraen · ⬜ se vuelven invisibles a los 2 minutos
+   - [ ] Si distraen: ¿menos luces, más lentas, o directamente quietas?
+
+2. **El cambio de color de acento.** Cada oficial pinta toda la interfaz de su
+   división.
+   - [ ] ⬜ se entiende y queda bien · ⬜ demasiado sutil, no se nota ·
+         ⬜ demasiado brusco, molesta
+   - [ ] ¿Se puede saber **quién contestó sin leer**, sólo por el color?
+
+3. **La nave.** Quedó como esquema técnico, no silueta.
+   - [ ] ⬜ bien · ⬜ chica, no se aprecia · ⬜ mucho detalle, se empasta
+   - [ ] ¿Sirve de algo mirarla, o es puro adorno? *(hoy es adorno: no
+         refleja nada real de la nave)*
+
+4. **Negro sobre negro.** El juego es oscuro y el LCARS también.
+   - [ ] ¿Se distinguen las dos zonas, o se funden?
+   - [ ] ¿Hace falta un borde o un separador entre las dos?
+
+5. **Las cuatro lecturas** (velocidad, tecla, orden, modo).
+   - [ ] ¿Las mirás alguna vez jugando, o son ruido?
+   - [ ] ¿Cuál sacarías? ¿Cuál falta?
+
+6. **El retrato.**
+   - [ ] ¿Se queda el del último oficial para siempre, y eso está bien, o
+         debería apagarse después de un rato?
+
+7. **El hover** (lo único con riesgo funcional acá).
+   - [ ] Falsos arranques por cruzar el botón: ______ en 15 minutos
+   - [ ] ¿Alguna vez te cortó una frase al salirte sin querer?
+
+**Al final, la pregunta que decide:** ¿lo dejarías abierto mientras jugás, o lo
+abrirías sólo para mostrarlo? Si es lo segundo, algo del diseño está de más.
+
+### 29. Spike del Agents SDK: ¿la charla se vuelve fluida?
+
+**Qué es un spike:** lo mínimo para contestar preguntas, no una implementación.
+Si al terminar sabemos las respuestas, salió bien aunque se tire el código.
+
+**Qué tiene que hacer, y nada más:** decir *"alerta roja"* por voz y que la
+tecla llegue al juego, pasando por el agente. **Una sola tool.** Sin oficiales,
+sin panel, sin encadenado.
+
+#### Paso 0 · Leer antes de escribir (bloqueante)
+
+Su ejemplo es Node/TS y nuestra inyección de teclas **tiene que ser Python**.
+
+- [ ] ¿El SDK de **Python** (`openai-agents`) expone lo mismo que el de JS?
+- [ ] `gpt-live-1`: ¿qué es exactamente, y anda desde Python?
+- [ ] ¿Hace falta WebRTC desde el browser, o el SDK puede tomar audio del
+      server?
+- [ ] **Precio por minuto de audio** (entrada y salida): ______
+      *(es el número que decide micrófono abierto vs. wake word)*
+
+> Si el SDK de Python no da, la decisión es otra: server Node de él + un
+> servicio Python que aprieta teclas. Anotarlo y seguir, no forzarlo.
+
+#### Paso 1 · El circuito mínimo
+
+1. Una tool `alerta_roja`, sin argumentos.
+2. `POST /tool_calls` en Python que llame a `ejecutar_accion({"action":"key",
+   "key":"r"})`.
+3. Devolver el resultado **con el mismo `call_id`** y mandar
+   **`response.create`** — el README de Pato avisa que si falta cualquiera de
+   las dos, el turno queda colgado.
+
+- [ ] ⬜ la tecla llega al juego · ⬜ el turno queda colgado · ⬜ no llega
+
+#### Paso 2 · Medir la fluidez, que es lo que se quiere saber
+
+Esto es lo que **no** sabemos y es el motivo del spike:
+
+| Qué probar | Cómo | Resultado |
+|---|---|---|
+| **Latencia de un turno** | decir "alerta roja" y cronometrar hasta que reacciona el juego | ______s *(hoy: ~2.9s)* |
+| **Seguimiento** | "alerta roja" y después **"y ahora apagala"** — ¿entiende el "la"? | ⬜ sí ⬜ no |
+| **Repregunta** | decir sólo "velocidad" — ¿pregunta cuál, o adivina? | ⬜ pregunta ⬜ adivina |
+| **Interrupción** | hablarle encima mientras contesta | ⬜ se calla ⬜ sigue |
+| **Encadenado** | "alerta roja y disparen" en un turno | ⬜ 2 tools ⬜ 1 ⬜ 0 |
+| **Costo real** | 5 minutos con el micrófono abierto | US$ ______ |
+
+#### Paso 3 · Comparar con lo que ya tenemos
+
+- [ ] ¿La charla se siente **más fluida** que con el parser + LLM de hoy?
+- [ ] ¿Cuánto más lento es? Si es **más lento y más caro**, la fluidez tiene
+      que compensar bastante
+- [ ] ¿Qué se pierde? *(el parser local gratis, y andar sin internet)*
+
+#### Cuándo abortar
+
+- Si el SDK de Python no soporta el circuito → volver al server Node
+- Si un turno tarda **más de 4-5s** → inusable en combate, por fluido que sea
+- Si el costo por hora de juego no cierra → hace falta el wake word local
+      delante, y eso cambia el diseño
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -890,6 +998,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 27 (+ 4b)
+- **Pruebas completadas:** ____ / 29 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**
