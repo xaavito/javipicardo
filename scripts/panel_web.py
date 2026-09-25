@@ -38,8 +38,8 @@ SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None, "comando": None,
-           "audio": None, "uniforme": None, "ts": 0, "boton": False,
-           "mic_web": False}
+           "audio": None, "uniforme": None, "velocidad": None, "ts": 0,
+           "boton": False, "mic_web": False}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
@@ -66,15 +66,23 @@ def proxima_frase(timeout=0.5):
         return None
 
 
-def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None):
+def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None,
+             velocidad=None):
     """La llama oficiales.responder() cada vez que contesta alguien. `audio` es
     el nombre del wav y `uniforme` el color de division, que la pagina usa como
-    color de acento del LCARS."""
+    color de acento del LCARS.
+
+    `velocidad` es el nivel 0-4 que se acaba de ORDENAR, o None si esta orden no
+    era de velocidad. Se guarda pegajoso: la consola muestra lo ultimo que se
+    pidio. OJO que es lo ORDENADO, no lo que la nave realmente tiene - eso no
+    lo sabemos sin leer el HUD (Fase 3)."""
     with _lock:
         _estado.update({"oficial": oficial, "nombre": nombre, "frase": frase,
                         "comando": comando, "ts": time.time(),
                         "uniforme": uniforme,
                         "audio": f"/audio/{audio}" if audio else None})
+        if velocidad is not None:
+            _estado["velocidad"] = velocidad
 
 
 def mostrar_boton(si=True):
@@ -139,9 +147,26 @@ PAGINA = """<!doctype html>
   .barra .rot { font-size:1.05rem; color:var(--acento); white-space:nowrap;
                 transition:color .4s; }
 
-  .centro { flex:1; display:grid; grid-template-columns:auto 1fr; gap:18px;
-            align-items:center; padding:.5rem 0 5rem; }
+  .centro { flex:1; display:grid; grid-template-columns:auto 1fr 210px;
+            gap:18px; align-items:center; padding:.5rem 0 5rem; }
+  @media (max-width:900px) { .centro { grid-template-columns:auto 1fr; }
+                             .consola { display:none; } }
   @media (max-width:560px) { .centro { grid-template-columns:1fr; } }
+
+  /* --- consola de la nave, a la derecha --- */
+  .consola { border-left:3px solid var(--acento); padding-left:12px;
+             transition:border-color .4s; }
+  .consola svg { width:100%; height:auto; display:block; }
+  .nave-linea { fill:none; stroke:var(--acento); stroke-width:3;
+                transition:stroke .4s; }
+  .nave-relleno { fill:var(--acento); opacity:.16; transition:fill .4s; }
+  .nave-tenue { fill:none; stroke:var(--acento); stroke-width:1.5;
+                opacity:.45; transition:stroke .4s; }
+  .lectura { display:flex; justify-content:space-between; gap:6px;
+             font-size:.72rem; padding:.3rem 0;
+             border-bottom:1px solid #222; }
+  .lectura span:last-child { color:var(--manteca); }
+  .titulo-consola { font-size:.72rem; color:var(--lila); margin:.8rem 0 .4rem; }
 
   .marco { position:relative; width:min(38vw,34vh,260px); aspect-ratio:1;
            border-radius:14px; overflow:hidden; background:#0a0a0a;
@@ -214,6 +239,34 @@ PAGINA = """<!doctype html>
         <div class="comando" id="comando"></div>
         <div id="micestado"></div>
       </div>
+
+      <div class="consola">
+        <!-- Silueta de la nave, dibujada en SVG: sin archivos externos, y se
+             tine sola con el color de division del oficial que habla. -->
+        <svg viewBox="0 0 240 300" aria-label="Nave">
+          <ellipse class="nave-relleno" cx="120" cy="74" rx="86" ry="56"/>
+          <ellipse class="nave-linea"   cx="120" cy="74" rx="86" ry="56"/>
+          <ellipse class="nave-tenue"   cx="120" cy="74" rx="52" ry="33"/>
+          <ellipse class="nave-tenue"   cx="120" cy="74" rx="16" ry="10"/>
+          <path class="nave-relleno" d="M107 124 L111 170 L129 170 L133 124 Z"/>
+          <path class="nave-linea"   d="M107 124 L111 170 L129 170 L133 124"/>
+          <path class="nave-relleno"
+                d="M94 172 q26 -12 52 0 l9 74 q-35 17 -70 0 Z"/>
+          <path class="nave-linea"
+                d="M94 172 q26 -12 52 0 l9 74 q-35 17 -70 0 Z"/>
+          <path class="nave-linea" d="M100 200 L52 236"/>
+          <path class="nave-linea" d="M140 200 L188 236"/>
+          <rect class="nave-relleno" x="20" y="226" width="34" height="72" rx="17"/>
+          <rect class="nave-linea"   x="20" y="226" width="34" height="72" rx="17"/>
+          <rect class="nave-relleno" x="186" y="226" width="34" height="72" rx="17"/>
+          <rect class="nave-linea"   x="186" y="226" width="34" height="72" rx="17"/>
+        </svg>
+
+        <div class="titulo-consola">Ultima orden</div>
+        <div class="lectura"><span>Velocidad</span><span id="lv">--</span></div>
+        <div class="lectura"><span>Oficial</span><span id="lo">--</span></div>
+        <div class="lectura"><span>Modo</span><span id="lm">--</span></div>
+      </div>
     </div>
   </div>
 </div>
@@ -285,6 +338,15 @@ async function tick() {
       document.getElementById('frase').textContent = e.frase || '';
       document.getElementById('comando').innerHTML =
         e.comando ? 'ORDEN: <b>' + e.comando + '</b>' : '';
+
+      const NIVEL = ['detenida','1/4','1/2','3/4','maxima'];
+      document.getElementById('lv').textContent =
+        (e.velocidad === null || typeof e.velocidad === 'undefined')
+          ? '--' : NIVEL[e.velocidad];
+      document.getElementById('lo').textContent = e.nombre || '--';
+      document.getElementById('lm').textContent =
+        e.mic_web ? 'voz' : (e.boton ? 'boton' : 'tecla');
+
       reproducir(e.audio);
     }
     mostrarBoton(!!e.boton);

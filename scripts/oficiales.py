@@ -262,6 +262,20 @@ RESPUESTAS["a_la_orden"] = {
 }
 
 
+def _nivel_ordenado(accion):
+    """Nivel de velocidad 0-4 si esta orden lo fijo, o None. Lo muestra la
+    consola de la nave como "ultima orden", no como lectura real."""
+    if accion.get("action") == "set_speed":
+        return accion.get("level")
+    if accion.get("action") == "set_speed_pct":
+        pct = max(0, min(100, accion.get("pct", 0)))
+        return int(round(pct / 25.0))
+    if accion.get("action") == "combo" and accion.get("combo") in (
+            "retirada_maxima",):
+        return 4
+    return None
+
+
 def _desenlace(accion):
     tipo = accion.get("action")
     if tipo == "a_la_orden":
@@ -379,7 +393,8 @@ def responder(accion):
     # y reproducir() se hace a un lado.
     if PANEL_WEB and panel_web is not None:
         panel_web.publicar(clave, quien, frase, accion.get("raw"),
-                           _nombre_archivo(clave, frase), datos["uniforme"])
+                           _nombre_archivo(clave, frase), datos["uniforme"],
+                           _nivel_ordenado(accion))
 
     reproducir(clave, frase)
 
