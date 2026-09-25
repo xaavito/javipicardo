@@ -55,6 +55,10 @@ MODELO_LLM_OLLAMA = "llama3.2:3b"
 # y barato, mas que suficiente para esta tarea de clasificacion simple.
 MODELO_LLM_OPENAI = "gpt-4o-mini"
 
+# Tope de ordenes que se aceptan de una sola frase. Mismo motivo que el tope
+# del parser de reglas: una transcripcion delirante no puede mandar 20 teclas.
+MAX_ACCIONES_LLM = 5
+
 # Import diferido/condicional de cada SDK, para no requerir instalar AMBOS
 # si solo se va a usar uno de los dos backends.
 if LLM_BACKEND == "ollama":
@@ -188,7 +192,10 @@ def _interpretar_con_openai_function_calling(texto_usuario):
                 "Trek: Starfleet Command. El capitan va a dar una orden en "
                 "español (puede tener errores de transcripcion de voz). "
                 "Elegi la funcion (herramienta) que mejor represente esa "
-                "orden. Si ninguna aplica razonablemente, no llames a "
+                "orden. Si el capitan pide VARIAS cosas en la misma frase "
+                "(\"alerta roja y media maquina y disparen\"), llama a una "
+                "funcion por cada una, EN EL ORDEN en que las pidio. "
+                "Si ninguna aplica razonablemente, no llames a "
                 "ninguna funcion. Si la frase parece CORTADA o es una sola "
                 "palabra que encaja con varios comandos distintos (por "
                 "ejemplo 'maquina', que puede ser media o toda maquina), NO "
@@ -209,14 +216,23 @@ def _interpretar_con_openai_function_calling(texto_usuario):
         # El modelo decidio que ninguna funcion aplica.
         return {"action": "unknown", "raw": texto_usuario}
 
-    nombre_elegido = tool_calls[0].function.name
-    item = mapa_nombre_a_item.get(nombre_elegido)
-    if item is None:
-        # No deberia pasar nunca (la API solo puede elegir nombres del
-        # esquema que le pasamos), pero por las dudas.
-        return {"action": "unknown", "raw": texto_usuario}
+    # La API puede devolver VARIAS funciones para una sola frase ("alerta roja
+    # y disparen"). Antes se leia solo tool_calls[0] y el resto se tiraba en
+    # silencio, que es lo peor de los dos mundos: el capitan pedia dos cosas y
+    # pasaba una sola, sin aviso.
+    acciones = []
+    for llamada in tool_calls[:MAX_ACCIONES_LLM]:
+        item = mapa_nombre_a_item.get(llamada.function.name)
+        if item is None:
+            # No deberia pasar: la API solo puede elegir nombres del esquema.
+            continue
+        acciones.append(_item_catalogo_a_accion(item, texto_usuario))
 
-    return _item_catalogo_a_accion(item, texto_usuario)
+    if not acciones:
+        return {"action": "unknown", "raw": texto_usuario}
+    if len(acciones) == 1:
+        return acciones[0]
+    return {"action": "cadena", "acciones": acciones, "raw": texto_usuario}
 
 
 def _interpretar_con_ollama_json_libre(texto_usuario):

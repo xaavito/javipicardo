@@ -986,14 +986,100 @@ def _enviar_nivel_velocidad(nivel, pausa_entre_teclas):
         time.sleep(pausa_entre_teclas)
 
 
-def ejecutar_accion(accion, pausa_entre_teclas=None):
+# ---------------------------------------------------------------------------
+# Cadenas: varias ordenes en una sola frase.
+#
+# "alerta roja y media maquina y disparen" -> tres acciones en orden.
+#
+# Se parte por conectores. Chequeado (25/09) que NINGUN comando conocido
+# contiene uno, asi que partir no puede romper una frase valida; hay un test
+# que lo vuelve a verificar por si se agrega un comando con una "y" adentro.
+# ---------------------------------------------------------------------------
+
+CONECTORES = [" y despues ", " y luego ", " y ahora ", " y tambien ",
+              " despues ", " luego ", " y ", ", "]
+
+# Tope de ordenes por frase. Una transcripcion delirante no puede mandar 20
+# teclas al juego de un saque.
+MAX_ACCIONES_EN_CADENA = 5
+
+
+def partir_en_ordenes(texto):
+    """Parte una frase por conectores. Devuelve la lista de pedazos, o una
+    lista de un solo elemento si no hay conectores."""
+    t = normalizar(texto)
+    pedazos = [t]
+    for con in CONECTORES:
+        nuevos = []
+        for p in pedazos:
+            nuevos.extend(x.strip() for x in (" " + p + " ").split(con))
+        pedazos = [p for p in nuevos if p]
+    return pedazos
+
+
+def parsear_cadena(texto, estricto=False):
+    """Interpreta una frase con VARIAS ordenes.
+
+    Devuelve (acciones, error):
+      - (lista de acciones, None) si se entendieron todas
+      - (None, "pedazo que fallo") si alguna no se entendio
+      - (None, None) si no habia mas de una orden (usar parsear_comando)
+
+    Es TODO O NADA a proposito: si un eslabon no se entiende no se ejecuta
+    nada. Media orden de combate ejecutada es peor que ninguna, y ademas deja
+    al capitan sin saber en que estado quedo la nave.
+    """
+    pedazos = partir_en_ordenes(texto)
+    if len(pedazos) < 2:
+        return None, None
+
+    if len(pedazos) > MAX_ACCIONES_EN_CADENA:
+        return None, f"son {len(pedazos)} ordenes, el tope es {MAX_ACCIONES_EN_CADENA}"
+
+    parser = parsear_estricto if estricto else parsear_comando
+    acciones = []
+    for pedazo in pedazos:
+        accion = parser(pedazo)
+        if accion["action"] in ("unknown", "ambiguo"):
+            return None, pedazo
+        acciones.append(accion)
+    return acciones, None
+
+
+def ejecutar_cadena(acciones, pausa_entre_teclas=None):
+    """Ejecuta varias acciones en orden, enfocando la ventana UNA sola vez
+    para toda la cadena (si no, se paga la pausa de enfoque por cada una) y
+    dejando que conteste un solo oficial al final."""
+    if not acciones:
+        return
+
+    print(f"  -> Cadena de {len(acciones)} ordenes:")
+    for i, accion in enumerate(acciones, 1):
+        print(f"     {i}. {accion.get('raw', '')}")
+
+    enfocar_ventana_juego()
+    for accion in acciones:
+        ejecutar_accion(accion, pausa_entre_teclas,
+                        ya_enfocado=True, responder=False)
+    enfocar_consola()
+
+    # Contesta el oficial de la ULTIMA orden: uno solo, para no encimar cuatro
+    # voces. El panel igual mostro cada paso al pasar.
+    if oficiales is not None:
+        oficiales.responder(acciones[-1])
+
+
+def ejecutar_accion(accion, pausa_entre_teclas=None, ya_enfocado=False,
+                    responder=True):
     if pausa_entre_teclas is None:
         pausa_entre_teclas = PAUSA_ENTRE_TECLAS
     tipo = accion.get("action")
 
     # Acciones que efectivamente mandan alguna tecla: enfocar el juego primero.
     # (help, no_soportado y unknown no mandan nada, no hace falta cambiar el foco)
-    if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
+    if (not ya_enfocado
+            and tipo in ("key", "key_combo", "set_speed", "set_speed_pct",
+                         "combo")):
         enfocado = enfocar_ventana_juego()
         if not enfocado:
             print("  [!] Se intenta mandar la tecla igual, pero puede que no "
@@ -1044,6 +1130,10 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
         print(f"  -> '{accion['raw']}' es ambiguo, no se ejecuta nada. "
               f"{accion['motivo']}")
 
+    elif tipo == "cadena":
+        # Viene del LLM, que devolvio varias funciones para una sola frase.
+        ejecutar_cadena(accion["acciones"], pausa_entre_teclas)
+
     elif tipo == "no_soportado":
         print(f"  -> No se puede ejecutar '{accion['raw']}': {accion['motivo']}")
 
@@ -1055,14 +1145,14 @@ def ejecutar_accion(accion, pausa_entre_teclas=None):
 
     # Si se enfoco el juego para esta accion, volver el foco a la consola
     # para poder seguir escribiendo el proximo comando comodamente.
-    if (DEVOLVER_FOCO_CONSOLA
+    if (not ya_enfocado and DEVOLVER_FOCO_CONSOLA
             and tipo in ("key", "key_combo", "set_speed", "set_speed_pct",
                          "combo")):
         enfocar_consola()
 
     # El oficial contesta AL FINAL, con la tecla ya mandada: asi el juego ya
     # reacciono mientras suena la voz, en vez de sentirse lento.
-    if oficiales is not None:
+    if responder and oficiales is not None:
         oficiales.responder(accion)
 
 
@@ -1105,6 +1195,16 @@ def main():
         if normalizar(texto) in ("salir", "exit", "quit"):
             print("Saliendo...")
             break
+
+        # Primero: ¿son varias ordenes en una frase?
+        acciones, error = parsear_cadena(texto)
+        if acciones:
+            ejecutar_cadena(acciones)
+            continue
+        if error:
+            print(f"  -> Cadena rechazada: no entendi {error!r}. No se "
+                  f"ejecuto NADA, para no dejar la orden a medias.")
+            continue
 
         accion = parsear_comando(texto)
 

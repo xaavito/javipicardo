@@ -29,7 +29,7 @@ con el análisis técnico ya hecho para no tener que re-pensarlo cuando se retom
 
 | § | Idea | Estado |
 |---|---|---|
-| 1 | Encadenar comandos en una sola orden | analizada, no implementada |
+| 1 | Encadenar comandos en una sola orden | ✅ **implementada (25/09)** |
 | 2 | Bajar más la latencia | analizada, herramienta lista |
 | 3 | Tripulación virtual (wake word + oficiales con cara y voz) | **pedida por Pato (18/09)**, no implementada |
 | 4 | Otras ideas sueltas | sin analizar |
@@ -37,9 +37,26 @@ con el análisis técnico ya hecho para no tener que re-pensarlo cuando se retom
 
 ---
 
-## 1. Encadenar comandos en una sola orden
+## 1. Encadenar comandos en una sola orden — ✅ HECHO (25/09)
 
-**Qué queremos:** poder decir una sola frase con varias órdenes y que se ejecuten
+> Se implementó la **Opción C** (split por reglas primero, LLM después), que es
+> la que este mismo análisis proponía. Lo que quedó:
+> - `partir_en_ordenes()` corta por conectores (" y ", " y después ", " luego ",
+>   ", "). **Verificado que ningún comando conocido contiene un conector**, y
+>   hay un test que lo revisa de nuevo si se agrega uno.
+> - `parsear_cadena()` es **todo o nada**: si un eslabón no se entiende, no se
+>   ejecuta nada y se dice cuál falló. Media orden de combate ejecutada es peor
+>   que ninguna.
+> - `ejecutar_cadena()` enfoca la ventana **una sola vez** y deja que conteste
+>   **un solo oficial**, el de la última orden, para no encimar cuatro voces.
+> - Tope de **5 órdenes** por frase.
+> - El LLM **ya devolvía varias `tool_calls` y leíamos sólo la primera**: ahora
+>   se recorren todas, en orden, y se le pide explícitamente en el system prompt
+>   que llame a una función por cada cosa pedida.
+> - En el modo sin nombrar oficial, cada pedazo pasa por el parser **estricto**,
+>   así que *"dale fuego a la parrilla y después comemos"* no ejecuta nada.
+
+**Qué queríamos:** poder decir una sola frase con varias órdenes y que se ejecuten
 en secuencia, en vez de tener que pedir una, esperar, y volver a pedir. Ejemplos:
 
 > "alerta roja **y** media máquina **y** disparen"

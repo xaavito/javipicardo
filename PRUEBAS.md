@@ -829,6 +829,36 @@ frase que **casualmente sea exactamente** un comando. `parar`, `fuego` y
 > 4. En medio de un combate, un falso positivo te acelera la nave o te hace
 > disparar.
 
+### 27. Varias órdenes en una sola frase
+
+**Qué se puede decir ahora:** *"alerta roja y media máquina y disparen"*, y se
+ejecutan las tres en orden. Funciona por texto y por voz, con y sin nombrar
+oficial.
+
+**Pasos, por texto** (`fase1_text_commands.py`, es más rápido de probar):
+
+| Escribís | Tiene que hacer |
+|---|---|
+| `alerta roja y media maquina y disparen` | las 3, en ese orden |
+| `objetivo mas cercano y seguir a esa nave y disparar` | selecciona, vira, dispara |
+| `alerta roja, escudos al maximo` | también con coma |
+| `camuflaje y despues escaneo profundo` | "y después" también corta |
+| `alerta roja y hace algo raro` | **no ejecuta NADA** y dice cuál pedazo falló |
+| `alerta roja y disparar y camuflaje y orbitar y parar y alto total` | rechaza: son 6, el tope es 5 |
+
+- [ ] ¿Se ejecutan **en el orden** que las dijiste?
+- [ ] ¿Contesta **un solo** oficial, el de la última orden?
+- [ ] ¿Se nota que enfoca la ventana **una sola vez**? *(una cadena de 3 tendría
+      que tardar bastante menos que 3 órdenes sueltas)*
+- [ ] En el caso que falla: ¿confirmás que **no pasó nada** en el juego?
+
+**Después, por voz:** lo mismo, y además probá encadenado en lenguaje libre
+para que entre el LLM — *"computadora, poné alerta roja y acelerá a la mitad"*.
+El LLM ahora puede devolver varias funciones de una sola frase.
+
+- [ ] ¿El LLM devuelve las dos, o sigue quedándose con una?
+- [ ] Anotá el `[LLM: Xs]`: una cadena no debería costar más que una orden suelta
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -860,6 +890,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 26 (+ 4b)
+- **Pruebas completadas:** ____ / 27 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**

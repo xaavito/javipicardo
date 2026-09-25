@@ -445,6 +445,14 @@ def _procesar_frase(modelo, audio, ofi):
         # Sin nombre, el filtro es el parser estricto: la frase entera tiene
         # que ser un comando. Y no se consulta al LLM: interpretar lenguaje
         # libre de algo que quiza ni sea una orden es justo lo peligroso.
+        # Sin nombre, tambien se acepta una cadena, pero con el parser
+        # estricto en cada pedazo: cada orden tiene que ser un comando entero.
+        acciones, _ = fase1.parsear_cadena(texto, estricto=True)
+        if acciones:
+            print(f"\n<- \"{texto}\"  (STT: {t1 - t0:.2f}s)")
+            fase1.ejecutar_cadena(acciones)
+            return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
+
         accion = fase1.parsear_estricto(texto)
         if accion["action"] == "unknown":
             print(f"[ignorado, no es un comando] \"{texto}\"")
@@ -462,6 +470,17 @@ def _procesar_frase(modelo, audio, ofi):
         accion = {"action": "a_la_orden", "oficial": clave, "raw": texto}
         ofi.responder(accion)
         return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
+
+    # Llamaron a un oficial: puede venir con varias ordenes encadenadas.
+    acciones, error = fase1.parsear_cadena(resto)
+    if acciones:
+        fase1.ejecutar_cadena(acciones)
+        print(f"  [tiempos] STT: {t1 - t0:.2f}s | TOTAL: {time.time() - t0:.2f}s")
+        return time.time() + ofi.ULTIMO_AUDIO_SEG + MARGEN_ANTI_ECO
+    if error:
+        print(f"  -> Cadena rechazada: no entendi {error!r}. No se ejecuto "
+              f"nada, para no dejar la orden a medias.")
+        return 0.0
 
     accion = fase1.parsear_comando(resto)
 
@@ -706,6 +725,16 @@ def main():
                 continue
 
             print(f"Transcripcion: \"{texto}\"  (STT: {t1 - t0:.2f}s)")
+
+            acciones, error = fase1.parsear_cadena(texto)
+            if acciones:
+                fase1.ejecutar_cadena(acciones)
+                print()
+                continue
+            if error:
+                print(f"  -> Cadena rechazada: no entendi {error!r}. No se "
+                      f"ejecuto nada.\n")
+                continue
 
             accion = fase1.parsear_comando(texto)
 
