@@ -110,37 +110,94 @@ Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
 > `fase1_text_commands.py`, subirla a `0.02`, después `0.05`, y en último caso
 > volver a `0.1` y re-correr `calibrar_latencia.py`.
 
-### 13. STT local (`tiny`) vs. la API — DESTRABADA, y ahora es la primera
+### 13. STT local (`tiny`) vs. la API — DESTRABADA, y es la primera
 
-> **25/09: se reemplazó el Bluetooth por un micrófono físico cableado.** Esta
-> prueba estaba en espera justamente por eso, y ahora es **la más importante de
-> la lista**, por dos razones a la vez: es la última palanca grande de
-> latencia, y es lo que hace **gratis** a la escucha activa (#25b) — con
-> micrófono siempre abierto hay que transcribir todo lo que se escucha, y eso
-> con la API se paga por frase.
+> **25/09: micrófono físico cableado.** Esta prueba esperaba exactamente eso.
+> Es la más importante por dos razones que se suman: es la última palanca
+> grande de latencia (el STT es ~80% de un comando), y es lo que hace **gratis**
+> a la escucha activa — con micrófono abierto hay que transcribir todo lo que
+> se oye, y con la API eso se paga por frase.
 
-**Antes de empezar:** `python scripts\probar_microfono.py` para ver con qué
-número aparece el micrófono nuevo, y ponerlo en `DISPOSITIVO_ENTRADA`. De paso
-anotá el **RMS de la sala en silencio**, que sirve para ajustar `UMBRAL_VOZ` de
-la escucha activa.
+**Método:** medir **las dos** con el mismo micrófono. Los ~2s de referencia que
+tenemos son del Bluetooth, así que no sirven de comparación. Primero la API con
+el micrófono nuevo, después el local, con **las mismas 5 frases**.
 
+#### Paso 0 · El micrófono
 
-**Why it matters:** with the pauses already calibrated, the **STT is now
-60-70% of the total** (1.7-3.1s out of 3.5-5.8s). The API sits well above the
-0.5-1.5s estimate. `faster-whisper` with `tiny` drops the network round-trip
-and should land around 0.2-0.4s, and our vocabulary is small and closed.
+```
+python scripts\probar_microfono.py
+```
+1. Anotá el **número** del micrófono nuevo y ponelo en `DISPOSITIVO_ENTRADA`
+   (en `fase2_voice_commands.py`). Si es el default, dejalo en `None`.
+2. Anotá el **RMS con la sala en silencio**: ______ dBFS. Es el piso para
+   `UMBRAL_VOZ` de la escucha activa.
+3. Hablá durante los 4 segundos y confirmá que dice *"OK, el micrófono captura
+   voz"*.
 
-**How to test it:**
-1. `pip install faster-whisper` (if it is not installed).
-2. In `fase2_voice_commands.py`: `STT_BACKEND = "local"` and
-   `MODEL_SIZE = "tiny"`.
-3. First run downloads the model (~75MB, once, needs internet).
-4. Say the same 5 phrases as test #9 and compare the `STT:` field.
+#### Paso 1 · Referencia con la API (micrófono nuevo)
 
-- [ ] **Latency with local `tiny`:** ______s (vs. ~2.3s on the API)
-- [ ] Is the accuracy enough for our vocabulary? ⬜ yes · ⬜ no
-- [ ] If `tiny` is not accurate enough, try `base` before going back to the API
-- Notes:
+Con `STT_BACKEND = "openai"` y `MODO_ESCUCHA = "push_to_talk"`:
+```
+python scripts\fase2_voice_commands.py
+```
+Decí estas cinco, una por una, y anotá el campo `STT:` de la línea `[tiempos]`:
+
+| Frase | `STT:` | ¿Transcribió bien? |
+|---|---|---|
+| "alerta roja" | ______s | ⬜ |
+| "media máquina" | ______s | ⬜ |
+| "alpha strike" | ______s | ⬜ |
+| "escudos al máximo" | ______s | ⬜ |
+| "objetivo más cercano" | ______s | ⬜ |
+
+#### Paso 2 · Instalar el local
+
+```
+pip install faster-whisper
+```
+
+#### Paso 3 · Cambiar el backend
+
+En `scripts\fase2_voice_commands.py`:
+```python
+STT_BACKEND = "local"
+MODEL_SIZE  = "tiny"
+```
+
+#### Paso 4 · Primera corrida (descarga)
+
+```
+python scripts\fase2_voice_commands.py
+```
+La primera vez baja ~75 MB y dice *"Cargando modelo Whisper 'tiny'"*. Eso pasa
+**al arrancar**, no en cada comando.
+
+- [ ] Cuánto tardó en cargar el modelo: ______s *(sólo la primera vez incluye
+      la descarga)*
+
+#### Paso 5 · Las mismas cinco frases
+
+| Frase | `STT:` local | ¿Transcribió bien? |
+|---|---|---|
+| "alerta roja" | ______s | ⬜ |
+| "media máquina" | ______s | ⬜ |
+| "alpha strike" | ______s | ⬜ |
+| "escudos al máximo" | ______s | ⬜ |
+| "objetivo más cercano" | ______s | ⬜ |
+
+#### Paso 6 · Leer el resultado
+
+- [ ] **Latencia:** API ______s vs. local ______s
+- [ ] **Precisión:** API ___/5 vs. local ___/5
+- [ ] ¿El `TOTAL` de un comando bajó de ~3s a menos de 1s?
+
+**Si `tiny` transcribe mal:** `MODEL_SIZE = "base"` (~145 MB) y repetí el paso
+5. Si `base` tampoco alcanza, `small` (~480 MB). Volver a la API es el último
+recurso, porque deja la escucha activa pagando por frase.
+
+> **Nota:** el backend local ahora también usa el vocabulario del juego
+> (`initial_prompt`), igual que la API. Sin eso la comparación era injusta —
+> `tiny` competía sin el sesgo que sí tenía el de nube.
 
 ### ~~17. Guard against the STT echoing its prompt~~
 

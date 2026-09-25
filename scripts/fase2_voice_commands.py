@@ -471,6 +471,16 @@ def cargar_modelo():
     return modelo
 
 
+def _prompt_vocabulario():
+    """El vocabulario del juego, para sesgar la transcripcion. Vive en
+    stt_openai.py, que con backend local puede no estar importado."""
+    try:
+        import stt_openai
+        return stt_openai.PROMPT_VOCABULARIO
+    except Exception:
+        return None
+
+
 def transcribir(modelo, audio):
     if audio.size == 0:
         return ""
@@ -478,8 +488,12 @@ def transcribir(modelo, audio):
     if STT_BACKEND == "openai":
         return transcribir_openai(audio, SAMPLE_RATE, language=LANGUAGE)
 
-    # backend "local"
-    segmentos, _info = modelo.transcribe(audio, language=LANGUAGE)
+    # backend "local". initial_prompt es el equivalente al `prompt` de la API:
+    # sin esto, el modelo local competiria sin el vocabulary biasing que si
+    # tiene el de nube, y la comparacion de la prueba #13 seria injusta.
+    segmentos, _info = modelo.transcribe(
+        audio, language=LANGUAGE,
+        initial_prompt=_prompt_vocabulario())
     texto = " ".join(seg.text.strip() for seg in segmentos)
     return texto.strip()
 
