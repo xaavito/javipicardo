@@ -21,6 +21,7 @@ Generar los wav:  python generar_voces.py   (una vez, necesita OPENAI_API_KEY)
 
 import os
 import random
+import re
 import unicodedata
 
 # Carpeta con los wav generados por generar_voces.py. Si no existe, el sistema
@@ -61,7 +62,7 @@ OFICIALES = {
         "raza": "vulcana",
         "sexo": "femenino",
         "rango": "alferez",
-        "alias": ["timonel", "piloto", "alferez", "lara"],
+        "alias": ["timonel", "piloto", "alferez", "lara", "t lara", "tlara"],
         "uniforme": "rojo",
         "teclas": {"a", "s", "multiply", "subtract", "divide"},
     },
@@ -209,8 +210,62 @@ def oficial_para(accion):
     return "computadora"
 
 
+# ---------------------------------------------------------------------------
+# Escucha activa: reconocer a quien se esta llamando.
+#
+# Con el microfono siempre abierto, el nombre del oficial cumple tres funciones
+# a la vez: activa la escucha, dice quien contesta, y -sobre todo- es el FILTRO
+# que descarta todo lo que no sea una orden. Si no arranca con un nombre, no se
+# ejecuta nada.
+# ---------------------------------------------------------------------------
+
+# Palabras que suelen colarse entre el nombre y la orden, y que hay que saltear:
+# "computadora, POR FAVOR alerta roja".
+_RELLENO = {"por", "favor", "che", "dale", "a", "ver", "eh", "este"}
+
+
+def _normalizar(texto):
+    import unicodedata as _u
+    texto = texto.lower().strip()
+    texto = "".join(c for c in _u.normalize("NFD", texto)
+                    if _u.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9 ]+", " ", texto).strip()
+
+
+def detectar_oficial(texto):
+    """Devuelve (clave_oficial, resto_de_la_orden) si el texto arranca llamando
+    a alguien, o (None, None) si no.
+
+    El nombre tiene que estar al PRINCIPIO: si aparece en el medio, es parte de
+    una conversacion, no una orden. Es lo que permite tener el microfono
+    abierto sin que cualquier charla dispare teclas.
+    """
+    palabras = _normalizar(texto).split()
+    if not palabras:
+        return None, None
+
+    for clave, datos in OFICIALES.items():
+        for alias in datos["alias"]:
+            partes = _normalizar(alias).split()
+            if palabras[:len(partes)] == partes:
+                resto = palabras[len(partes):]
+                while resto and resto[0] in _RELLENO:
+                    resto = resto[1:]
+                return clave, " ".join(resto)
+    return None, None
+
+
+# Lo que contesta un oficial cuando lo llamas y no le decis nada mas.
+RESPUESTAS["a_la_orden"] = {
+    clave: ["¿Sí, capitán?", "A la orden, capitán."]
+    for clave in OFICIALES
+}
+
+
 def _desenlace(accion):
     tipo = accion.get("action")
+    if tipo == "a_la_orden":
+        return "a_la_orden"
     if tipo in ("key", "key_combo", "set_speed", "set_speed_pct", "combo"):
         return "ok"
     if tipo == "ambiguo":
@@ -230,7 +285,13 @@ def elegir_frase(accion):
         return None, None
 
     por_oficial = RESPUESTAS[desenlace]
-    clave = oficial_para(accion) if desenlace == "ok" else "computadora"
+    if desenlace == "a_la_orden":
+        # Lo llamaron a el por su nombre: contesta el, no la computadora.
+        clave = accion.get("oficial", "computadora")
+    elif desenlace == "ok":
+        clave = oficial_para(accion)
+    else:
+        clave = "computadora"
     frases = por_oficial.get(clave) or por_oficial["computadora"]
     return clave, random.choice(frases)
 
@@ -252,6 +313,19 @@ def _nombre_archivo(clave_oficial, frase):
 
 # Para avisar una sola vez por corrida, en vez de en cada comando.
 _ya_avise_sin_audio = False
+
+# Segundos que dura el audio del ultimo acuse (0 si no hubo). Lo lee la escucha
+# activa para no escucharse a si misma mientras habla un oficial.
+ULTIMO_AUDIO_SEG = 0.0
+
+
+def _duracion_wav(ruta):
+    try:
+        import wave
+        with wave.open(ruta) as w:
+            return w.getnframes() / float(w.getframerate())
+    except Exception:
+        return 0.0
 
 
 def reproducir(clave_oficial, frase):
@@ -292,9 +366,14 @@ def responder(accion):
     if frase is None:
         return
 
+    global ULTIMO_AUDIO_SEG
     datos = OFICIALES[clave]
     quien = datos["nombre"]
     print(f"  [{quien}] {frase}")
+
+    ruta_audio = os.path.join(DIR_AUDIO, _nombre_archivo(clave, frase))
+    ULTIMO_AUDIO_SEG = (_duracion_wav(ruta_audio)
+                        if os.path.isfile(ruta_audio) else 0.0)
 
     # El panel primero: si hay browser escuchando, el va a reproducir el audio
     # y reproducir() se hace a un lado.

@@ -37,10 +37,18 @@ SEGUNDOS_BROWSER_VIVO = 3.0
 
 # Ultimo estado publicado. Lo lee el handler desde otro thread, por eso el lock.
 _estado = {"oficial": None, "nombre": None, "frase": None,
-           "comando": None, "audio": None, "ts": 0}
+           "comando": None, "audio": None, "ts": 0, "boton": False}
 _lock = threading.Lock()
 _servidor = None
 _ultimo_poll = 0.0
+
+# True mientras el capitan mantiene apretado el boton de hablar de la pagina.
+# Lo usa la Fase 2 en modo "boton", en lugar de la tecla fisica.
+_boton = False
+
+
+def boton_apretado():
+    return _boton
 
 
 def publicar(oficial, nombre, frase, comando, audio=None):
@@ -50,6 +58,12 @@ def publicar(oficial, nombre, frase, comando, audio=None):
         _estado.update({"oficial": oficial, "nombre": nombre, "frase": frase,
                         "comando": comando, "ts": time.time(),
                         "audio": f"/audio/{audio}" if audio else None})
+
+
+def mostrar_boton(si=True):
+    """La Fase 2 avisa si esta en modo boton, para que la pagina lo muestre."""
+    with _lock:
+        _estado["boton"] = bool(si)
 
 
 def hay_browser():
@@ -91,6 +105,14 @@ PAGINA = """<!doctype html>
                 line-height:1.7; }
   #sonido b { display:block; font-size:1.5rem; margin-bottom:.5rem; }
   #sonido span { color:#5b6690; font-size:.85rem; }
+  #hablar { margin-top:1.8rem; width:100%; padding:1.1rem; border:none;
+            border-radius:999px; background:#1c2a4d; color:#cfd8ff;
+            font-size:1.05rem; font-weight:600; letter-spacing:.06em;
+            cursor:pointer; user-select:none; -webkit-user-select:none;
+            transition:background .15s, transform .1s; }
+  #hablar:hover { background:#24365f; }
+  #hablar.grabando { background:#8c2231; color:#fff; transform:scale(.99); }
+  #hablar.oculto { display:none; }
 </style></head><body>
 <div id="sonido"><div>
   <b>🔊 Activar sonido</b>
@@ -106,6 +128,7 @@ PAGINA = """<!doctype html>
   <div class="rol" id="rol"></div>
   <div class="frase" id="frase"></div>
   <div class="comando" id="comando"></div>
+  <button id="hablar" class="oculto">🎙 Mantené apretado para hablar</button>
 </div>
 <script>
 let ultimo = 0;
@@ -154,8 +177,37 @@ async function tick() {
         e.comando ? 'orden: <b>' + e.comando + '</b>' : '';
       reproducir(e.audio);
     }
+    mostrarBoton(!!e.boton);
   } catch (err) { /* el server todavia no arranco, se reintenta solo */ }
 }
+// Boton de hablar: mantener apretado, como el push-to-talk pero con el mouse.
+// El audio lo sigue grabando Python; esto solo avisa cuando empezar y cuando
+// terminar, asi no hay que tocar el teclado.
+const btn = document.getElementById('hablar');
+let apretado = false;
+
+async function avisar(activo) {
+  if (activo === apretado) return;
+  apretado = activo;
+  btn.classList.toggle('grabando', activo);
+  btn.textContent = activo ? '🔴 Grabando… soltá al terminar'
+                           : '🎙 Mantené apretado para hablar';
+  try {
+    await fetch('/hablar', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({activo})});
+  } catch (e) {}
+}
+
+btn.addEventListener('mousedown', () => avisar(true));
+btn.addEventListener('touchstart', (e) => { e.preventDefault(); avisar(true); });
+['mouseup','mouseleave','touchend','touchcancel'].forEach(
+  ev => btn.addEventListener(ev, () => avisar(false)));
+window.addEventListener('blur', () => avisar(false));
+
+// El boton solo aparece si la Fase 2 esta en modo "boton": lo dice el estado.
+function mostrarBoton(si) { btn.classList.toggle('oculto', !si); }
+
 setInterval(tick, 300); tick();
 </script></body></html>"""
 
@@ -179,6 +231,18 @@ class _Handler(BaseHTTPRequestHandler):
                           ".wav", "audio/wav")
         else:
             self._responder(404, "text/plain", b"no")
+
+    def do_POST(self):
+        global _boton
+        if not self.path.startswith("/hablar"):
+            return self._responder(404, "text/plain", b"no")
+        largo = int(self.headers.get("Content-Length") or 0)
+        try:
+            datos = json.loads(self.rfile.read(largo) or b"{}")
+        except Exception:
+            datos = {}
+        _boton = bool(datos.get("activo"))
+        self._responder(200, "application/json", b'{"ok":true}')
 
     def _archivo(self, carpeta, nombre, extension, tipo):
         # Solo el nombre de archivo, nunca una ruta: sin esto, un pedido como

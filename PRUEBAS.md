@@ -571,6 +571,56 @@ volviendo, porque ahí sí hay que seguir escribiendo.
 - [ ] Nima: ⬜ ojos negros y orejas redondas · ⬜ sigue igual
 - [ ] Zheva: ⬜ uniforme como el resto · ⬜ sigue invertido
 
+### 25. Los dos modos nuevos: botón del panel y escucha activa
+
+`MODO_ESCUCHA` en `fase2_voice_commands.py` ahora tiene tres valores. El de
+siempre (`"push_to_talk"`) sigue igual.
+
+#### 25a · Modo `"boton"` — sin teclas físicas
+
+El audio lo sigue grabando Python; la página sólo avisa cuándo empezar y
+cuándo terminar. Pensado para cuando ya estás con el mouse en el juego.
+
+1. `MODO_ESCUCHA = "boton"` en `fase2_voice_commands.py`
+2. Correr `fase2`, abrir el panel
+3. Abajo del retrato aparece **🎙 Mantené apretado para hablar**
+4. Apretá con el mouse **sin soltar**, decí `alerta roja`, soltá
+5. El botón se pone rojo mientras graba
+
+- [ ] ⬜ graba y ejecuta · ⬜ el botón no aparece · ⬜ aparece y no graba
+- [ ] ¿Se corta el principio de lo que decís? *(si pasa, hay que hablar un
+      instante después de apretar)*
+- [ ] ¿Molesta que el click le saque el foco al juego?
+
+#### 25b · Modo `"activa"` — micrófono siempre abierto
+
+**No hay botón ni tecla: se llama al oficial por su nombre.** Eso es lo que
+distingue una orden de una charla — si la frase no empieza llamando a alguien,
+se descarta sin ejecutar nada.
+
+⚠️ **Con `STT_BACKEND = "openai"` esto se paga por cada frase que escuche.**
+Para este modo conviene el STT local (prueba #13). El script lo avisa al
+arrancar.
+
+1. `MODO_ESCUCHA = "activa"`
+2. Correr `fase2` y hablar normal, sin tocar nada
+
+| Decís | Tiene que pasar |
+|---|---|
+| "computadora, alerta roja" | ejecuta, contesta Zheva |
+| "artillero, fuego" | ejecuta, contesta Korak |
+| "timonel, media máquina" | ejecuta, contesta T'Lara |
+| "Korak" (y nada más) | contesta *"¿Sí, capitán?"*, **no ejecuta nada** |
+| "alerta roja" (sin llamar a nadie) | **se ignora** — lo dice en consola |
+| Una charla cualquiera | **se ignora** |
+
+- [ ] ⬜ engancha bien · ⬜ se come el nombre · ⬜ corta antes de que termines
+- [ ] ¿Se ejecutó algo hablando de otra cosa? *(si pasa, anotá la frase)*
+- [ ] **El eco:** mientras habla un oficial el micrófono se silencia solo.
+      ¿Se escuchó a sí mismo alguna vez?
+- [ ] Si agarra ruido de fondo: subir `UMBRAL_VOZ`. Si se come el principio:
+      bajarlo, o subir `PRE_ROLL`
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo
@@ -602,6 +652,6 @@ Probar mandar un comando con el juego **de fondo** (consola al frente).
 ## Resumen de la sesión
 
 - **Fecha:**
-- **Pruebas completadas:** ____ / 24 (+ 4b)
+- **Pruebas completadas:** ____ / 25 (+ 4b)
 - **Hallazgos principales:**
 - **Qué romper/arreglar primero la próxima vez:**
