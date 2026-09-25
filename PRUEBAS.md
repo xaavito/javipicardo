@@ -9,6 +9,13 @@ requieren validación en vivo.
   histórica); este archivo es la **lista de trabajo del día**.
 - Si algo falla, anotarlo igual: un "no funcionó" medido vale tanto como un OK.
 
+> **Foco actual (25/09): nada de cronómetros.** La latencia ya se trabajó y se
+> midió: la ejecución bajó de 1.75s a 0.43s y lo único que queda es el STT, que
+> no se arregla midiéndolo otra vez. **Las pruebas nuevas van por lo
+> cualitativo** — si se siente bien, si molesta, si se entiende — y por lo
+> visual. Lo que sí se sigue anotando son **cuentas** (cuántos falsos positivos,
+> cuántas veces falló) y el **costo**, que son decisiones, no benchmarks.
+
 **Preparación (siempre):** juego abierto **desde DxWnd** · consola **como
 Administrador** · misión con la nave pudiendo moverse.
 
@@ -112,6 +119,13 @@ Con esto la etapa de ejecución queda cerrada: de 1.75s originales a **menos de
 
 ### 13. STT local (`tiny`) vs. la API — DESTRABADA, y es la primera
 
+> ⏸️ **EN PAUSA (25/09).** Perdió la primera vuelta y el afinado quedó sin
+> reprobar, pero sobre todo: es una prueba de cronómetro, y por ahora no
+> estamos midiendo tiempos. **Se retoma cuando vuelva a importar** — que va a
+> ser cuando se decida el tema del micrófono siempre abierto, porque ahí el STT
+> local deja de ser una mejora y pasa a ser el requisito que hace viable el
+> costo.
+>
 > **25/09: micrófono físico cableado.** Esta prueba esperaba exactamente eso.
 > Es la más importante por dos razones que se suman: es la última palanca
 > grande de latencia (el STT es ~80% de un comando), y es lo que hace **gratis**
@@ -946,24 +960,28 @@ Esto es lo que **no** sabemos y es el motivo del spike:
 
 | Qué probar | Cómo | Resultado |
 |---|---|---|
-| **Latencia de un turno** | decir "alerta roja" y cronometrar hasta que reacciona el juego | ______s *(hoy: ~2.9s)* |
 | **Seguimiento** | "alerta roja" y después **"y ahora apagala"** — ¿entiende el "la"? | ⬜ sí ⬜ no |
 | **Repregunta** | decir sólo "velocidad" — ¿pregunta cuál, o adivina? | ⬜ pregunta ⬜ adivina |
 | **Interrupción** | hablarle encima mientras contesta | ⬜ se calla ⬜ sigue |
 | **Encadenado** | "alerta roja y disparen" en un turno | ⬜ 2 tools ⬜ 1 ⬜ 0 |
+| **Se banca el combate** | dar 5-6 órdenes con la nave en movimiento | ⬜ va bien ⬜ se siente lento ⬜ inusable |
 | **Costo real** | 5 minutos con el micrófono abierto | US$ ______ |
+
+> **Sin cronómetro.** No hace falta el número: si hay que esperar a que
+> conteste en medio de un combate, se nota sin medirlo. Lo que importa es la
+> respuesta de la última fila.
 
 #### Paso 3 · Comparar con lo que ya tenemos
 
 - [ ] ¿La charla se siente **más fluida** que con el parser + LLM de hoy?
-- [ ] ¿Cuánto más lento es? Si es **más lento y más caro**, la fluidez tiene
-      que compensar bastante
+- [ ] Si además de más caro se siente **más lento**, ¿la fluidez lo compensa?
 - [ ] ¿Qué se pierde? *(el parser local gratis, y andar sin internet)*
 
 #### Cuándo abortar
 
 - Si el SDK de Python no soporta el circuito → volver al server Node
-- Si un turno tarda **más de 4-5s** → inusable en combate, por fluido que sea
+- Si hay que **esperar** a que conteste en medio de un combate → inusable, por
+  fluido que suene
 - Si el costo por hora de juego no cierra → hace falta el wake word local
       delante, y eso cambia el diseño
 
