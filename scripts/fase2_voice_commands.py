@@ -129,6 +129,30 @@ except ImportError:
 # como los de este proyecto) antes de bajar directo a "tiny".
 MODEL_SIZE = "base"
 
+# --- Afinado del backend local (nada de esto estaba puesto hasta el 25/09) ---
+#
+# La primera medicion dio 2.68s de promedio con "tiny", PEOR que la API, y con
+# errores de transcripcion. Casi todo se explica por los valores por defecto de
+# faster-whisper, que estan pensados para transcribir audio largo, no ordenes
+# de dos palabras.
+
+# beam_size=5 es el default: explora 5 caminos de decodificacion. Para una
+# orden corta de vocabulario cerrado no aporta y multiplica el trabajo.
+BEAM_SIZE = 1
+
+# Hilos de CPU. 0 deja que decida la libreria; poner los nucleos reales suele
+# rendir mas en una maquina que ademas esta corriendo el juego.
+CPU_THREADS = 4
+
+# Recorta el silencio antes de transcribir. Nuestro audio viene con silencio de
+# los dos lados (pre-roll y la cola antes del corte), y eso se decodifica igual.
+USAR_VAD_INTERNO = True
+
+# El vocabulario del juego como initial_prompt. En la API ayuda, pero en un
+# modelo chico ocupa contexto y puede volverlo mas lento Y hacer que "repita"
+# el prompt. Si local sigue transcribiendo mal, probar en False.
+PROMPT_EN_LOCAL = True
+
 # Idioma esperado (acelera un poco la transcripcion al no tener que
 # autodetectar el idioma cada vez).
 LANGUAGE = "es"
@@ -466,7 +490,8 @@ def cargar_modelo():
           f"tardar mientras se descarga)...")
     # compute_type="int8" acelera bastante la inferencia en CPU, con una
     # perdida de precision generalmente aceptable para este caso de uso.
-    modelo = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+    modelo = WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8",
+                          cpu_threads=CPU_THREADS)
     print("Modelo cargado.")
     return modelo
 
@@ -474,6 +499,8 @@ def cargar_modelo():
 def _prompt_vocabulario():
     """El vocabulario del juego, para sesgar la transcripcion. Vive en
     stt_openai.py, que con backend local puede no estar importado."""
+    if not PROMPT_EN_LOCAL:
+        return None
     try:
         import stt_openai
         return stt_openai.PROMPT_VOCABULARIO
@@ -493,6 +520,9 @@ def transcribir(modelo, audio):
     # tiene el de nube, y la comparacion de la prueba #13 seria injusta.
     segmentos, _info = modelo.transcribe(
         audio, language=LANGUAGE,
+        beam_size=BEAM_SIZE,
+        vad_filter=USAR_VAD_INTERNO,
+        condition_on_previous_text=False,  # cada orden es independiente
         initial_prompt=_prompt_vocabulario())
     texto = " ".join(seg.text.strip() for seg in segmentos)
     return texto.strip()

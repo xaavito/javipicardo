@@ -185,6 +185,24 @@ La primera vez baja ~75 MB y dice *"Cargando modelo Whisper 'tiny'"*. Eso pasa
 | "escudos al máximo" | ______s | ⬜ |
 | "objetivo más cercano" | ______s | ⬜ |
 
+#### Resultado de la primera vuelta (25/09) — y por qué hay que repetirla
+
+| | API | local `tiny` sin afinar |
+|---|---|---|
+| 2.91 · 1.98 · 1.94 · 2.48 · 2.80 | **2.42s** prom. | |
+| 1.79 · 2.41 · 2.43 · 2.59 · 4.16 | | **2.68s** prom. |
+| Precisión | correcta | **mala, ejecutó otros comandos** |
+
+Se midió `faster-whisper` **con los valores por defecto**, que están pensados
+para transcribir audio largo. El principal sospechoso es `beam_size=5`. Ya se
+afinó (`beam_size=1`, `cpu_threads`, `vad_filter`), así que **la segunda vuelta
+mide otra cosa**:
+
+- [ ] `git pull` y repetir los pasos 4 y 5 con el afinado puesto
+- [ ] Si la latencia baja pero la precisión sigue corta: `MODEL_SIZE = "base"`
+- [ ] Si `base` acierta pero tarda: probar `PROMPT_EN_LOCAL = False`, que en
+      modelos chicos el prompt largo puede estorbar más de lo que ayuda
+
 #### Paso 6 · Leer el resultado
 
 - [ ] **Latencia:** API ______s vs. local ______s

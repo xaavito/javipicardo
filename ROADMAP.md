@@ -557,6 +557,32 @@ reemplazan lo local, se puede volver atrás cambiando una constante):
     comandos por igual (no solo al primero) — sigue pendiente evaluar bajarla
     a 0.5s, ver el ítem correspondiente en la Fase 2.
 
+- **[25/09] Prueba #13 medida: el STT local, tal como estaba, PERDIÓ.** Con
+  micrófono cableado y las mismas 5 frases:
+
+  | | API (`gpt-4o-mini-transcribe`) | local `tiny` |
+  |---|---|---|
+  | Tiempos | 2.91 · 1.98 · 1.94 · 2.48 · 2.80 | 1.79 · 2.41 · 2.43 · 2.59 · 4.16 |
+  | Promedio | **2.42s** | **2.68s** |
+  | Precisión | correcta | **mala: ejecutó comandos equivocados** |
+
+  - **La estimación previa de 0.2-0.4s era mía y estaba mal.** Quedó escrita en
+    el README y en la wishlist como si fuera un dato, y no lo era.
+  - **Pero la prueba midió `faster-whisper` sin configurar**, con los defaults
+    pensados para transcribir audio largo, no órdenes de dos palabras. El
+    sospechoso principal es **`beam_size=5`** (el default), que explora cinco
+    caminos de decodificación por cada frase. También estaban sin tocar los
+    hilos de CPU y el recorte de silencio, y nuestro audio viene con silencio
+    de los dos lados por el pre-roll.
+  - Se afinó: `beam_size=1`, `cpu_threads=4`, `vad_filter=True`,
+    `condition_on_previous_text=False`, y el `initial_prompt` quedó detrás de
+    `PROMPT_EN_LOCAL` porque en un modelo chico ocupa contexto y puede
+    empeorar las dos cosas a la vez.
+  - **Pendiente: repetir la medición con eso puesto**, y si la precisión sigue
+    corta, `base` antes que `small`. Mientras tanto **la API se queda como
+    backend**, lo cual deja la escucha activa pagando por frase — que era
+    justamente lo que el local venía a resolver.
+
 - **[25/09] Micrófono cableado: se destraba la prueba #13 y cambia el orden.**
   Se reemplazó el auricular Bluetooth por un micrófono físico cableado, que
   evita el códec HFP y su calidad teléfono. La prueba #13 (STT local vs. API)
