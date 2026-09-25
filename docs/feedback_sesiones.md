@@ -39,7 +39,7 @@ conscientes de no adoptar (con motivo, ver abajo).
 | 2 | Mandar audio directo al LLM (sin STT separado) | — | **No adoptado.** Tenemos un parser de reglas local y gratis que resuelve la mayoría de comandos en microsegundos, y para consultarlo necesitamos el texto primero. Mandando audio directo pagaríamos API en *todos* los comandos, incluso en "alerta roja" | ❌ No adoptado *(a explicar)* |
 | 3 | Pasarle la lista de comandos como `tools` y que devuelva `tool_calls` | Ya implementado antes de la charla | `llm_fallback.py` ya usa `tools=[...]` + `tool_choice="auto"` nativo. Las 16 tools se generan solas desde el catálogo | ✅ Ya estaba |
 | 4 | "Diccionario de desambiguación" | Ya implementado antes de la charla | `catalogo_comandos.py` lo genera **dinámicamente desde los mismos diccionarios del parser**, así que nunca queda desincronizado con lo que el sistema sabe ejecutar | ✅ Ya estaba |
-| 5 | Usar `@openai/agents` (Agents SDK) en vez de parsear el JSON a mano | — | **No adoptado por ahora.** `@openai/agents` es de JS/TS y el proyecto es 100% Python (obligado por `pydirectinput` para controlar Windows); el equivalente sería `openai-agents`. El caso de uso actual es clasificación de **un solo paso** ("frase → tool"), sin árbol de decisiones. **Sí lo reevaluaríamos** si hiciéramos comandos encadenados tipo "atacá con todo, y si no hay objetivo, seleccioná el más cercano primero" | ❌ No adoptado *(a explicar)* |
+| 5 | Usar `@openai/agents` (Agents SDK) en vez de parsear el JSON a mano | — | **🔄 REVISADO el 25/09: se adopta, ver Sesión #3.** El argumento de abajo era válido para el sistema de septiembre y dejó de valer cuando aparecieron el encadenado de comandos y el enrutado por oficial. Texto original: **No adoptado por ahora.** `@openai/agents` es de JS/TS y el proyecto es 100% Python (obligado por `pydirectinput` para controlar Windows); el equivalente sería `openai-agents`. El caso de uso actual es clasificación de **un solo paso** ("frase → tool"), sin árbol de decisiones. **Sí lo reevaluaríamos** si hiciéramos comandos encadenados tipo "atacá con todo, y si no hay objetivo, seleccioná el más cercano primero" | ❌ No adoptado *(a explicar)* |
 
 ### Compromisos para la próxima charla (viernes)
 
@@ -229,7 +229,97 @@ porque el browser habla con OpenAI, no con el server.
 
 ---
 
-## Sesión #3 — viernes __/__/____ — (pendiente)
+## Sesión #3 — viernes 25/09/2026 — Agents SDK
+
+**Tema:** repaso de los puntos de la agenda anterior, y un pedido nuevo.
+**Estado general: todos los puntos que había que ver quedaron OK.** No salieron
+correcciones. De la charla sale **un pedido nuevo y concreto**: usar el
+**Agents SDK de OpenAI**. Pato mostró el proyecto andando con nuestro
+diccionario de comandos y convenció.
+
+| # | Lo que pidió Pato | Cómo estábamos | Estado |
+|---|---|---|---|
+| 1 | **Usar el Agents SDK de OpenAI** | ❌ **Lo habíamos rechazado dos veces** (Sesión #1, fila 5), con el argumento de que nuestro caso era clasificación de un solo paso y el SDK era complejidad innecesaria | 🔄 **Se reconsidera: el argumento ya no se sostiene.** Ver abajo |
+| 2 | Basarnos en su proyecto de referencia | Lo habíamos analizado el 18/09, pero **cambió mucho desde entonces** | ⏳ Reanalizado el 25/09, ver abajo |
+
+### Por qué el argumento con el que lo rechazamos ya no vale
+
+Lo rechazamos porque "es clasificación de un solo paso, sin árbol de
+decisiones". Eso era cierto **para el sistema de entonces**. Desde ahí
+cambiaron tres cosas, todas nuestras:
+
+1. **Encadenado de comandos** (25/09): una frase puede pedir varias acciones en
+   orden. Ya no es un paso, es una secuencia.
+2. **Enrutado por oficial** (`WISHLIST.md` §3.0): "artillero, fuego" elige a
+   quién le toca. **Eso es exactamente un handoff de agentes** — un agente de
+   triage que despacha al agente del rol, cada uno con sólo sus propias tools.
+   Es literalmente lo que §3.0 decía que había que hacer para acotar el
+   vocabulario, y el SDK lo trae resuelto.
+3. **Manejo de ambigüedad**: cuando una palabra suelta no alcanza, el sistema
+   **pregunta** ("¿qué velocidad, capitán?"). Eso es un turno de conversación,
+   no una clasificación.
+
+> **Es la tercera vez que pasa lo mismo**, y conviene decirlo: rechazamos el
+> audio directo al LLM, después la Realtime API, y ahora el Agents SDK. En los
+> tres casos el rechazo era correcto **para el sistema de ese momento**, y en
+> los tres el sistema cambió y le dio la razón a Pato. La lección no es que nos
+> equivocamos al analizar, es que **conviene revisar los "no adoptado" cada vez
+> que cambia el alcance**, en vez de tratarlos como cerrados.
+
+### El proyecto de referencia, reanalizado (cambió desde el 18/09)
+
+`patopitaluga/ejemplo-agente-realtime` — ahora tiene README y el cliente
+modularizado. Lo importante que cambió:
+
+- **Pasó a `gpt-live-1` por WebRTC**, no WebSocket con PCM a mano. WebRTC
+  maneja jitter y latencia solo, así que **no necesitaríamos nuestro transporte
+  de audio propio** (el POST de PCM que escribí el 25/09 quedaría de más).
+- **El modelo de voz delega las tools a `gpt-4.1-mini`** ("delegación
+  Responses"). O sea que la voz conversa y un modelo de texto más barato elige
+  la herramienta. **Ya es un patrón de agentes**, con o sin SDK.
+- El circuito de una tool: el browser recibe el `function_call` por el data
+  channel, pega a `POST /tool_calls`, y **devuelve el resultado con el mismo
+  `call_id` más un `response.create`** para que el turno siga. El README
+  documenta que si falta cualquiera de las dos cosas, el turno queda colgado.
+- **El browser no conoce el schema de las tools, sólo el backend.** Eso encaja
+  exacto con nosotros: el schema es nuestro `catalogo_comandos.py`.
+
+**Dónde entra nuestro código, sin ambigüedad:** `POST /tool_calls` es donde va
+`ejecutar_accion()`. Es la única pieza que tiene que quedarse en Python
+corriendo como Administrador, y es justamente la que su arquitectura deja
+afuera del browser.
+
+### Lo que hay que resolver antes de escribir código
+
+- **`gpt-live-1` es posterior a lo que conozco de primera mano.** No voy a
+  afirmar qué soporta: hay que leer la doc de OpenAI y confirmar si el SDK de
+  Python expone lo mismo que el de JS, porque su ejemplo es Node/TS y la
+  inyección de teclas tiene que ser Python.
+- **Python vs Node.** Dos opciones: portar sus dos endpoints a Python con
+  `openai-agents`, o dejar su server Node y que le pegue a un servicio Python
+  que aprieta teclas. La primera evita tener tres procesos y dos lenguajes.
+- **Qué pasa con el parser de reglas.** Es la misma pregunta de siempre: era el
+  camino local, gratis y de microsegundos. Con agentes, interpreta el modelo.
+  La propuesta sigue siendo: que las teclas las siga apretando el ejecutor
+  validado, con sus guardas.
+- **El costo por minuto de audio**, que sigue sin mirarse y sigue siendo el
+  número que decide si el micrófono puede estar siempre abierto.
+
+### Compromisos para la próxima charla (viernes)
+
+- ⏳ **Leer la doc del Agents SDK y de `gpt-live-1`**, y confirmar qué expone
+  el SDK de **Python** (su ejemplo es de JS).
+- ⏳ **Mirar el precio por minuto de audio.** Es el único dato que falta para
+  decidir escucha permanente vs. wake word local.
+- ⏳ **Prueba de concepto mínima:** una sola tool nuestra (`alerta roja`) dando
+  toda la vuelta — voz → agente → `/tool_calls` en Python → tecla al juego →
+  resultado de vuelta al modelo.
+- 🗣️ Contarle que **el encadenado de comandos ya está hecho** (25/09), que es
+  medio camino andado hacia lo que el SDK resuelve.
+
+---
+
+## Sesión #4 — viernes __/__/____ — (pendiente)
 
 <!--
 Plantilla, copiar y completar después de la charla:

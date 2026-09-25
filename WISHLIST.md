@@ -677,6 +677,45 @@ Tres formas de resolverlo:
 **Recomendación: B como base, y C encima cuando el costo moleste.** Las dos son
 compatibles: C es una compuerta delante de B.
 
+### 5.9 Actualización 25/09: el Agents SDK, y el ejemplo reescrito
+
+En la Sesión #3, Pato pidió **usar el Agents SDK de OpenAI** y mostró el
+proyecto andando con nuestro diccionario de comandos. Su ejemplo además cambió
+desde el análisis del 18/09:
+
+- **`gpt-live-1` por WebRTC**, no WebSocket con PCM a mano. WebRTC maneja
+  jitter y latencia solo: **el transporte de audio propio que escribimos
+  (POST de PCM a `/voz`) quedaría de más**.
+- **El modelo de voz delega las tools a `gpt-4.1-mini`.** La voz conversa y un
+  modelo de texto más barato elige la herramienta — ya es un patrón de agentes.
+- El circuito de una tool está documentado con sus dos trampas: hay que
+  devolver el resultado con **el mismo `call_id`** y después mandar
+  **`response.create`**; si falta cualquiera de las dos, el turno queda colgado.
+
+**Por qué el Agents SDK ahora sí encaja**, cuando lo habíamos rechazado dos
+veces: lo rechazamos por ser "clasificación de un solo paso". Desde entonces
+aparecieron tres cosas nuestras que lo desmienten — el **encadenado** (§1, ya
+implementado), el **enrutado por oficial** (§3.0) y el **manejo de
+ambigüedad**. Y el enrutado por oficial es, literalmente, un **handoff**: un
+agente de triage que despacha al agente del rol, cada uno con **sólo sus
+propias tools**. Eso es exactamente lo que §3.0 decía que había que construir
+para acotar el vocabulario, y el SDK lo trae resuelto.
+
+**El mapeo, para tenerlo escrito:**
+
+| Lo nuestro | En el SDK |
+|---|---|
+| `catalogo_comandos.generar_tools_openai()` | las tools de cada agente |
+| Oficiales (§3.0) | un agente por rol, con sus tools nada más |
+| `detectar_oficial()` | el triage / handoff |
+| `ejecutar_accion()` | lo que corre detrás de `POST /tool_calls` |
+| `FRASES_AMBIGUAS` | que el agente pregunte en vez de adivinar |
+| Encadenado (§1) | varias tool calls en un turno |
+
+**Lo que no cambia:** la inyección de teclas sigue en Python como
+Administrador. El browser y el SDK son interfaz e interpretación; el control es
+nuestro.
+
 **A chequear antes de comprometerse:**
 
 - **Precio por minuto de audio** de `gpt-realtime` (entrada y salida). Con

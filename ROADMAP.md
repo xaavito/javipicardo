@@ -1200,6 +1200,39 @@ en la interfaz.
 **Costo de esta agenda:** la prueba #13 (STT local), que era la última palanca
 grande de latencia, queda sin correr por ahora.
 
+### Sesión #3 — viernes 25/09/2026: todo OK, y piden el Agents SDK
+
+> 📋 Resumen ejecutivo: `docs/feedback_sesiones.md` → **Sesión #3**.
+
+Los puntos que había que repasar quedaron **todos OK, sin correcciones**. Sale
+un pedido nuevo: **usar el Agents SDK de OpenAI**, que Pato mostró andando con
+nuestro propio diccionario de comandos.
+
+**Lo importante es que lo habíamos rechazado dos veces**, con el argumento de
+que nuestro caso era clasificación de un solo paso. Ese argumento **era válido
+para el sistema de entonces y dejó de valer**, por tres cambios nuestros:
+el **encadenado de comandos** (implementado ese mismo día), el **enrutado por
+oficial** —que es literalmente un handoff de agentes— y el **manejo de
+ambigüedad**, que es un turno de conversación y no una clasificación.
+
+Es la tercera vez que ocurre el mismo patrón: rechazamos el audio directo al
+LLM, después la Realtime API, y ahora el Agents SDK; y en los tres casos el
+rechazo era correcto para el sistema del momento y el sistema cambió después.
+**La conclusión operativa no es que analizamos mal, es que los "no adoptado"
+hay que revisarlos cada vez que cambia el alcance**, en vez de darlos por
+cerrados.
+
+Su ejemplo de referencia también cambió desde el análisis del 18/09: pasó a
+`gpt-live-1` **por WebRTC** (lo cual deja de más el transporte de audio propio
+que habíamos escrito) y el modelo de voz **delega las tools a un modelo de
+texto más barato**. Detalle y el mapeo pieza por pieza, en `WISHLIST.md` §5.9.
+
+**Sin resolver, y hay que hacerlo antes de escribir código:** `gpt-live-1` es
+posterior a lo que conozco de primera mano, así que hay que leer la doc y
+confirmar qué expone el SDK de **Python** (su ejemplo es de JS); y sigue sin
+mirarse el **precio por minuto de audio**, que es el único dato que falta para
+decidir entre escucha permanente y wake word local.
+
 ### Segunda pasada sobre el mismo feedback (con lectura de la guía oficial)
 
 Se volvió a plantear el mismo feedback, esta vez leyendo a fondo la guía
