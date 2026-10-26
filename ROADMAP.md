@@ -1303,6 +1303,42 @@ dinámicamente el mapa de comandos válidos, con la ventaja adicional de que se
 deriva de los mismos diccionarios del parser de reglas y por lo tanto nunca
 queda desincronizado.
 
+### Sesión #4 — domingo 26/10/2026: Paso 0 del spike cerrado, se arranca la Opción 1
+
+Se contestó el **Paso 0 (bloqueante)** del spike del Agents SDK (PRUEBAS #29),
+leyendo la doc oficial del SDK de Python. Las cuatro preguntas:
+
+- **El SDK de Python (`openai-agents`) sí expone lo del de JS**: `RealtimeAgent`
+  + `RealtimeRunner`, con tools, handoffs, `instructions` y hooks. La diferencia
+  que decide el diseño: la sesión Realtime corre por **WebSocket del lado del
+  server**, y **no hay transporte WebRTC de browser** — eso es exclusivo del SDK
+  de TS. El audio lo captura uno y lo manda con `session.send_audio()`.
+- **`gpt-live-1` ya no se llama así**: hoy es `gpt-realtime` (recomendado
+  `gpt-realtime-2.1`), y anda desde Python. La transcripción interna de la
+  sesión usa `gpt-4o-mini-transcribe`, justo el STT al que ya habíamos migrado.
+- **No hace falta WebRTC/browser**: al contrario, en Python no se puede. Como la
+  inyección de teclas ya es Python+Admin, un server Python que toma el micro,
+  corre el agente y aprieta teclas saca el browser del camino de audio. El
+  transporte propio que habíamos escrito (POST de PCM a `/voz`) queda de más,
+  reemplazado por `send_audio()`, no por WebRTC.
+- **Precio**: es por token, no por minuto. `gpt-realtime-2.1` audio in $32/M,
+  out $64/M; el mini $10/$20. All-in estimado $0.04–0.10/min (flagship) →
+  ~$3.6–6/hora con micro abierto; el mini ~1/3. Datos de blogs secundarios, hay
+  que confirmarlos contra la página oficial de OpenAI. Es el número que decide
+  micrófono abierto vs. wake word local.
+
+Las **"dos trampas" de Pato** (devolver con el mismo `call_id` + mandar
+`response.create`) **las maneja el SDK solo** en las tool calls: esa plomería es
+justamente la razón de usar el SDK y no la Realtime API cruda.
+
+**Decisión con Javi:** ir con la **Opción 1 (Python server-side)**, sin
+descartar la Opción 2 (browser + SDK de TS + servicio Python de teclas), que
+queda anotada en WISHLIST §5.9 como alternativa. Se tagueó el estado previo
+(`pre-agents-sdk-main`) y se abrió la branch `agents-sdk-spike`. Se escribió el
+spike **`scripts/fase3_agents_spike.py`** (una tool `alerta_roja`, captura de
+micro con `sounddevice`, barge-in por `semantic_vad`), validado en la Mac con
+mocks (`--self-test`). Falta correrlo en la Windows: Pasos 1 y 2 de #29.
+
 ---
 
 ## Log general de sesiones de prueba
