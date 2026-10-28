@@ -316,6 +316,14 @@ SPEED_WORDS = {
     # Full
     "toda maquina": 4, "maxima velocidad": 4, "maxima": 4,
     "avante toda": 4, "velocidad maxima": 4,
+    # Sinonimos extra (26/10): mas formas de pedir lo mismo.
+    # OJO: nada de "para" suelto (preposicion comun: "vamos para el enemigo").
+    "frena": 0, "pare la nave": 0, "detene la nave": 0, "motores a cero": 0,
+    "a cuarto de maquina": 1,
+    "a media maquina": 2, "mitad de potencia": 2, "media potencia": 2,
+    "a tres cuartos de maquina": 3,
+    "a toda maquina": 4, "a todo motor": 4, "maxima potencia": 4,
+    "toda velocidad": 4, "a toda velocidad": 4, "aceleren al maximo": 4,
 }
 
 # Cuantas pulsaciones de "s" hay desde velocidad 0 hasta la maxima de la nave.
@@ -361,6 +369,11 @@ ALERT_WORDS = {
     "alerta roja": "r",
     "roja": "r",
     "red alert": "r",
+    "codigo rojo": "r",
+    "condicion roja": "r",
+    "a sus puestos de combate": "r",
+    "zafarrancho de combate": "r",
+    "alerta de combate": "r",
 }
 
 # ---------------------------------------------------------------------------
@@ -421,7 +434,8 @@ FRASES_AMBIGUAS = {
 # Nota: "ataquen" a secas se saco de FIRE_WORDS porque colisionaba con el
 # combo ALL_OUT_ATTACK_WORDS ("ataquen con todo") - ahora FIRE_WORDS requiere
 # frases un poco mas especificas para disparo simple.
-FIRE_WORDS = ["disparar", "fuego", "abran fuego", "dispare", "disparen"]
+FIRE_WORDS = ["disparar", "fuego", "abran fuego", "dispare", "disparen",
+              "tiren", "hagan fuego", "fuego al blanco", "disparenle"]
 ALPHA_STRIKE_WORDS = ["alpha strike", "fuego total", "disparen todo",
                       "todas las armas", "fuego a discrecion"]
 
@@ -471,13 +485,19 @@ IR_A_CUALQUIERA_WORDS = [
 # live test: the STT transcribes what was said, so the variants have to be here.
 SHIELD_MAX_WORDS = ["escudos al maximo", "escudos a maximo", "reforzar escudos",
                     "refuercen escudos", "maximo escudo", "subir escudos",
-                    "levantar escudos", "escudos arriba"]
+                    "levantar escudos", "escudos arriba", "arriba los escudos",
+                    "potencia a los escudos", "todo a los escudos",
+                    "escudos al maximo nivel", "maxima proteccion"]
 
 # Camuflaje
-CLOAK_WORDS = ["camuflaje", "cloaking", "activar camuflaje", "modo sigilo"]
+CLOAK_WORDS = ["camuflaje", "cloaking", "activar camuflaje", "modo sigilo",
+               "ocultarnos", "escondannos", "activar sigilo", "modo invisible",
+               "camuflense", "volvernos invisibles"]
 
 # Deep Scan
-DEEPSCAN_WORDS = ["escaneo profundo", "deep scan", "escanear"]
+DEEPSCAN_WORDS = ["escaneo profundo", "deep scan", "escanear", "escanea",
+                  "escaneen", "rastreo profundo", "analisis profundo",
+                  "escaneo a fondo"]
 
 # Follow Target (Numpad *): seguir al target seleccionado.
 #
@@ -516,7 +536,8 @@ NEXT_TARGET_WORDS = ["siguiente objetivo", "cambiar de blanco",
 # comando practico para ir "pasando" entre naves enemigas hasta encontrar la
 # que se quiere seguir/atacar, sin que se cuelen unidades no hostiles.
 NEXT_ENEMY_WORDS = ["siguiente enemigo", "proximo enemigo", "otro enemigo",
-                    "cambiar de enemigo", "siguiente nave enemiga"]
+                    "cambiar de enemigo", "siguiente nave enemiga",
+                    "pasa al siguiente enemigo", "otra nave enemiga"]
 
 # Ciclado en orden INVERSO (SHIFT+T / SHIFT+Y): para volver atras si nos
 # pasamos de la nave que queriamos seleccionar.
@@ -526,7 +547,9 @@ PREV_ENEMY_WORDS = ["enemigo anterior", "volver al enemigo anterior"]
 
 # Target al enemigo mas cercano (backtick `)
 NEAREST_ENEMY_WORDS = ["objetivo mas cercano", "enemigo mas cercano",
-                       "apunten al mas cercano", "target mas cercano"]
+                       "apunten al mas cercano", "target mas cercano",
+                       "blanco mas cercano", "marca al mas cercano",
+                       "apunta al mas cercano"]
 
 # Deseleccionar target (\): soltar la nave que se tenia seleccionada.
 DESELECT_WORDS = ["deseleccionar objetivo", "deseleccionar a objetivo",
@@ -583,13 +606,16 @@ TECLA_ORBITAR = "subtract"
 
 # Orbit Target: pone la nave en orbita alrededor del target.
 ORBIT_WORDS = ["orbitar", "orbitar objetivo", "ponerse en orbita",
-               "orbiten la nave", "orbitar la nave"]
+               "orbiten la nave", "orbitar la nave", "pone en orbita",
+               "orbita el objetivo", "girar alrededor del objetivo",
+               "dar vueltas alrededor"]
 
 # Erratic Maneuvers (Numpad /): maniobras evasivas, genera 4 puntos de ECM
 # natural. Nota del manual: dificulta tambien NUESTRA punteria y bloquea
 # lanzar shuttles/minas/torpedos mientras este activo.
 ERRATIC_WORDS = ["maniobras evasivas", "maniobra evasiva", "evasivas",
-                 "zigzag", "maniobras erraticas"]
+                 "zigzag", "maniobras erraticas", "esquiven", "zigzaguear",
+                 "maniobras de evasion", "muevanse en zigzag"]
 
 # Pedir ayuda / listar comandos disponibles (no manda ninguna tecla al juego)
 HELP_WORDS = ["que comandos hay", "ayuda", "que puedo decir",
