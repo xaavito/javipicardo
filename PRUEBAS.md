@@ -990,6 +990,46 @@ Esto es lo que **no** sabemos y es el motivo del spike:
 - Si el costo por hora de juego no cierra → hace falta el wake word local
       delante, y eso cambia el diseño
 
+### 30. Mouse: calibrar y probar rumbo + botones del MFD
+
+**Qué es:** el direccionamiento por mouse (Fase 6). El código ya está escrito y
+validado con mocks en la Mac; faltan los **números** (sólo salen de la Windows)
+y probar que el click llega al juego. Modelo de rumbo elegido: **reloj de
+pantalla** ("a las 3" = derecha, "a las 12" = arriba). Intercept y Yellow Alert
+ahora son clicks a botón (salieron de `NO_SOPORTADO`).
+
+#### Paso 1 · Calibrar (bloqueante — sin esto el resto no corre)
+
+Con el juego abierto como lo vas a jugar, consola como Administrador:
+
+```
+python scripts/calibrar_mouse.py
+```
+
+Te pide llevar el mouse a 4 puntos (nave, un "a las 12", botón Intercept del
+Helm MFD, botón Yellow Alert) y te imprime las líneas para pegar en
+`fase1_text_commands.py`: `NAVE_CENTRO_REL`, `RUMBO_RADIO`, `BOTONES_MFD`.
+
+- [ ] Pegadas las constantes en `fase1_text_commands.py`.
+
+#### Paso 2 · Rumbo por reloj
+
+Decir/escribir "a las 3", "a las 12", "rumbo a las 6", "a las 9".
+
+- [ ] ⬜ la nave vira hacia donde se clickeó · ⬜ clickea mal el punto ·
+      ⬜ no pasa nada
+- [ ] ¿El mapa es **norte-arriba** (la nave rota) o **proa-arriba** (rota el
+      mapa)? *(define si "a las 12" se siente como "al frente" o como "al
+      norte" — es el dato que decide si el reloj de pantalla alcanza o hay que
+      pasar a rumbo relativo a la nave)*
+- [ ] ¿`RUMBO_RADIO` quedó bien, o el punto cae muy cerca/lejos de la nave?
+
+#### Paso 3 · Botones del MFD
+
+- [ ] "interceptar" → ⬜ abre el Helm e intercepta · ⬜ no encuentra el botón ·
+      ⬜ el `'` previo no era necesario (poner `INTERCEPT_ABRE_HELM = False`)
+- [ ] "alerta amarilla" → ⬜ sube escudos sin armar · ⬜ clickea mal
+
 ---
 
 ## 🟢 Prioridad BAJA — exploratorio, para cuando haya tiempo

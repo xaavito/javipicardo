@@ -129,6 +129,24 @@ def generar_catalogo():
             "ejemplos": frases[:3],
         })
 
+    # --- Botones del MFD (mouse, no tecla): Intercept y Yellow Alert ---
+    grupos_mfd = [
+        ("interceptar_objetivo", fase1.INTERCEPT_WORDS, "intercept",
+         "Intercept Target: el timon va hacia el objetivo actual (boton del "
+         "Helm MFD, se clickea)"),
+        ("alerta_amarilla", fase1.YELLOW_WORDS, "yellow_alert",
+         "Yellow Alert: sube escudos sin armar las armas (boton del HUD, se "
+         "clickea)"),
+    ]
+    for nombre, frases, boton, descripcion in grupos_mfd:
+        catalogo.append({
+            "accion": "mfd_button",
+            "parametros": {"boton": boton},
+            "nombre_legible": nombre,
+            "descripcion": descripcion,
+            "ejemplos": list(frases)[:3],
+        })
+
     # --- Combos (definidos en fase1.COMBOS) ---
     for nombre_combo, datos in fase1.COMBOS.items():
         catalogo.append({
