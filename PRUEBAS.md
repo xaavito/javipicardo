@@ -990,45 +990,35 @@ Esto es lo que **no** sabemos y es el motivo del spike:
 - Si el costo por hora de juego no cierra → hace falta el wake word local
       delante, y eso cambia el diseño
 
-### 30. Mouse: calibrar y probar rumbo + botones del MFD
+### ~~30. Mouse: calibrar y probar rumbo + botones del MFD~~ — DESCARTADO 30/10
 
-**Qué es:** el direccionamiento por mouse (Fase 6). El código ya está escrito y
-validado con mocks en la Mac; faltan los **números** (sólo salen de la Windows)
-y probar que el click llega al juego. Modelo de rumbo elegido: **reloj de
-pantalla** ("a las 3" = derecha, "a las 12" = arriba). Intercept y Yellow Alert
-ahora son clicks a botón (salieron de `NO_SOPORTADO`).
+**Decisión (30/10):** se descarta navegar la nave con el mouse (rumbo por click,
+Intercept/Yellow por botón). Mirando el juego de verdad: **no hay botón
+Intercept** (lo cubre Follow, tecla `*`), y los botones útiles del Helm MFD
+(Follow, Orbit, Erratic, Emergency Stop) **ya tienen tecla** en el parser. Nos
+manejamos **por objetivos** (follow, ciclar enemigos, memoria de targets), todo
+teclado. Se borró `calibrar_mouse.py` y toda la geometría de rumbo.
 
-#### Paso 1 · Calibrar (bloqueante — sin esto el resto no corre)
+**Yellow Alert:** no es botón, pero el juego deja asignarle tecla (hoy no la
+tiene). Queda como comando de teclado pendiente de que le asignes una:
+- [ ] Asignarle una tecla a Yellow Alert en el menú del juego.
+- [ ] Ponerla en `TECLA_YELLOW_ALERT` (`fase1_text_commands.py`).
+- [ ] "alerta amarilla" → ⬜ sube escudos sin armar · ⬜ no pasa nada
 
-Con el juego abierto como lo vas a jugar, consola como Administrador:
+### 31. UI web + modo siempre-escuchando (`web`)
 
-```
-python scripts/calibrar_mouse.py
-```
+**Qué es:** se vuelve al panel web LCARS (`panel_web.py`) como interfaz: HUD con
+el oficial que contesta, su frase y el comando. `MODO_ESCUCHA = "web"` (mic
+siempre abierto, lo maneja la página con cancelación de eco). STT en OpenAI; el
+silencio lo controla el jugador.
 
-Te pide llevar el mouse a 4 puntos (nave, un "a las 12", botón Intercept del
-Helm MFD, botón Yellow Alert) y te imprime las líneas para pegar en
-`fase1_text_commands.py`: `NAVE_CENTRO_REL`, `RUMBO_RADIO`, `BOTONES_MFD`.
-
-- [ ] Pegadas las constantes en `fase1_text_commands.py`.
-
-#### Paso 2 · Rumbo por reloj
-
-Decir/escribir "a las 3", "a las 12", "rumbo a las 6", "a las 9".
-
-- [ ] ⬜ la nave vira hacia donde se clickeó · ⬜ clickea mal el punto ·
-      ⬜ no pasa nada
-- [ ] ¿El mapa es **norte-arriba** (la nave rota) o **proa-arriba** (rota el
-      mapa)? *(define si "a las 12" se siente como "al frente" o como "al
-      norte" — es el dato que decide si el reloj de pantalla alcanza o hay que
-      pasar a rumbo relativo a la nave)*
-- [ ] ¿`RUMBO_RADIO` quedó bien, o el punto cae muy cerca/lejos de la nave?
-
-#### Paso 3 · Botones del MFD
-
-- [ ] "interceptar" → ⬜ abre el Helm e intercepta · ⬜ no encuentra el botón ·
-      ⬜ el `'` previo no era necesario (poner `INTERCEPT_ABRE_HELM = False`)
-- [ ] "alerta amarilla" → ⬜ sube escudos sin armar · ⬜ clickea mal
+- [ ] `python scripts/fase2_voice_commands.py` arranca y muestra la URL.
+- [ ] http://127.0.0.1:8765 abre el HUD y el browser pide permiso de micrófono.
+- [ ] Hablando con nombre de oficial ("computadora, alerta roja") ejecuta.
+- [ ] ⬜ no se transcribe a sí mismo (voz del oficial) · si pasa, ajustar
+      `MARGEN_ANTI_ECO`.
+- [ ] Las teclas llegan al juego aunque el foco lo tenga el browser (DxWnd en
+      ventana, no pantalla completa real).
 
 ---
 

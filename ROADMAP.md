@@ -1054,12 +1054,20 @@ usando `docs/hotkeys_sfc2.md` como referencia completa.
 
 ---
 
-## Fase 6 (pendiente, decidida posponer) — Control de rumbo/giro con mouse
+## Fase 6 (DESCARTADA 30/10) — Control de rumbo/giro con mouse
 
-**Objetivo:** soportar comandos de giro relativo tipo "girar 90 grados a la
-derecha", "virar a la izquierda 45 grados". **Decisión tomada:** posponer
-esta fase hasta consolidar y probar bien en uso real lo ya construido (Fases
-0-4) — se retoma cuando el usuario lo pida.
+**Decisión (30/10): se descarta.** Se llegó a implementar el rumbo por "reloj de
+pantalla" (click en el mapa) y los botones del MFD, pero mirando el juego de
+verdad quedó claro que no aporta: **no existe botón Intercept** (lo cubre Follow,
+tecla `*`), y las maniobras útiles del Helm MFD (Follow, Orbit, Erratic,
+Emergency Stop) **ya tienen tecla**. Nos manejamos **por objetivos** (follow,
+ciclar enemigos, memoria de targets), todo por teclado + voz. Se borró
+`calibrar_mouse.py` y toda la geometría de rumbo. Único resto útil: **Yellow
+Alert** como tecla asignable en el juego (`TECLA_YELLOW_ALERT`). El texto de
+abajo queda como registro de lo que se había diseñado.
+
+**Objetivo (original):** soportar comandos de giro relativo tipo "girar 90 grados
+a la derecha", "virar a la izquierda 45 grados".
 
 ### Contexto / diseño discutido (para no perder el hilo)
 - El juego fija el rumbo con **click izquierdo del mouse** en la pantalla

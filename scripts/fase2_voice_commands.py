@@ -198,7 +198,7 @@ EXIT_KEY = "esc"
 # separa una orden de una charla. Todo lo que no empiece llamando a alguien se
 # descarta sin ejecutar nada.
 # ---------------------------------------------------------------------------
-MODO_ESCUCHA = "boton"
+MODO_ESCUCHA = "web"
 
 # --- Parametros del modo activo (VAD por energia, sin dependencias nuevas) ---
 

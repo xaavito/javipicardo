@@ -169,10 +169,6 @@ def _item_catalogo_a_accion(item, texto_usuario):
             return {"action": "combo", "combo": nombre_combo,
                     "pasos": cc.fase1.COMBOS[nombre_combo]["pasos"],
                     "raw": texto_usuario}
-    elif accion_nombre == "mfd_button":
-        return {"action": "mfd_button", "boton": parametros.get("boton"),
-                "raw": texto_usuario}
-
     return {"action": "unknown", "raw": texto_usuario}
 
 

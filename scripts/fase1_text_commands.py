@@ -70,7 +70,6 @@ import re
 import unicodedata
 import time
 import ctypes
-import math
 
 import pydirectinput
 import pygetwindow as gw
@@ -389,10 +388,12 @@ ALERT_WORDS = {
 # puede ejecutar.
 # ---------------------------------------------------------------------------
 
-# Yellow Alert e Intercept Target salieron de aca el 26/10: no tienen tecla,
-# pero SI boton, asi que ahora se resuelven con un click del mouse (ver
-# YELLOW_WORDS / INTERCEPT_WORDS y la accion "mfd_button"). El dict queda para
-# futuros comandos que el juego realmente no soporte por ningun medio.
+# Yellow Alert salio de aca el 30/10: el juego deja asignarle una tecla en su
+# menu, asi que se maneja como un comando de teclado normal (ver YELLOW_WORDS y
+# TECLA_YELLOW_ALERT). Intercept Target se descarto: lo cubre Follow (tecla *).
+# Navegar la nave con el mouse (rumbo por click) tambien se descarto el 30/10:
+# nos manejamos por objetivos (follow, ciclar enemigos, memoria de targets).
+# El dict queda para futuros comandos que el juego no soporte por ningun medio.
 NO_SOPORTADO = {}
 
 # Una sola palabra puede ser compatible con varios comandos distintos, y ahi
@@ -607,57 +608,12 @@ HELP_WORDS = ["que comandos hay", "ayuda", "que puedo decir",
 
 
 # ---------------------------------------------------------------------------
-# Mouse: direccionamiento (rumbo por click) y botones del MFD.
-#
-# El juego no tiene tecla para poner rumbo libre: se clickea el mapa tactico.
-# Modelo elegido (26/10): RELOJ DE PANTALLA. "a las 12" = arriba, "a las 3" =
-# derecha, etc. Es pura geometria de pantalla (centro de la nave + radio), no
-# necesita leer el rumbo ni el compas del juego.
-#
-# TODAS las coordenadas de abajo son PLACEHOLDERS: hay que CALIBRARLAS en la
-# Windows (ver PRUEBAS #30), igual que se midio PASOS_HASTA_MAXIMA. Desde la
-# Mac se valida solo la matematica, con mocks.
+# Yellow Alert: sube escudos sin armar las armas (pag. 101). No tiene tecla por
+# defecto, pero el juego deja asignarsela en su menu de teclas. Asignala ahi y
+# escribi esa tecla aca; con None, el comando avisa en vez de mandar nada.
 # ---------------------------------------------------------------------------
+TECLA_YELLOW_ALERT = None
 
-# Posicion de la nave en pantalla, relativa a la esquina sup-izq de la ventana.
-# None = usar el centro de la ventana (la vista tactica suele centrarse en la
-# nave). Si no coincide, medir y fijar aca una tupla (x, y).
-NAVE_CENTRO_REL = None
-
-# Radio en pixeles desde la nave hasta el punto que se clickea para el rumbo.
-# Mas grande = rumbo mas "lejos" en el mapa. Placeholder, calibrar.
-RUMBO_RADIO = 200
-
-# Botones de posicion fija, relativos a la esquina sup-izq de la ventana.
-# None hasta calibrarlos en la Windows.
-BOTONES_MFD = {
-    "intercept": None,     # boton Intercept Target del Helm MFD
-    "yellow_alert": None,  # boton Yellow Alert del HUD
-}
-
-# Intercept Target vive en el Helm MFD: hay que abrirlo con la tecla ' antes de
-# clickear el boton. Si en la practica el MFD ya esta visible, poner en False.
-INTERCEPT_ABRE_HELM = True
-TECLA_HELM_MFD = "'"
-
-# Rumbo por reloj: "a las 3", "rumbo a las diez", "poné rumbo a las 6".
-# El numero se saca con un patron (1..12), no con una lista fija de frases.
-RUMBO_PREFIJOS = ["a las", "rumbo a las", "pone rumbo a las",
-                  "poner rumbo a las", "rumbo"]
-NUMEROS_RELOJ = {
-    "una": 1, "uno": 1, "un": 1, "dos": 2, "tres": 3, "cuatro": 4,
-    "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
-    "once": 11, "doce": 12,
-}
-
-# Intercept Target (boton del Helm MFD): el timon toma el control y va hacia el
-# target actual. Antes estaba en NO_SOPORTADO por no tener hotkey.
-INTERCEPT_WORDS = ["interceptar", "intercepten", "interceptalo",
-                   "interceptar objetivo", "interceptar al objetivo",
-                   "vamos hacia esa nave", "ir hacia la nave",
-                   "acercarse al objetivo", "intercepten la nave"]
-
-# Yellow Alert (boton del HUD): sube escudos sin armar las armas (pag. 101).
 YELLOW_WORDS = ["alerta amarilla", "yellow alert", "amarilla",
                 "condicion amarilla", "codigo amarillo"]
 
@@ -790,23 +746,6 @@ def listar_comandos():
 # 3) Parser: texto -> accion estructurada (dict)
 # ---------------------------------------------------------------------------
 
-def _parsear_rumbo(t):
-    """Texto normalizado -> hora del reloj (1..12) para el rumbo, o None.
-
-    Exige mencionar el rumbo ("rumbo" o "a las") Y una hora valida, para no
-    disparar con cualquier numero suelto."""
-    if not (contiene_frase(t, "rumbo") or contiene_frase(t, "a las")):
-        return None
-    m = re.search(r'\b(\d{1,2})\b', t)
-    if m:
-        h = int(m.group(1))
-        return h if 1 <= h <= 12 else None
-    for palabra, n in NUMEROS_RELOJ.items():
-        if contiene_frase(t, palabra):
-            return n
-    return None
-
-
 def parsear_comando(texto):
     t = normalizar(texto)
 
@@ -827,16 +766,13 @@ def parsear_comando(texto):
             return {"action": "no_soportado", "nombre": nombre,
                     "motivo": datos["motivo"], "raw": texto}
 
-    # Yellow Alert (boton del HUD). ANTES que ALERT_WORDS: "alerta amarilla"
-    # contiene "alerta", asi que chequearlo despues arriesgaria el match de
-    # alerta roja.
+    # Yellow Alert. ANTES que ALERT_WORDS: "alerta amarilla" contiene "alerta",
+    # asi que chequearlo despues arriesgaria el match de alerta roja.
     if any(contiene_frase(t, w) for w in YELLOW_WORDS):
-        return {"action": "mfd_button", "boton": "yellow_alert", "raw": texto}
-
-    # Intercept Target (boton del Helm MFD). ANTES que FOLLOW/combos: frases
-    # como "vamos hacia esa nave" no deben caer en seguir/aproximarse.
-    if any(contiene_frase(t, w) for w in INTERCEPT_WORDS):
-        return {"action": "mfd_button", "boton": "intercept", "raw": texto}
+        if TECLA_YELLOW_ALERT is None:
+            return {"action": "tecla_sin_asignar", "nombre": "Yellow Alert",
+                    "raw": texto}
+        return {"action": "key", "key": TECLA_YELLOW_ALERT, "raw": texto}
 
     # Combos (se chequean ANTES que los comandos individuales, porque son mas
     # especificos - ej. "ataquen con todo" no debe interpretarse como el
@@ -925,12 +861,6 @@ def parsear_comando(texto):
     if m and contiene_frase(t, 'velocidad'):
         pct = int(m.group(1))
         return {"action": "set_speed_pct", "pct": pct, "raw": texto}
-
-    # Rumbo por reloj de pantalla: "a las 3", "rumbo a las diez". Clock-only
-    # (1..12); "rumbo 90" en grados cae a unknown a proposito (ver RUMBO_*).
-    horas = _parsear_rumbo(t)
-    if horas is not None:
-        return {"action": "rumbo", "horas": horas, "raw": texto}
 
     # Velocidad por nivel con nombre (cuarto, media, etc.) - se chequea al
     # final porque frases cortas como "parar"/"frenar" podrian aparecer
@@ -1165,51 +1095,17 @@ def ejecutar_cadena(acciones, pausa_entre_teclas=None):
         oficiales.responder(acciones[-1])
 
 
-# ---------------------------------------------------------------------------
-# Mouse: convertir coordenadas y clickear. Todo relativo a la ventana del
-# juego, para que no dependa de donde este la ventana en el escritorio.
-# ---------------------------------------------------------------------------
-
-def _centro_nave(ventana):
-    """Posicion de la nave en pantalla (rel. ventana). Default: centro."""
-    if NAVE_CENTRO_REL is not None:
-        return NAVE_CENTRO_REL
-    return (ventana.width / 2, ventana.height / 2)
-
-
-def _punto_rumbo(ventana, horas):
-    """Punto a clickear para un rumbo de reloj. 12 = arriba, 3 = derecha."""
-    cx, cy = _centro_nave(ventana)
-    theta = math.radians((horas % 12) * 30)
-    return (cx + RUMBO_RADIO * math.sin(theta),
-            cy - RUMBO_RADIO * math.cos(theta))
-
-
-def _click_ventana(rel_x, rel_y):
-    """Click en (rel_x, rel_y) relativo a la esquina sup-izq de la ventana."""
-    ventana = encontrar_ventana_juego()
-    if ventana is None:
-        print("  [!] No se encontro la ventana, no se puede clickear.")
-        return False
-    abs_x = int(ventana.left + rel_x)
-    abs_y = int(ventana.top + rel_y)
-    print(f"  -> Click en ({abs_x}, {abs_y})")
-    pydirectinput.moveTo(abs_x, abs_y)
-    pydirectinput.click()
-    return True
-
-
 def ejecutar_accion(accion, pausa_entre_teclas=None, ya_enfocado=False,
                     responder=True):
     if pausa_entre_teclas is None:
         pausa_entre_teclas = PAUSA_ENTRE_TECLAS
     tipo = accion.get("action")
 
-    # Acciones que mandan tecla O mouse: enfocar el juego primero.
+    # Acciones que mandan tecla: enfocar el juego primero.
     # (help, no_soportado y unknown no mandan nada, no hace falta cambiar el foco)
     if (not ya_enfocado
             and tipo in ("key", "key_combo", "set_speed", "set_speed_pct",
-                         "combo", "rumbo", "mfd_button")):
+                         "combo")):
         enfocado = enfocar_ventana_juego()
         if not enfocado:
             print("  [!] Se intenta mandar la tecla igual, pero puede que no "
@@ -1256,30 +1152,10 @@ def ejecutar_accion(accion, pausa_entre_teclas=None, ya_enfocado=False,
               f"(aproximado, ver Fase 3 para precision real)")
         _enviar_nivel_velocidad(nivel, pausa_entre_teclas)
 
-    elif tipo == "rumbo":
-        horas = accion["horas"]
-        ventana = encontrar_ventana_juego()
-        if ventana is None:
-            print("  [!] No se encontro la ventana, no se puede poner rumbo.")
-        else:
-            rel_x, rel_y = _punto_rumbo(ventana, horas)
-            print(f"  -> Rumbo a las {horas} (reloj de pantalla)")
-            _click_ventana(rel_x, rel_y)
-
-    elif tipo == "mfd_button":
-        boton = accion["boton"]
-        coord = BOTONES_MFD.get(boton)
-        if coord is None:
-            print(f"  -> Boton '{boton}' sin calibrar (BOTONES_MFD). "
-                  "Medir la posicion en la Windows (ver PRUEBAS #30).")
-        else:
-            # Intercept vive en el Helm MFD: abrirlo con ' antes de clickear.
-            if boton == "intercept" and INTERCEPT_ABRE_HELM:
-                print(f"  -> Abriendo Helm MFD (tecla {TECLA_HELM_MFD})")
-                pydirectinput.press(TECLA_HELM_MFD)
-                time.sleep(pausa_entre_teclas)
-            print(f"  -> Boton MFD: {boton}")
-            _click_ventana(*coord)
+    elif tipo == "tecla_sin_asignar":
+        print(f"  -> '{accion['nombre']}' no tiene tecla asignada. Asignale una "
+              "en el menu de teclas del juego y ponela en su constante "
+              "(ej. TECLA_YELLOW_ALERT).")
 
     elif tipo == "ambiguo":
         print(f"  -> '{accion['raw']}' es ambiguo, no se ejecuta nada. "
@@ -1302,7 +1178,7 @@ def ejecutar_accion(accion, pausa_entre_teclas=None, ya_enfocado=False,
     # para poder seguir escribiendo el proximo comando comodamente.
     if (not ya_enfocado and DEVOLVER_FOCO_CONSOLA
             and tipo in ("key", "key_combo", "set_speed", "set_speed_pct",
-                         "combo", "rumbo", "mfd_button")):
+                         "combo")):
         enfocar_consola()
 
     # El oficial contesta AL FINAL, con la tecla ya mandada: asi el juego ya
