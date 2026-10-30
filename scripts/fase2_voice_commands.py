@@ -329,6 +329,11 @@ def escuchar_desde_la_web(modelo):
     print("Después hablá normal, llamando a un oficial:")
     print('   "computadora, alerta roja"   ·   "artillero, fuego"\n')
 
+    # Mientras el oficial contesta, su voz (y el eco de la orden) vuelven por el
+    # microfono de la pagina: sin este mute se re-transcriben y se re-ejecutan en
+    # loop, gastando STT. Mismo criterio que el modo "activa".
+    mudo_hasta = 0.0
+
     while True:
         if keyboard.is_pressed(EXIT_KEY):
             print("Saliendo...")
@@ -339,12 +344,20 @@ def escuchar_desde_la_web(modelo):
         if frase is None:
             continue
 
+        # Lo capturado mientras el oficial hablaba se tira sin transcribir.
+        if time.time() < mudo_hasta:
+            panel.vaciar_frases()
+            continue
+
         crudo, hz = frase
         audio = np.frombuffer(crudo, dtype=np.float32)
         audio = _remuestrear(audio, hz)
         if audio.size / SAMPLE_RATE < MIN_DURACION_AUDIO_SEG:
             continue
-        _procesar_frase(modelo, audio, ofi)
+        mudo_hasta = _procesar_frase(modelo, audio, ofi)
+        # Descartar lo que entro mientras pensabamos/contestaba, no solo marcar
+        # el mute: asi no queda una frase vieja esperando para ejecutarse tarde.
+        panel.vaciar_frases()
 
 
 def escuchar_activo(modelo):

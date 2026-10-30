@@ -87,6 +87,16 @@ def proxima_frase(timeout=0.5):
         return None
 
 
+def vaciar_frases():
+    """Descarta las frases encoladas. Se usa tras ejecutar un comando para tirar
+    lo que la pagina capturo mientras contestaba el oficial (eco)."""
+    try:
+        while True:
+            _frases_web.get_nowait()
+    except queue.Empty:
+        pass
+
+
 def publicar(oficial, nombre, frase, comando, audio=None, uniforme=None,
              velocidad=None, tecla=None):
     """La llama oficiales.responder() cada vez que contesta alguien. `audio` es
