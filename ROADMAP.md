@@ -24,6 +24,26 @@ Convención de estado: `[ ]` pendiente, `[~]` en progreso / parcialmente validad
 
 ---
 
+## Pendientes anotados (30/10)
+
+Confirmado en vivo el 30/10: **UI web LCARS + modo siempre-escuchando (`web`)
+anda**, con el fix del loop anti-eco. Se descartó la navegación por mouse; se
+maneja por objetivos. Quedan dos cosas anotadas:
+
+- [ ] **Feedback para Pato (próxima charla).** Armar el resumen de lo que pidió
+      y lo que se hizo desde la última sesión (volver a la UI web + siempre-
+      escuchando, bajar la navegación por mouse, manejo por objetivos, el bug
+      del loop y su fix). Va en **`docs/feedback_sesiones.md`** → plantilla
+      **Sesión #4** (hoy vacía), tabla "qué sugirió / cómo estábamos / qué se
+      hizo", lista para Slack. El detalle técnico largo, acá en el ROADMAP.
+- [ ] **Latencia voz → acción.** Hay un delay perceptible entre hablar y que el
+      juego reciba la tecla. Ver de reducirlo. Sospechosos a medir (en orden):
+      el round-trip de STT a OpenAI (lo más pesado), el corte por silencio del
+      VAD del browser antes de mandar la frase, y el enfoque/cambio de ventana
+      antes de inyectar la tecla. Medir cada tramo antes de optimizar.
+
+---
+
 ## Fase 0 — Validar inyección de teclado (SendInput / pydirectinput)
 
 **Objetivo:** confirmar que se puede simular una tecla (ej. `S`) contra el juego
