@@ -44,6 +44,59 @@ maneja por objetivos. Quedan dos cosas anotadas:
 
 ---
 
+## Integración del Agents SDK al juego (dirección actual — 30/10)
+
+Pedido de Pato (Sesión #3, 25/09): pasar a los **Agents SDK de OpenAI**. La
+decisión ahora es **integrarlo al juego de verdad**, no quedarse en el spike.
+Base reusable ya construida: el ejecutor de teclas validado (`ejecutar_accion`),
+el catálogo de tools (`catalogo_comandos.generar_tools_openai`), el enrutado por
+oficial, el encadenado, la repregunta y la UI web LCARS.
+
+### Hecho (escritorio / investigación)
+- [x] SDK de Python confirmado (`openai-agents`: `RealtimeAgent`/`RealtimeRunner`,
+      WebSocket server-side; **no hace falta el server Node de Pato**). Ver PRUEBAS #29.
+- [x] Modelo: `gpt-realtime` (`gpt-realtime-2.1`); STT `gpt-4o-mini-transcribe`.
+- [x] Precio entendido (por token, ~$0.04–0.10/min flagship, el mini ~1/3).
+      *(confirmar contra la página oficial de OpenAI antes de llevarlo a Pato.)*
+- [x] Spike `scripts/fase3_agents_spike.py` escrito: 1 tool `alerta_roja` →
+      `ejecutar_accion`, mic por `sounddevice`, barge-in `semantic_vad`.
+      Validado en la Mac con mocks (`--self-test`). *(branch `agents-sdk-spike`.)*
+
+### Falta (todo necesita la Windows)
+- [ ] **Correr el spike en vivo:** ¿la tecla llega al juego pasando por el
+      agente? Cerrar los dos incógnitos del script: import exacto del decorador
+      de tools, y nombre del campo del evento `audio` de salida.
+- [ ] **Medir fluidez en combate + costo real** de 5 min (PRUEBAS #29 Paso 2/3).
+      Es la pregunta que el spike existe para contestar: ¿se siente más fluido
+      que el parser+LLM de hoy, aun siendo más caro/lento?
+- [ ] **Decisión de arquitectura:** ¿el agente REEMPLAZA el camino
+      STT+parser+LLM, o convive? Propuesta: dejar el parser de reglas como
+      camino rápido/gratis y el agente como capa conversacional.
+- [ ] **Exponer todas las tools al agente** (hoy sólo `alerta_roja`), reusando el
+      schema de `catalogo_comandos.generar_tools_openai`, cada una cableada a
+      `ejecutar_accion`.
+- [ ] **Enrutado por oficial como handoffs** (agente triage → agente por rol,
+      cada uno con sólo sus tools). Ver WISHLIST §3.0.
+- [ ] **Voz / HUD:** decidir si se mantienen las voces pre-generadas + retratos
+      de oficiales (el HUD que gusta) o se usa la voz nativa del realtime.
+      Mantener el panel LCARS.
+- [ ] **Anti-eco / barge-in con mic siempre abierto** (misma lección del loop del
+      modo web, ya resuelto en fase2).
+- [ ] **Guardas de costo** para mic abierto.
+
+### Steps (en orden)
+1. Pushear `agents-sdk-spike` para no perderlo.
+2. **Windows:** correr el spike, confirmar el round-trip, cerrar los dos
+   incógnitos (decorador, campo `audio`).
+3. **Medir fluidez + costo** (Paso 2/3). **← Gate de decisión:** si no se siente
+   fluido, se para acá y se le lleva a Pato el resultado medido.
+4. Si pasa el gate: **ampliar a todas las tools** (schema del catálogo).
+5. **Handoffs por oficial** (triage → roles).
+6. **Estrategia de voz/HUD** y cablearlo al panel LCARS.
+7. Definir **convivencia parser-rápido vs agente** y las **guardas de costo**.
+
+---
+
 ## Fase 0 — Validar inyección de teclado (SendInput / pydirectinput)
 
 **Objetivo:** confirmar que se puede simular una tecla (ej. `S`) contra el juego
