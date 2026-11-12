@@ -307,13 +307,18 @@ afuera del browser.
 
 ### Compromisos para la próxima charla (viernes)
 
-- ⏳ **Leer la doc del Agents SDK y de `gpt-live-1`**, y confirmar qué expone
-  el SDK de **Python** (su ejemplo es de JS).
-- ⏳ **Mirar el precio por minuto de audio.** Es el único dato que falta para
-  decidir escucha permanente vs. wake word local.
-- ⏳ **Prueba de concepto mínima:** una sola tool nuestra (`alerta roja`) dando
-  toda la vuelta — voz → agente → `/tool_calls` en Python → tecla al juego →
-  resultado de vuelta al modelo.
+- ✅ **Leer la doc del Agents SDK y de `gpt-live-1`** (26/10): el SDK de Python
+  expone lo mismo que el de JS, por WebSocket server-side; `gpt-live-1` hoy es
+  `gpt-realtime-2.1`. No hace falta su server Node.
+- ✅ **Precio por minuto de audio** (26/10): es por token, ~US$ 0.04-0.10/min
+  con el micrófono mandando todo. *(A confirmar contra la página oficial.)*
+- ✅ **Más que la prueba de concepto** (12/11): el SDK quedó integrado a todo
+  el proyecto. Un agente por oficial con handoffs, todas las tools del
+  catálogo, y el fallback de texto también sobre el SDK. Falta probarlo en
+  vivo (PRUEBAS #32).
+- ✅ **Escucha permanente sin pagarla** (12/11): una compuerta local (Vosk)
+  sólo manda audio a OpenAI cuando escucha el nombre de un oficial. Es el
+  "wake word local" que el precio pedía.
 - 🗣️ Contarle que **el encadenado de comandos ya está hecho** (25/09), que es
   medio camino andado hacia lo que el SDK resuelve.
 

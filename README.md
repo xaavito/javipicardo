@@ -23,6 +23,23 @@ con Pato (una tabla por sesión, lista para mandar por Slack).
 
 ## 0. Estado actual (resumen — ver `ROADMAP.md` para el detalle completo)
 
+> ### 🤖 12/11: la tripulación corre sobre el Agents SDK de OpenAI
+>
+> Pedido de Pato (Sesión #3), integrado a todo el proyecto (detalle en
+> `ROADMAP.md` → "Integración del Agents SDK", pruebas en `PRUEBAS.md` #32):
+>
+> - **`scripts/agentes.py`** arma un agente por oficial a partir del catálogo
+>   de comandos. La Computadora tiene todas las tools; nombrar a un oficial es
+>   un *handoff* a su agente.
+> - **`scripts/fase3_agente_voz.py`** (o `MODO_ESCUCHA = "agente"`): sesión
+>   Realtime por voz. Una **compuerta local con Vosk** deja el micrófono
+>   siempre abierto sin gastar: a OpenAI sólo sale audio cuando la PC escucha
+>   el nombre de un oficial. Vosk sólo decide eso; la orden se sigue
+>   transcribiendo online.
+> - El fallback del parser de reglas (`llm_fallback.py`) ahora es un `Agent`
+>   del SDK con las mismas tools. El parser sigue primero, y las teclas las
+>   sigue apretando `ejecutar_accion`.
+
 > ### ⚠️ Decisión del 25/09: todo online, contra OpenAI
 >
 > **Se descartó correr modelos locales.** Ni STT (`faster-whisper`) ni LLM

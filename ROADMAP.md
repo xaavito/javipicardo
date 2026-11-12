@@ -62,38 +62,59 @@ oficial, el encadenado, la repregunta y la UI web LCARS.
       `ejecutar_accion`, mic por `sounddevice`, barge-in `semantic_vad`.
       Validado en la Mac con mocks (`--self-test`). *(branch `agents-sdk-spike`.)*
 
-### Falta (todo necesita la Windows)
-- [ ] **Correr el spike en vivo:** ¿la tecla llega al juego pasando por el
-      agente? Cerrar los dos incógnitos del script: import exacto del decorador
-      de tools, y nombre del campo del evento `audio` de salida.
-- [ ] **Medir fluidez en combate + costo real** de 5 min (PRUEBAS #29 Paso 2/3).
-      Es la pregunta que el spike existe para contestar: ¿se siente más fluido
-      que el parser+LLM de hoy, aun siendo más caro/lento?
-- [ ] **Decisión de arquitectura:** ¿el agente REEMPLAZA el camino
-      STT+parser+LLM, o convive? Propuesta: dejar el parser de reglas como
-      camino rápido/gratis y el agente como capa conversacional.
-- [ ] **Exponer todas las tools al agente** (hoy sólo `alerta_roja`), reusando el
-      schema de `catalogo_comandos.generar_tools_openai`, cada una cableada a
-      `ejecutar_accion`.
-- [ ] **Enrutado por oficial como handoffs** (agente triage → agente por rol,
-      cada uno con sólo sus tools). Ver WISHLIST §3.0.
-- [ ] **Voz / HUD:** decidir si se mantienen las voces pre-generadas + retratos
-      de oficiales (el HUD que gusta) o se usa la voz nativa del realtime.
-      Mantener el panel LCARS.
-- [ ] **Anti-eco / barge-in con mic siempre abierto** (misma lección del loop del
-      modo web, ya resuelto en fase2).
-- [ ] **Guardas de costo** para mic abierto.
+### Integrado a todo el proyecto (12/11, branch `agents-sdk-integration`)
 
-### Steps (en orden)
-1. Pushear `agents-sdk-spike` para no perderlo.
-2. **Windows:** correr el spike, confirmar el round-trip, cerrar los dos
-   incógnitos (decorador, campo `audio`).
-3. **Medir fluidez + costo** (Paso 2/3). **← Gate de decisión:** si no se siente
-   fluido, se para acá y se le lleva a Pato el resultado medido.
-4. Si pasa el gate: **ampliar a todas las tools** (schema del catálogo).
-5. **Handoffs por oficial** (triage → roles).
-6. **Estrategia de voz/HUD** y cablearlo al panel LCARS.
-7. Definir **convivencia parser-rápido vs agente** y las **guardas de costo**.
+Javi pidió alcance total, no quedarse en el spike. Hecho y validado en la Mac
+(`python scripts/fase3_agente_voz.py --self-test`, sin red ni teclas reales,
+con los modelos "scripted" que trae el propio SDK):
+
+- [x] **`scripts/agentes.py`**: arma las tools desde el catálogo (una por
+      comando, sin argumentos) y la tripulación. La **Computadora** tiene todas
+      las tools (una orden sin nombre se ejecuta en un solo viaje); cada
+      **oficial** es un `RealtimeAgent` con sólo las suyas, y nombrarlo es un
+      **handoff** (`llamar_armas`, `llamar_timon`, ...; vuelven con
+      `llamar_computadora`). El dueño de cada tool lo decide
+      `oficiales.oficial_para`, el mismo criterio que elige quién contesta.
+- [x] **Todas las tools expuestas** (32, del catálogo). `item_a_accion` pasó a
+      `catalogo_comandos.py`, compartido por el fallback y los agentes.
+- [x] **`scripts/fase3_agente_voz.py`** (reemplaza al spike): sesión Realtime
+      por WebSocket, tools en orden (`async_tool_calls: False`, para que
+      "alerta roja y media máquina" apriete en ese orden), panel LCARS y wav de
+      los oficiales. También desde fase2 con `MODO_ESCUCHA = "agente"`.
+- [x] **Compuerta local con Vosk** (pedido de Javi, 12/11): micrófono siempre
+      abierto sin gastar tokens. Vosk (offline, CPU) escucha en la PC y sólo
+      cuando oye el nombre de un oficial se manda audio a OpenAI, con 1.5 s de
+      pre-roll. Una sesión conectada sin audio no consume. Medido en la Mac con
+      frases sintetizadas (`say`): abrió con las 4 órdenes con rol, con ninguna
+      de las 3 charlas, a los 0.7-1.1 s de empezar la frase y con 10-110 ms de
+      CPU. **La gramática restringida de Vosk se descartó**: fuerza cualquier
+      charla a una palabra clave y abrió con las 9 frases. Los nombres propios
+      (Korak, Zheva, T'Lara) no están en su vocabulario: se llama por rol.
+      Vosk no transcribe la orden, sólo decide si vale la pena pagarla: no
+      contradice la decisión del 25/09 de transcribir online.
+- [x] **Voz/HUD:** por defecto el agente contesta en **texto** (barato) y suenan
+      los wav pre-generados con el retrato en el panel (`VOZ_AGENTE =
+      "oficiales"`). La voz propia del realtime queda como opción.
+- [x] **Anti-eco:** la compuerta se cierra mientras suena el oficial.
+- [x] **Guardas de costo:** tope de 5 teclas cada 4 s, y corte de la sesión al
+      pasar `MAX_USD_POR_SESION` estimado con los eventos `usage` del SDK.
+      `--solo-compuerta` calibra el micrófono sin abrir sesión.
+- [x] **Fallback de texto por el SDK:** `llm_fallback` (backend openai) usa un
+      `Agent` con las mismas tools en modo "juntar" (no aprieta nada; el
+      llamador mantiene el todo-o-nada de las cadenas). Si el SDK no está
+      instalado, cae al function calling a mano de antes.
+- [x] Corregido del spike: la API key va en `runner.run(model_config=...)`, no
+      en `model_settings`; el audio de salida es `event.audio.data`; los
+      imports son de `agents.realtime`. Verificado contra `openai-agents` 0.24.
+
+### Falta (todo necesita la Windows) — PRUEBAS #32
+- [ ] Self-test en la Windows (Python 3.14) y calibración de la compuerta.
+- [ ] El circuito completo en vivo, handoffs incluidos.
+- [ ] **Gate de decisión:** ¿se banca el combate? Costo real de 10 minutos.
+- [ ] Decidir el modo por defecto de fase2 (hoy sigue `"web"`): si pasa el
+      gate, `"agente"`.
+- [ ] Confirmar `PRECIOS` contra la página oficial de OpenAI antes de llevarle
+      números a Pato.
 
 ---
 

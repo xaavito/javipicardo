@@ -41,6 +41,8 @@ seleccionado o energía de movimiento libre.
 | #13 STT local | No hace falta | Ninguno para medir latencia; con juego para confirmar que además ejecuta |
 | #11 hotkeys | **Sí** | En el menú **Options → Hotkeys**, no en misión |
 | #12 foco | **Sí** | Nave libre de moverse, y la consola **al frente** |
+| #32 agentes, pasos 0-1 | **No** | Ninguno: self-test y calibración de la compuerta |
+| #32 agentes, pasos 2-6 | **Sí** | Misión con **2-3 enemigos** y espacio para moverse |
 
 > Las que dicen "No hace falta" igual conviene hacerlas con el juego abierto si
 > ya está: no molesta, y de paso se confirma que la tecla llega.
@@ -927,6 +929,10 @@ abrirías sólo para mostrarlo? Si es lo segundo, algo del diseño está de más
 
 ### 29. Spike del Agents SDK: ¿la charla se vuelve fluida?
 
+> **Reemplazada por #32 (12/11):** el spike se integró a todo el proyecto y
+> `fase3_agents_spike.py` pasó a ser `fase3_agente_voz.py`. Lo de abajo queda
+> como registro del Paso 0; las mediciones van en #32.
+
 **Qué es un spike:** lo mínimo para contestar preguntas, no una implementación.
 Si al terminar sabemos las respuestas, salió bien aunque se tire el código.
 
@@ -1047,6 +1053,112 @@ silencio lo controla el jugador.
       `MARGEN_ANTI_ECO`.
 - [ ] Las teclas llegan al juego aunque el foco lo tenga el browser (DxWnd en
       ventana, no pantalla completa real).
+
+### 32. La tripulación con el Agents SDK — 🔴 foco de la próxima sesión
+
+**Qué es:** el pedido de Pato (Sesión #3) integrado a todo el proyecto, no sólo
+el spike de #29 (que esta prueba reemplaza):
+
+- **Voz** (`scripts/fase3_agente_voz.py`, o `MODO_ESCUCHA = "agente"` en
+  fase2): sesión Realtime con **un agente por oficial**. La Computadora tiene
+  todas las tools; nombrar a un oficial es un **handoff** a su agente, que sólo
+  tiene las suyas. La tecla la sigue apretando `ejecutar_accion`.
+- **Compuerta local (Vosk):** el micrófono está siempre abierto, pero a OpenAI
+  **sólo sale audio cuando la PC escucha el nombre de un oficial**. La charla
+  del puente no gasta tokens. Probado en la Mac con frases sintetizadas: abrió
+  con las 4 órdenes con rol y con ninguna de las 3 charlas.
+- **Texto** (fase1/fase2): el fallback del parser ahora es un `Agent` del SDK
+  con las mismas tools. El parser de reglas sigue primero.
+- **Guardas:** tope de 5 teclas cada 4 s, y la sesión se corta sola al pasar
+  `MAX_USD_POR_SESION` (US$ 2, estimado con los eventos `usage`).
+
+**Por qué importa:** es el gate del ROADMAP ("Integración del Agents SDK"): si
+no se siente fluido en combate, se para acá y se le lleva a Pato lo medido.
+
+#### Paso 0 · Instalar y self-test (5 min, sin juego)
+
+```
+pip install openai-agents vosk sounddevice numpy
+```
+
+Bajar `vosk-model-small-es-0.42` de https://alphacephei.com/vosk/models y
+descomprimirlo en `models/` (raíz del proyecto, queda fuera de git).
+
+```
+python scripts/fase3_agente_voz.py --self-test
+```
+
+- [ ] Da **TODO OK** en la Windows (valida el SDK con Python 3.14, sin red y
+      sin apretar teclas). Si algo falla, anotar la línea y parar acá.
+
+#### Paso 1 · Calibrar la compuerta sin gastar (10 min, sin juego)
+
+```
+python scripts/fase3_agente_voz.py --solo-compuerta
+```
+
+No abre sesión: sólo imprime `[compuerta] abre (...)` cada vez que hubiera
+mandado audio.
+
+- [ ] "computadora, alerta roja" · "artillero, fuego" · "timonel, media
+      máquina" · "ciencias, escaneo profundo" → abren las 4: ⬜ sí ⬜ ___ de 4
+- [ ] 2 minutos de charla normal / video de YouTube de fondo → aperturas: ____
+- [ ] **"Korak", "Zheva", "T'Lara" no abren**: no están en el vocabulario de
+      Vosk. Llamarlos por rol (artillero, defensa, timonel). Confirmar.
+- [ ] Si no abre nunca: probar `--dispositivo N` (ver `probar_microfono.py`) o
+      bajar `UMBRAL_VOZ`. Si abre con charla: anotar con qué palabra.
+
+#### Paso 2 · El circuito completo (juego abierto)
+
+```
+python scripts/fase3_agente_voz.py
+```
+
+| Orden | Esperado | Resultado |
+|---|---|---|
+| "computadora, alerta roja" | tecla `r`, contesta Zheva | ⬜ ok ⬜ falla |
+| "artillero, fuego" | `[handoff] computadora -> armas`, tecla `z` | ⬜ ok ⬜ falla |
+| (ya con Korak) "media máquina" | devuelve a la computadora y acelera | ⬜ ok ⬜ falla |
+| "computadora, alerta roja y media máquina" | `r` y después la velocidad, en orden | ⬜ ok ⬜ falla |
+| "computadora, máquina" | pregunta cuál, no adivina | ⬜ pregunta ⬜ adivina |
+| charla sin nombre | no abre la compuerta, no gasta | ⬜ ok ⬜ falla |
+| la voz del oficial | no reabre la compuerta (anti-eco) | ⬜ ok ⬜ falla |
+
+#### Paso 3 · ¿Se banca el combate?
+
+- [ ] 5-6 órdenes seguidas con la nave en movimiento: ⬜ va bien ⬜ se siente
+      lento ⬜ inusable
+- [ ] Comparado con `MODO_ESCUCHA = "web"` (parser + STT): ⬜ más fluido
+      ⬜ igual ⬜ peor
+
+#### Paso 4 · Costo real
+
+- [ ] 10 minutos jugando. El `[gasto]` de la consola al final: US$ ______
+- [ ] El mismo rato en el dashboard de uso de OpenAI: US$ ______ (si difiere
+      mucho, corregir `PRECIOS` en el script)
+- [ ] Opcional: repetir con `MODELO = "gpt-realtime-2.1-mini"`: US$ ______ ·
+      ⬜ entiende igual ⬜ peor
+
+#### Paso 5 · Fallback de texto por el agente
+
+`python scripts/fase1_text_commands.py` y escribir algo que el parser no
+reconoce: *"poné la alarma y tirale con todo"*.
+
+- [ ] Ejecuta alerta roja + alpha strike (o lo que corresponda) ⬜ ok ⬜ falla
+
+#### Paso 6 · Opcional: voz propia del agente (con auriculares)
+
+`VOZ_AGENTE = "realtime"` y `AURICULARES = True`.
+
+- [ ] ⬜ suena mejor que los wav ⬜ peor · ¿le hablás encima y se calla?
+      ⬜ sí ⬜ no
+
+#### Cuándo abortar
+
+- Si en combate **hay que esperar** a que el agente conteste → volver a
+  `"web"` y llevarle a Pato el resultado medido.
+- Si el costo por hora no cierra ni con la compuerta → probar el mini; si
+  tampoco, el agente queda sólo como fallback de texto.
 
 ---
 
