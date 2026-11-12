@@ -193,6 +193,11 @@ EXIT_KEY = "esc"
 #                     salida de la entrada, y como la voz de los oficiales sale
 #                     por esa misma pagina, el eco se resuelve de raiz en vez
 #                     de silenciar el microfono mientras hablan.
+#   "agente"       -> la tripulacion del Agents SDK por voz (fase3_agente_voz.py):
+#                     sesion Realtime con un agente por oficial, y una
+#                     compuerta local que solo le manda audio cuando escucha
+#                     el nombre de un oficial. Usa DISPOSITIVO_ENTRADA y
+#                     EXIGIR_NOMBRE_DE_OFICIAL de aca.
 #
 # En modo activo, el nombre del oficial NO es decoracion: es el filtro que
 # separa una orden de una charla. Todo lo que no empiece llamando a alguien se
@@ -620,6 +625,8 @@ def precalentar_todo():
         try:
             import catalogo_comandos
             catalogo_comandos.generar_tools_openai()
+            import agentes
+            agentes.precalentar()
         except Exception:
             pass
     print(f"  - Parser y catalogo de comandos: OK ({time.time() - t0:.2f}s)")
@@ -645,6 +652,12 @@ def main():
     # Por voz no se escribe en la consola: el hook de F12 es global y el panel
     # muestra lo que pasa. Que el foco se quede en el juego.
     fase1.DEVOLVER_FOCO_CONSOLA = False
+
+    if MODO_ESCUCHA == "agente":
+        import fase3_agente_voz
+        fase3_agente_voz.main(dispositivo=DISPOSITIVO_ENTRADA,
+                              exigir_nombre=EXIGIR_NOMBRE_DE_OFICIAL)
+        return
 
     ofi = getattr(fase1, "oficiales", None)
     if ofi is not None and ofi.PANEL_WEB and ofi.panel_web is not None:

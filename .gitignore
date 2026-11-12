@@ -16,3 +16,7 @@ env/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Modelos locales (Vosk para la compuerta de fase3): se bajan aparte, ver
+# la cabecera de scripts/fase3_agente_voz.py
+models/

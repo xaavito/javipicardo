@@ -147,31 +147,6 @@ def _llamar_ollama(system_prompt, texto_usuario):
     return respuesta["message"]["content"]
 
 
-def _item_catalogo_a_accion(item, texto_usuario):
-    """Traduce un item del catalogo (formato accion/parametros, generico y
-    legible) al formato interno que ya usa fase1.ejecutar_accion()
-    (action/keys/level/etc, segun el tipo). Compartido por ambos backends."""
-    accion_nombre = item["accion"]
-    parametros = item["parametros"]
-
-    if accion_nombre == "set_speed":
-        return {"action": "set_speed", "level": parametros.get("level", 0),
-                "raw": texto_usuario}
-    elif accion_nombre == "key":
-        return {"action": "key", "key": parametros.get("key"),
-                "raw": texto_usuario}
-    elif accion_nombre == "key_combo":
-        return {"action": "key_combo", "keys": parametros.get("keys", []),
-                "raw": texto_usuario}
-    elif accion_nombre == "combo":
-        nombre_combo = parametros.get("combo")
-        if nombre_combo in cc.fase1.COMBOS:
-            return {"action": "combo", "combo": nombre_combo,
-                    "pasos": cc.fase1.COMBOS[nombre_combo]["pasos"],
-                    "raw": texto_usuario}
-    return {"action": "unknown", "raw": texto_usuario}
-
-
 def _interpretar_con_openai_function_calling(texto_usuario):
     """Usa 'function calling' (tools) de la API de OpenAI: en vez de pedirle
     al modelo que GENERE un JSON libre describiendo la accion, se le pasa un
@@ -226,7 +201,7 @@ def _interpretar_con_openai_function_calling(texto_usuario):
         if item is None:
             # No deberia pasar: la API solo puede elegir nombres del esquema.
             continue
-        acciones.append(_item_catalogo_a_accion(item, texto_usuario))
+        acciones.append(cc.item_a_accion(item, texto_usuario))
 
     if not acciones:
         return {"action": "unknown", "raw": texto_usuario}
@@ -251,10 +226,35 @@ def _interpretar_con_ollama_json_libre(texto_usuario):
     if not accion_nombre:
         return {"action": "unknown", "raw": texto_usuario}
 
-    return _item_catalogo_a_accion(
+    return cc.item_a_accion(
         {"accion": accion_nombre, "parametros": data.get("parametros", {}) or {}},
         texto_usuario,
     )
+
+
+_ya_avise_sin_sdk = False
+
+
+def _interpretar_con_agente(texto_usuario):
+    """Backend "openai" desde el 12/11: el Agent de texto de agentes.py
+    (Agents SDK, pedido de Pato). Mismas tools y mismo catalogo; si el SDK no
+    esta instalado se cae al function calling a mano de siempre."""
+    global _ya_avise_sin_sdk
+    try:
+        import agentes
+        acciones = agentes.interpretar_texto(texto_usuario, MAX_ACCIONES_LLM)
+    except ImportError:
+        if not _ya_avise_sin_sdk:
+            _ya_avise_sin_sdk = True
+            print("  [!] Falta el Agents SDK (pip install openai-agents): se "
+                  "usa el function calling directo.")
+        return _interpretar_con_openai_function_calling(texto_usuario)
+
+    if not acciones:
+        return {"action": "unknown", "raw": texto_usuario}
+    if len(acciones) == 1:
+        return acciones[0]
+    return {"action": "cadena", "acciones": acciones, "raw": texto_usuario}
 
 
 def interpretar_con_llm(texto_usuario, timeout_seg=10):
@@ -264,8 +264,8 @@ def interpretar_con_llm(texto_usuario, timeout_seg=10):
     {"action": "unknown", "raw": texto_usuario} si el LLM no pudo interpretar
     nada util o hubo algun error.
 
-    - Backend "openai": usa function calling (mas rapido y confiable, ver
-      _interpretar_con_openai_function_calling).
+    - Backend "openai": el Agent de texto del Agents SDK (ver
+      _interpretar_con_agente), que elige entre las tools del catalogo.
     - Backend "ollama": usa JSON libre en el texto de la respuesta (ver
       _interpretar_con_ollama_json_libre), porque no todos los modelos
       chicos que corren bien en CPU soportan function calling de forma
@@ -273,7 +273,7 @@ def interpretar_con_llm(texto_usuario, timeout_seg=10):
     """
     try:
         if LLM_BACKEND == "openai":
-            return _interpretar_con_openai_function_calling(texto_usuario)
+            return _interpretar_con_agente(texto_usuario)
         elif LLM_BACKEND == "ollama":
             return _interpretar_con_ollama_json_libre(texto_usuario)
         else:

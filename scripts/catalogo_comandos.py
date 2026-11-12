@@ -206,6 +206,32 @@ def generar_tools_openai():
     return _tools_cacheadas
 
 
+def item_a_accion(item, texto_usuario):
+    """Traduce un item del catalogo (formato accion/parametros, generico y
+    legible) al formato interno que ya usa fase1.ejecutar_accion()
+    (action/keys/level/etc, segun el tipo). Lo comparten el LLM fallback y los
+    agentes (agentes.py)."""
+    accion_nombre = item["accion"]
+    parametros = item["parametros"]
+
+    if accion_nombre == "set_speed":
+        return {"action": "set_speed", "level": parametros.get("level", 0),
+                "raw": texto_usuario}
+    elif accion_nombre == "key":
+        return {"action": "key", "key": parametros.get("key"),
+                "raw": texto_usuario}
+    elif accion_nombre == "key_combo":
+        return {"action": "key_combo", "keys": parametros.get("keys", []),
+                "raw": texto_usuario}
+    elif accion_nombre == "combo":
+        nombre_combo = parametros.get("combo")
+        if nombre_combo in fase1.COMBOS:
+            return {"action": "combo", "combo": nombre_combo,
+                    "pasos": fase1.COMBOS[nombre_combo]["pasos"],
+                    "raw": texto_usuario}
+    return {"action": "unknown", "raw": texto_usuario}
+
+
 # Command dictionaries of fase1 that on purpose stay out of the catalog:
 # "ayuda" prints the command list instead of pressing a key, so there is
 # nothing for the LLM to invoke.

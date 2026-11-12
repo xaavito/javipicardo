@@ -394,9 +394,12 @@ def reproducir(clave_oficial, frase):
         return False
 
 
-def responder(accion):
+def responder(accion, sonar=True):
     """Imprime el acuse del oficial que corresponde y, si hay wav generado, lo
-    reproduce. Se llama DESPUES de mandar las teclas, nunca antes."""
+    reproduce. Se llama DESPUES de mandar las teclas, nunca antes.
+
+    sonar=False publica el retrato en el panel sin wav: lo usa el agente de voz
+    cuando habla con su propia voz (fase3_agente_voz.VOZ_AGENTE = "realtime")."""
     clave, frase = elegir_frase(accion)
     if frase is None:
         return
@@ -408,16 +411,18 @@ def responder(accion):
 
     ruta_audio = os.path.join(DIR_AUDIO, _nombre_archivo(clave, frase))
     ULTIMO_AUDIO_SEG = (_duracion_wav(ruta_audio)
-                        if os.path.isfile(ruta_audio) else 0.0)
+                        if sonar and os.path.isfile(ruta_audio) else 0.0)
 
     # El panel primero: si hay browser escuchando, el va a reproducir el audio
     # y reproducir() se hace a un lado.
     if PANEL_WEB and panel_web is not None:
         panel_web.publicar(clave, quien, frase, accion.get("raw"),
-                           _nombre_archivo(clave, frase), datos["uniforme"],
-                           _nivel_ordenado(accion), _tecla_de(accion))
+                           _nombre_archivo(clave, frase) if sonar else None,
+                           datos["uniforme"], _nivel_ordenado(accion),
+                           _tecla_de(accion))
 
-    reproducir(clave, frase)
+    if sonar:
+        reproducir(clave, frase)
 
 
 if __name__ == "__main__":
