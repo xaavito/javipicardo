@@ -934,28 +934,56 @@ Si al terminar sabemos las respuestas, salió bien aunque se tire el código.
 tecla llegue al juego, pasando por el agente. **Una sola tool.** Sin oficiales,
 sin panel, sin encadenado.
 
-#### Paso 0 · Leer antes de escribir (bloqueante)
+#### Paso 0 · Leer antes de escribir (bloqueante) — CERRADO el 26/10
 
 Su ejemplo es Node/TS y nuestra inyección de teclas **tiene que ser Python**.
+Contestado leyendo la doc oficial del SDK (detalle en ROADMAP Sesión #4):
 
-- [ ] ¿El SDK de **Python** (`openai-agents`) expone lo mismo que el de JS?
-- [ ] `gpt-live-1`: ¿qué es exactamente, y anda desde Python?
-- [ ] ¿Hace falta WebRTC desde el browser, o el SDK puede tomar audio del
-      server?
-- [ ] **Precio por minuto de audio** (entrada y salida): ______
+- [x] ¿El SDK de **Python** (`openai-agents`) expone lo mismo que el de JS? →
+      **Sí**: `RealtimeAgent` + `RealtimeRunner`, con tools, handoffs,
+      `instructions` y hooks. **Diferencia clave:** la sesión corre por
+      **WebSocket server-side**; no hay transporte WebRTC de browser (eso es
+      solo el SDK de TS).
+- [x] `gpt-live-1`: ¿qué es, y anda desde Python? → hoy es **`gpt-realtime`**
+      (recomendado `gpt-realtime-2.1`). Anda desde Python (es el `model_name`).
+- [x] ¿Hace falta WebRTC desde el browser, o el SDK toma audio del server? →
+      **Lo tomamos nosotros del server**: capturamos el micro con `sounddevice`
+      y lo pasamos con `session.send_audio()`. El browser queda fuera del audio.
+- [x] **Precio por minuto de audio** (entrada y salida): no hay tarifa por
+      minuto oficial, es por token. `gpt-realtime-2.1`: in **$32/M tok**, out
+      **$64/M**; el **mini** $10 / $20. All-in estimado **$0.04–0.10/min**
+      (flagship) → ~$3.6–6/hora con micro abierto; el mini ~1/3. *(De blogs
+      secundarios; confirmar contra la página oficial de OpenAI.)*
       *(es el número que decide micrófono abierto vs. wake word)*
 
-> Si el SDK de Python no da, la decisión es otra: server Node de él + un
-> servicio Python que aprieta teclas. Anotarlo y seguir, no forzarlo.
+> El SDK de Python **sí da** → NO hace falta el server Node de Pato. La única
+> "pérdida" frente a su ejemplo es WebRTC/browser, que no necesitamos. La
+> Opción 2 (browser + SDK de TS + servicio Python de teclas) queda anotada en
+> WISHLIST §5.9 como alternativa, no descartada.
 
-#### Paso 1 · El circuito mínimo
+#### Paso 1 · El circuito mínimo — ESCRITO, falta correrlo en la Windows
+
+**Ya está el spike: `scripts/fase3_agents_spike.py`** (opción 1, Python
+server-side). Lo que hace:
 
 1. Una tool `alerta_roja`, sin argumentos.
-2. `POST /tool_calls` en Python que llame a `ejecutar_accion({"action":"key",
-   "key":"r"})`.
-3. Devolver el resultado **con el mismo `call_id`** y mandar
-   **`response.create`** — el README de Pato avisa que si falta cualquiera de
-   las dos, el turno queda colgado.
+2. La tool llama a `ejecutar_accion({"action":"key","key":"r"})` — la misma
+   capa de teclas de la Fase 1.
+3. El mismo `call_id` + `response.create`: **los maneja el SDK solo** (por eso
+   usamos el SDK y no la Realtime API cruda). Ya no es código nuestro.
+
+Validado en la Mac con mocks: `python scripts/fase3_agents_spike.py --self-test`
+(el módulo arma y la tool dispara la tecla por el mock). **Falta correrlo en la
+Windows** (consola como Administrador):
+
+```
+pip install "openai-agents" sounddevice numpy
+python scripts/fase3_agents_spike.py
+```
+
+Al instalar, verificar dos cosas que la doc no fijaba (marcadas en el script):
+el import exacto del decorador de tools, y el nombre del campo del evento
+`audio` de salida.
 
 - [ ] ⬜ la tecla llega al juego · ⬜ el turno queda colgado · ⬜ no llega
 

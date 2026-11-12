@@ -725,11 +725,18 @@ para acotar el vocabulario, y el SDK lo trae resuelto.
 Administrador. El browser y el SDK son interfaz e interpretación; el control es
 nuestro.
 
-**A chequear antes de comprometerse:**
+**A chequear antes de comprometerse** (contestado el 26/10, Sesión #4; detalle
+en ROADMAP):
 
-- **Precio por minuto de audio** de `gpt-realtime` (entrada y salida). Con
-  micrófono siempre abierto es *el* número que decide si hace falta la Opción C.
-  No inventar el dato: mirarlo.
+- [x] **Precio por minuto de audio** de `gpt-realtime` → es por token, no por
+  minuto: `gpt-realtime-2.1` in $32/M, out $64/M; el mini $10/$20. All-in
+  estimado $0.04–0.10/min (flagship), el mini ~1/3 → ~$3.6–6/hora con micro
+  abierto vs. ~$1.2–2/hora el mini. Confirmar contra la página oficial de
+  OpenAI. Sigue siendo el número que decide micrófono abierto vs. wake word.
+- [x] **Transporte: WebSocket server-side, no WebRTC.** El SDK de Python no
+  tiene transporte WebRTC de browser (eso es solo el de TS). Se captura el micro
+  con `sounddevice` y se manda con `session.send_audio()`. **Decidido ir con
+  esta Opción 1** (ver abajo).
 - **El esquema de tools cambia de forma**: Realtime las quiere planas
   (`{type, name, description, parameters}`) y Chat Completions anidadas
   (`{type, function: {...}}`). `catalogo_comandos.generar_tools_openai()` ya
@@ -741,3 +748,17 @@ nuestro.
 - **Qué pasa si se cae internet.** Hoy el parser local responde igual; con
   Realtime, no. Vale decidir si queremos un modo degradado (parser + teclas,
   sin voz) o no.
+
+**Opción 1 (elegida) vs. Opción 2 (reservada), decidido con Javi el 26/10:**
+
+- **Opción 1 — Python server-side (en curso).** Micro → `RealtimeAgent` en
+  Python (WebSocket) → `ejecutar_accion` aprieta la tecla. El browser queda
+  fuera del camino de audio. Es lo que el SDK de Python habilita limpio y lo que
+  explora el spike `scripts/fase3_agents_spike.py`.
+- **Opción 2 — browser + WebRTC (reservada, NO descartada).** Es la arquitectura
+  del ejemplo de Pato: audio en el browser con el SDK de **TS** + un servicio
+  **Python** aparte que recibe las tool calls y aprieta teclas. Más piezas. Se
+  mantiene como alternativa si alguna vez queremos el audio en el browser (p. ej.
+  para integrarlo con el panel LCARS en la misma página). No se eligió ahora
+  porque suma un segundo runtime (Node) sin necesidad: el audio server-side
+  alcanza y la inyección de teclas ya es Python.
