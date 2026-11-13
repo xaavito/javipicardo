@@ -623,8 +623,8 @@ YELLOW_WORDS = ["alerta amarilla", "yellow alert", "amarilla",
 # defecto: son los botones OVERLOAD / NORMAL del panel de armas. Si el menu de
 # teclas del juego deja asignarlos, poner aca esas teclas; con None, avisa.
 # ---------------------------------------------------------------------------
-TECLA_OVERLOAD = None
-TECLA_ARMAS_NORMAL = None
+TECLA_OVERLOAD = "u"            # asignada en Options del juego (13/11)
+TECLA_ARMAS_NORMAL = "insert"   # idem
 
 # NORMAL se chequea antes: "sin sobrecarga" contiene "sobrecarga".
 ARMAS_NORMAL_WORDS = ["sin sobrecarga", "quitar sobrecarga", "sacar sobrecarga",

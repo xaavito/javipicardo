@@ -195,6 +195,18 @@ Guardar el objetivo actual en la ranura de memoria 4, para volver a el mas tarde
 
 «guardar objetivo cuatro» · «memorizar objetivo cuatro»
 
+### Sobrecargar armas
+
+Overload de las armas pesadas: mas daño, alcance maximo 8. Tecla: `U`.
+
+«sobrecargar armas» · «sobrecarguen las armas» · «armas en sobrecarga» · «sobrecarguen» · «sobrecarga» · «overload»
+
+### Armas carga normal
+
+Sacar el overload: armas pesadas en carga normal. Tecla: `Insert`.
+
+«sin sobrecarga» · «quitar sobrecarga» · «sacar sobrecarga» · «carga normal» · «armas en modo normal» · «armas normales»
+
 ### Ataque total
 
 Maximiza ECM y dispara Alpha Strike (todas las armas). Tecla: `F`, después `Shift` + `Z`.
@@ -238,18 +250,6 @@ El juego no les asigna tecla por defecto. Asignales una en **Options → hotkeys
 Sube escudos sin armar las armas. Constante: `TECLA_YELLOW_ALERT`.
 
 «alerta amarilla» · «yellow alert» · «amarilla» · «condicion amarilla» · «codigo amarillo»
-
-### Overload
-
-Armas pesadas en sobrecarga: más daño, alcance máximo 8, más energía. Constante: `TECLA_OVERLOAD`.
-
-«sobrecargar armas» · «sobrecarguen las armas» · «armas en sobrecarga» · «sobrecarguen» · «sobrecarga» · «overload»
-
-### Carga normal
-
-Saca el overload. Constante: `TECLA_ARMAS_NORMAL`.
-
-«sin sobrecarga» · «quitar sobrecarga» · «sacar sobrecarga» · «carga normal» · «armas en modo normal» · «armas normales»
 
 ## Otros
 

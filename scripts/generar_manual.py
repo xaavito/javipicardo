@@ -38,6 +38,7 @@ NOMBRE_TECLA = {
     "\\": "`\\`",
     "shift": "`Shift`",
     "ctrl": "`Ctrl`",
+    "insert": "`Insert`",
 }
 
 ORDEN_OFICIALES = ["timon", "armas", "defensa", "ciencias", "computadora"]
