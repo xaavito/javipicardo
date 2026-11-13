@@ -169,6 +169,15 @@ def generar():
             w("")
             w(_frases(item["frases"]))
             w("")
+        if clave == "armas" and "sobrecargar_armas" in fase1.COMBOS \
+                and fase1.TECLA_SELECCIONAR_TODAS_ARMAS is None:
+            w("> **Antes del overload, una vez por misión:** el overload "
+              "actúa sobre las armas seleccionadas, y la orden las "
+              f"selecciona con el grupo de armas `{fase1.GRUPO_TODAS_LAS_ARMAS}`. "
+              "Ese grupo hay que guardarlo a mano: botón **Select All "
+              "Weapons** del panel del oficial de armas y después "
+              f"`Ctrl+{fase1.GRUPO_TODAS_LAS_ARMAS}`.")
+            w("")
         if clave == "timon":
             w("### Velocidad en porcentaje")
             w("")

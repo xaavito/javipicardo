@@ -195,23 +195,25 @@ Guardar el objetivo actual en la ranura de memoria 4, para volver a el mas tarde
 
 «guardar objetivo cuatro» · «memorizar objetivo cuatro»
 
-### Sobrecargar armas
-
-Overload de las armas pesadas: mas daño, alcance maximo 8. Tecla: `U`.
-
-«sobrecargar armas» · «sobrecarguen las armas» · «armas en sobrecarga» · «sobrecarguen» · «sobrecarga» · «overload»
-
-### Armas carga normal
-
-Sacar el overload: armas pesadas en carga normal. Tecla: `Insert`.
-
-«sin sobrecarga» · «quitar sobrecarga» · «sacar sobrecarga» · «carga normal» · «armas en modo normal» · «armas normales»
-
 ### Ataque total
 
 Maximiza ECM y dispara Alpha Strike (todas las armas). Tecla: `F`, después `Shift` + `Z`.
 
 «ataquen con todo» · «ataque total» · «todo el poder de fuego» · «usen todas las armas» · «fuego con todo»
+
+### Armas carga normal
+
+Selecciona todas las armas y les saca el overload (carga normal). Tecla: `1`, después `Insert`.
+
+«sin sobrecarga» · «quitar sobrecarga» · «sacar sobrecarga» · «carga normal» · «armas en modo normal» · «armas normales»
+
+### Sobrecargar armas
+
+Selecciona todas las armas y pone las pesadas en overload: mas daño, alcance maximo 8. Tecla: `1`, después `U`.
+
+«sobrecargar armas» · «sobrecarguen las armas» · «armas en sobrecarga» · «sobrecarguen» · «sobrecarga» · «overload»
+
+> **Antes del overload, una vez por misión:** el overload actúa sobre las armas seleccionadas, y la orden las selecciona con el grupo de armas `1`. Ese grupo hay que guardarlo a mano: botón **Select All Weapons** del panel del oficial de armas y después `Ctrl+1`.
 
 ## Defensa: alertas, escudos y camuflaje (Zheva)
 

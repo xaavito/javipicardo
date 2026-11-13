@@ -626,6 +626,13 @@ YELLOW_WORDS = ["alerta amarilla", "yellow alert", "amarilla",
 TECLA_OVERLOAD = "u"            # asignada en Options del juego (13/11)
 TECLA_ARMAS_NORMAL = "insert"   # idem
 
+# Los botones actuan sobre las armas SELECCIONADAS (pag. 115-116), asi que la
+# orden primero las selecciona todas. Si el menu deja asignarle tecla a "Select
+# All Weapons", va aca; si no, se usa el grupo de armas guardado en la tecla
+# de abajo (una vez por mision: boton "Select All Weapons" y despues Ctrl+1).
+TECLA_SELECCIONAR_TODAS_ARMAS = None
+GRUPO_TODAS_LAS_ARMAS = "1"
+
 # NORMAL se chequea antes: "sin sobrecarga" contiene "sobrecarga".
 ARMAS_NORMAL_WORDS = ["sin sobrecarga", "quitar sobrecarga", "sacar sobrecarga",
                       "carga normal", "armas en modo normal", "armas normales"]
@@ -695,6 +702,25 @@ COMBOS = {
                         "rumbo hacia él y acelera a 3/4 de máquina"),
     },
 }
+
+
+_SELECCIONAR_ARMAS = TECLA_SELECCIONAR_TODAS_ARMAS or GRUPO_TODAS_LAS_ARMAS
+# NORMAL primero: el parser de COMBOS recorre en orden, y "sin sobrecarga"
+# contiene "sobrecarga".
+if TECLA_ARMAS_NORMAL is not None:
+    COMBOS["armas_carga_normal"] = {
+        "palabras": ARMAS_NORMAL_WORDS,
+        "pasos": [_SELECCIONAR_ARMAS, TECLA_ARMAS_NORMAL],
+        "descripcion": ("Selecciona todas las armas y les saca el overload "
+                        "(carga normal)"),
+    }
+if TECLA_OVERLOAD is not None:
+    COMBOS["sobrecargar_armas"] = {
+        "palabras": OVERLOAD_WORDS,
+        "pasos": [_SELECCIONAR_ARMAS, TECLA_OVERLOAD],
+        "descripcion": ("Selecciona todas las armas y pone las pesadas en "
+                        "overload: mas daño, alcance maximo 8"),
+    }
 
 
 def listar_comandos():
@@ -790,16 +816,18 @@ def parsear_comando(texto):
                     "raw": texto}
         return {"action": "key", "key": TECLA_YELLOW_ALERT, "raw": texto}
 
-    # Overload / carga normal de las armas pesadas (ver TECLA_OVERLOAD)
-    for palabras, tecla, nombre in (
-            (ARMAS_NORMAL_WORDS, TECLA_ARMAS_NORMAL, "Armas en modo normal"),
-            (OVERLOAD_WORDS, TECLA_OVERLOAD, "Overload")):
+    # Overload / carga normal de las armas pesadas (ver TECLA_OVERLOAD).
+    # Antes que COMBOS solo para avisar si falta la tecla.
+    for palabras, tecla, nombre, combo in (
+            (ARMAS_NORMAL_WORDS, TECLA_ARMAS_NORMAL, "Armas en modo normal",
+             "armas_carga_normal"),
+            (OVERLOAD_WORDS, TECLA_OVERLOAD, "Overload", "sobrecargar_armas")):
         if any(contiene_frase(t, w) for w in palabras):
             if tecla is None:
                 return {"action": "tecla_sin_asignar", "nombre": nombre,
                         "raw": texto}
-            return {"action": "key", "key": tecla, "oficial": "armas",
-                    "raw": texto}
+            return {"action": "combo", "combo": combo,
+                    "pasos": COMBOS[combo]["pasos"], "raw": texto}
 
     # Combos (se chequean ANTES que los comandos individuales, porque son mas
     # especificos - ej. "ataquen con todo" no debe interpretarse como el

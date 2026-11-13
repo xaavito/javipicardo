@@ -1170,12 +1170,17 @@ En **Options → Hotkeys** del juego, fijarse si aparecen como asignables.
 
 - [ ] Yellow Alert: ⬜ se puede · ⬜ no aparece
 - [ ] Intercept Target: ⬜ se puede · ⬜ no aparece
-- [ ] **Overload** de armas (botón del panel de armas, pág. 127): ⬜ se puede ·
-      ⬜ no aparece. Si se puede, asignarle tecla y ponerla en `TECLA_OVERLOAD`;
-      lo mismo con el botón **Normal** y `TECLA_ARMAS_NORMAL`. El comando ya
-      está ("computadora, sobrecarga" / "sin sobrecarga"): hoy avisa que falta
-      la tecla. Después volver a generar el manual (`python
-      scripts/generar_manual.py`) para que pase a la sección de Armas.
+- [x] **Overload** de armas: se pudo asignar (13/11). Quedó `U` = Overload e
+      `Insert` = Normal.
+- [ ] El overload actúa sobre las armas **seleccionadas**: la orden aprieta
+      `1` (grupo de armas 1) y después `U`. Una vez por misión: botón **Select
+      All Weapons** + `Ctrl+1`. Después *«computadora, sobrecarga»* → ⬜ las
+      pesadas pasan a OVERLOAD · ⬜ no cambia nada. Y *«sin sobrecarga»* →
+      ⬜ vuelven a NORMAL.
+- [ ] ¿El grupo `Ctrl+1` sobrevive entre misiones? ⬜ sí ⬜ hay que rehacerlo
+- [ ] ¿"Select All Weapons" aparece en Options para asignarle tecla? Si
+      aparece, ponerla en `TECLA_SELECCIONAR_TODAS_ARMAS` y ya no hace falta
+      el paso a mano.
 
 > Si se pueden, salen de `NO_SOPORTADO` y pasan a ser comandos normales.
 > Intercept Target sería **"andá hacia esa nave"** de verdad.

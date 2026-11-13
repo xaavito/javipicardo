@@ -147,24 +147,6 @@ def generar_catalogo():
             "frases": list(fase1.YELLOW_WORDS),
         })
 
-    # --- Overload / carga normal: teclas asignables, como Yellow Alert ---
-    for nombre, tecla, palabras, descripcion in (
-            ("sobrecargar_armas", fase1.TECLA_OVERLOAD, fase1.OVERLOAD_WORDS,
-             "Overload de las armas pesadas: mas daño, alcance maximo 8"),
-            ("armas_carga_normal", fase1.TECLA_ARMAS_NORMAL,
-             fase1.ARMAS_NORMAL_WORDS,
-             "Sacar el overload: armas pesadas en carga normal")):
-        if tecla is not None:
-            catalogo.append({
-                "accion": "key",
-                "parametros": {"key": tecla},
-                "oficial": "armas",
-                "nombre_legible": nombre,
-                "descripcion": descripcion,
-                "ejemplos": list(palabras)[:3],
-                "frases": list(palabras),
-            })
-
     # --- Combos (definidos en fase1.COMBOS) ---
     for nombre_combo, datos in fase1.COMBOS.items():
         catalogo.append({
@@ -243,12 +225,8 @@ def item_a_accion(item, texto_usuario):
         return {"action": "set_speed", "level": parametros.get("level", 0),
                 "raw": texto_usuario}
     elif accion_nombre == "key":
-        accion = {"action": "key", "key": parametros.get("key"),
-                  "raw": texto_usuario}
-        if item.get("oficial"):
-            # Tecla asignada por el jugador: no esta en OFICIALES["teclas"]
-            accion["oficial"] = item["oficial"]
-        return accion
+        return {"action": "key", "key": parametros.get("key"),
+                "raw": texto_usuario}
     elif accion_nombre == "key_combo":
         return {"action": "key_combo", "keys": parametros.get("keys", []),
                 "raw": texto_usuario}

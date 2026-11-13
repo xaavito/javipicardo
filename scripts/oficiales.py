@@ -142,6 +142,8 @@ OFICIAL_POR_COMBO = {
     "retirada_maxima": "timon",
     "ir_al_mas_cercano": "timon",
     "ir_a_cualquiera": "timon",
+    "sobrecargar_armas": "armas",
+    "armas_carga_normal": "armas",
 }
 
 
@@ -185,9 +187,6 @@ def oficial_para(accion):
     """Devuelve a que oficial le toca la accion. Cae en 'computadora' si no es
     de nadie: los errores no tienen dueno."""
     tipo = accion.get("action")
-
-    if accion.get("oficial") in OFICIALES:
-        return accion["oficial"]
 
     if tipo == "combo":
         return OFICIAL_POR_COMBO.get(accion.get("combo"), "computadora")
