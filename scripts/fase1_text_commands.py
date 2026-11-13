@@ -630,6 +630,7 @@ TECLA_ARMAS_NORMAL = "insert"   # idem
 # orden primero las selecciona todas. Si el menu deja asignarle tecla a "Select
 # All Weapons", va aca; si no, se usa el grupo de armas guardado en la tecla
 # de abajo (una vez por mision: boton "Select All Weapons" y despues Ctrl+1).
+# None en las dos: la orden aprieta solo la tecla, sin seleccionar nada.
 TECLA_SELECCIONAR_TODAS_ARMAS = None
 GRUPO_TODAS_LAS_ARMAS = "1"
 
@@ -704,20 +705,21 @@ COMBOS = {
 }
 
 
-_SELECCIONAR_ARMAS = TECLA_SELECCIONAR_TODAS_ARMAS or GRUPO_TODAS_LAS_ARMAS
+_SELECCIONAR_ARMAS = [t for t in (TECLA_SELECCIONAR_TODAS_ARMAS
+                                   or GRUPO_TODAS_LAS_ARMAS,) if t]
 # NORMAL primero: el parser de COMBOS recorre en orden, y "sin sobrecarga"
 # contiene "sobrecarga".
 if TECLA_ARMAS_NORMAL is not None:
     COMBOS["armas_carga_normal"] = {
         "palabras": ARMAS_NORMAL_WORDS,
-        "pasos": [_SELECCIONAR_ARMAS, TECLA_ARMAS_NORMAL],
+        "pasos": _SELECCIONAR_ARMAS + [TECLA_ARMAS_NORMAL],
         "descripcion": ("Selecciona todas las armas y les saca el overload "
                         "(carga normal)"),
     }
 if TECLA_OVERLOAD is not None:
     COMBOS["sobrecargar_armas"] = {
         "palabras": OVERLOAD_WORDS,
-        "pasos": [_SELECCIONAR_ARMAS, TECLA_OVERLOAD],
+        "pasos": _SELECCIONAR_ARMAS + [TECLA_OVERLOAD],
         "descripcion": ("Selecciona todas las armas y pone las pesadas en "
                         "overload: mas daño, alcance maximo 8"),
     }

@@ -170,7 +170,8 @@ def generar():
             w(_frases(item["frases"]))
             w("")
         if clave == "armas" and "sobrecargar_armas" in fase1.COMBOS \
-                and fase1.TECLA_SELECCIONAR_TODAS_ARMAS is None:
+                and fase1.TECLA_SELECCIONAR_TODAS_ARMAS is None \
+                and fase1.GRUPO_TODAS_LAS_ARMAS is not None:
             w("> **Antes del overload, una vez por misión:** el overload "
               "actúa sobre las armas seleccionadas, y la orden las "
               f"selecciona con el grupo de armas `{fase1.GRUPO_TODAS_LAS_ARMAS}`. "
