@@ -107,9 +107,19 @@ con los modelos "scripted" que trae el propio SDK):
       en `model_settings`; el audio de salida es `event.audio.data`; los
       imports son de `agents.realtime`. Verificado contra `openai-agents` 0.24.
 
+### Primera prueba en vivo (13/11)
+- [x] **Llamando a la computadora anda todo, "genial"** (Javi). Sin nombre no
+      atiende nada: es lo esperado con `EXIGIR_NOMBRE_DE_OFICIAL = True`.
+- Pedidos de la prueba: **overload de las armas** por voz y un **manual para
+  jugar**. El overload no tiene tecla por defecto (es el botón OVERLOAD /
+  NORMAL del panel de armas, pág. 127): quedó como Yellow Alert, con
+  `TECLA_OVERLOAD` / `TECLA_ARMAS_NORMAL` esperando que el menú del juego deje
+  asignarlas (PRUEBAS #11). El manual es `docs/manual_comandos.md`, generado
+  por `scripts/generar_manual.py` desde los diccionarios del parser.
+
 ### Falta (todo necesita la Windows) — PRUEBAS #32
-- [ ] Self-test en la Windows (Python 3.14) y calibración de la compuerta.
-- [ ] El circuito completo en vivo, handoffs incluidos.
+- [x] El circuito completo en vivo (13/11, ver arriba).
+- [ ] Handoffs a oficiales por rol, en vivo.
 - [ ] **Gate de decisión:** ¿se banca el combate? Costo real de 10 minutos.
 - [ ] Decidir el modo por defecto de fase2 (hoy sigue `"web"`): si pasa el
       gate, `"agente"`.

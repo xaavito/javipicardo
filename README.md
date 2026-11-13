@@ -107,6 +107,9 @@ con Pato (una tabla por sesión, lista para mandar por Slack).
   Windows**, numerado, priorizado y con lugar para anotar cada medición. Se
   actualiza cada vez que hay cambios que requieren validación en vivo. Es el
   documento a abrir antes de sentarse a probar.
+- 🎮 **`docs/manual_comandos.md`** — **manual para jugar**: todos los comandos
+  por oficial, qué tecla aprietan y todas las frases que los activan. Se genera
+  con `python scripts/generar_manual.py` (no editarlo a mano).
 - 💡 **`WISHLIST.md`** — ideas a futuro todavía no comprometidas (ej. encadenar
   varios comandos en una sola orden), con el análisis técnico ya hecho.
 

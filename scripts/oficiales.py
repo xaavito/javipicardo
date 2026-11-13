@@ -186,6 +186,9 @@ def oficial_para(accion):
     de nadie: los errores no tienen dueno."""
     tipo = accion.get("action")
 
+    if accion.get("oficial") in OFICIALES:
+        return accion["oficial"]
+
     if tipo == "combo":
         return OFICIAL_POR_COMBO.get(accion.get("combo"), "computadora")
 

@@ -51,6 +51,7 @@ def generar_catalogo():
             "descripcion": f"Ajustar velocidad a nivel {nivel} de 4 "
                            f"({nombre.replace('_', ' ')})",
             "ejemplos": ejemplos_por_nivel.get(nivel, [])[:3],
+            "frases": list(ejemplos_por_nivel.get(nivel, [])),
         })
 
     # --- Comandos de una sola tecla (alertas, disparo, escudos, etc.) ---
@@ -84,6 +85,7 @@ def generar_catalogo():
             "nombre_legible": nombre,
             "descripcion": descripcion,
             "ejemplos": list(frases)[:3],
+            "frases": list(frases),
         })
 
     # --- Comandos de dos teclas (modificador + tecla) ---
@@ -102,6 +104,7 @@ def generar_catalogo():
             "nombre_legible": nombre,
             "descripcion": descripcion,
             "ejemplos": list(frases)[:3],
+            "frases": list(frases),
         })
 
     # --- Memoria de targets: seleccionar (5-8) y guardar (CTRL+5-8) ---
@@ -116,6 +119,7 @@ def generar_catalogo():
             "descripcion": (f"Volver a seleccionar la nave guardada en la "
                             f"ranura de memoria {ranura}"),
             "ejemplos": frases[:3],
+            "frases": list(frases),
         })
 
     for tecla, frases in _agrupar_por_tecla(fase1.GUARDAR_TARGET_WORDS).items():
@@ -127,6 +131,7 @@ def generar_catalogo():
             "descripcion": (f"Guardar el objetivo actual en la ranura de "
                             f"memoria {ranura}, para volver a el mas tarde"),
             "ejemplos": frases[:3],
+            "frases": list(frases),
         })
 
     # --- Yellow Alert: tecla asignable en el juego (no tiene por defecto) ---
@@ -139,7 +144,26 @@ def generar_catalogo():
             "nombre_legible": "alerta_amarilla",
             "descripcion": "Yellow Alert: sube escudos sin armar las armas",
             "ejemplos": list(fase1.YELLOW_WORDS)[:3],
+            "frases": list(fase1.YELLOW_WORDS),
         })
+
+    # --- Overload / carga normal: teclas asignables, como Yellow Alert ---
+    for nombre, tecla, palabras, descripcion in (
+            ("sobrecargar_armas", fase1.TECLA_OVERLOAD, fase1.OVERLOAD_WORDS,
+             "Overload de las armas pesadas: mas daño, alcance maximo 8"),
+            ("armas_carga_normal", fase1.TECLA_ARMAS_NORMAL,
+             fase1.ARMAS_NORMAL_WORDS,
+             "Sacar el overload: armas pesadas en carga normal")):
+        if tecla is not None:
+            catalogo.append({
+                "accion": "key",
+                "parametros": {"key": tecla},
+                "oficial": "armas",
+                "nombre_legible": nombre,
+                "descripcion": descripcion,
+                "ejemplos": list(palabras)[:3],
+                "frases": list(palabras),
+            })
 
     # --- Combos (definidos en fase1.COMBOS) ---
     for nombre_combo, datos in fase1.COMBOS.items():
@@ -149,6 +173,7 @@ def generar_catalogo():
             "nombre_legible": nombre_combo,
             "descripcion": datos["descripcion"],
             "ejemplos": datos["palabras"][:3],
+            "frases": list(datos["palabras"]),
         })
 
     return catalogo
@@ -218,8 +243,12 @@ def item_a_accion(item, texto_usuario):
         return {"action": "set_speed", "level": parametros.get("level", 0),
                 "raw": texto_usuario}
     elif accion_nombre == "key":
-        return {"action": "key", "key": parametros.get("key"),
-                "raw": texto_usuario}
+        accion = {"action": "key", "key": parametros.get("key"),
+                  "raw": texto_usuario}
+        if item.get("oficial"):
+            # Tecla asignada por el jugador: no esta en OFICIALES["teclas"]
+            accion["oficial"] = item["oficial"]
+        return accion
     elif accion_nombre == "key_combo":
         return {"action": "key_combo", "keys": parametros.get("keys", []),
                 "raw": texto_usuario}

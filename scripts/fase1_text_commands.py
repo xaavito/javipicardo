@@ -617,6 +617,22 @@ TECLA_YELLOW_ALERT = None
 YELLOW_WORDS = ["alerta amarilla", "yellow alert", "amarilla",
                 "condicion amarilla", "codigo amarillo"]
 
+# ---------------------------------------------------------------------------
+# Overload de las armas pesadas (fotones, disruptores, fusion, hellbore; pag.
+# 127-136): mas daño, pero alcance maximo 8 y mas energia. No tiene tecla por
+# defecto: son los botones OVERLOAD / NORMAL del panel de armas. Si el menu de
+# teclas del juego deja asignarlos, poner aca esas teclas; con None, avisa.
+# ---------------------------------------------------------------------------
+TECLA_OVERLOAD = None
+TECLA_ARMAS_NORMAL = None
+
+# NORMAL se chequea antes: "sin sobrecarga" contiene "sobrecarga".
+ARMAS_NORMAL_WORDS = ["sin sobrecarga", "quitar sobrecarga", "sacar sobrecarga",
+                      "carga normal", "armas en modo normal", "armas normales"]
+OVERLOAD_WORDS = ["sobrecargar armas", "sobrecarguen las armas",
+                  "armas en sobrecarga", "sobrecarguen", "sobrecarga",
+                  "overload"]
+
 
 # ---------------------------------------------------------------------------
 # Combos: una sola frase dispara VARIAS sub-acciones en secuencia. Cada combo
@@ -773,6 +789,17 @@ def parsear_comando(texto):
             return {"action": "tecla_sin_asignar", "nombre": "Yellow Alert",
                     "raw": texto}
         return {"action": "key", "key": TECLA_YELLOW_ALERT, "raw": texto}
+
+    # Overload / carga normal de las armas pesadas (ver TECLA_OVERLOAD)
+    for palabras, tecla, nombre in (
+            (ARMAS_NORMAL_WORDS, TECLA_ARMAS_NORMAL, "Armas en modo normal"),
+            (OVERLOAD_WORDS, TECLA_OVERLOAD, "Overload")):
+        if any(contiene_frase(t, w) for w in palabras):
+            if tecla is None:
+                return {"action": "tecla_sin_asignar", "nombre": nombre,
+                        "raw": texto}
+            return {"action": "key", "key": tecla, "oficial": "armas",
+                    "raw": texto}
 
     # Combos (se chequean ANTES que los comandos individuales, porque son mas
     # especificos - ej. "ataquen con todo" no debe interpretarse como el
@@ -1155,7 +1182,7 @@ def ejecutar_accion(accion, pausa_entre_teclas=None, ya_enfocado=False,
     elif tipo == "tecla_sin_asignar":
         print(f"  -> '{accion['nombre']}' no tiene tecla asignada. Asignale una "
               "en el menu de teclas del juego y ponela en su constante "
-              "(ej. TECLA_YELLOW_ALERT).")
+              "(ej. TECLA_YELLOW_ALERT, TECLA_OVERLOAD).")
 
     elif tipo == "ambiguo":
         print(f"  -> '{accion['raw']}' es ambiguo, no se ejecuta nada. "

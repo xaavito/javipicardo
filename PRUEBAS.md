@@ -1170,6 +1170,12 @@ En **Options → Hotkeys** del juego, fijarse si aparecen como asignables.
 
 - [ ] Yellow Alert: ⬜ se puede · ⬜ no aparece
 - [ ] Intercept Target: ⬜ se puede · ⬜ no aparece
+- [ ] **Overload** de armas (botón del panel de armas, pág. 127): ⬜ se puede ·
+      ⬜ no aparece. Si se puede, asignarle tecla y ponerla en `TECLA_OVERLOAD`;
+      lo mismo con el botón **Normal** y `TECLA_ARMAS_NORMAL`. El comando ya
+      está ("computadora, sobrecarga" / "sin sobrecarga"): hoy avisa que falta
+      la tecla. Después volver a generar el manual (`python
+      scripts/generar_manual.py`) para que pase a la sección de Armas.
 
 > Si se pueden, salen de `NO_SOPORTADO` y pasan a ser comandos normales.
 > Intercept Target sería **"andá hacia esa nave"** de verdad.
