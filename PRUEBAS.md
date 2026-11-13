@@ -1172,15 +1172,10 @@ En **Options → Hotkeys** del juego, fijarse si aparecen como asignables.
 - [ ] Intercept Target: ⬜ se puede · ⬜ no aparece
 - [x] **Overload** de armas: se pudo asignar (13/11). Quedó `U` = Overload e
       `Insert` = Normal.
-- [ ] El overload actúa sobre las armas **seleccionadas**: la orden aprieta
-      `1` (grupo de armas 1) y después `U`. Una vez por misión: botón **Select
-      All Weapons** + `Ctrl+1`. Después *«computadora, sobrecarga»* → ⬜ las
-      pesadas pasan a OVERLOAD · ⬜ no cambia nada. Y *«sin sobrecarga»* →
-      ⬜ vuelven a NORMAL.
-- [ ] ¿El grupo `Ctrl+1` sobrevive entre misiones? ⬜ sí ⬜ hay que rehacerlo
-- [ ] ¿"Select All Weapons" aparece en Options para asignarle tecla? Si
-      aparece, ponerla en `TECLA_SELECCIONAR_TODAS_ARMAS` y ya no hace falta
-      el paso a mano.
+- [x] **Resuelto (13/11):** la `U` sola sobrecarga y no toca la selección
+      múltiple. Apretar antes `1` (grupo de armas vacío) deseleccionaba todo y
+      se iba el panel: se sacó ese paso (`GRUPO_TODAS_LAS_ARMAS = None`).
+- [ ] *«computadora, sin sobrecarga»* (`Insert`) → ⬜ vuelven a NORMAL
 
 > Si se pueden, salen de `NO_SOPORTADO` y pasan a ser comandos normales.
 > Intercept Target sería **"andá hacia esa nave"** de verdad.

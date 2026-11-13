@@ -116,6 +116,11 @@ con los modelos "scripted" que trae el propio SDK):
   `TECLA_OVERLOAD` / `TECLA_ARMAS_NORMAL` esperando que el menú del juego deje
   asignarlas (PRUEBAS #11). El manual es `docs/manual_comandos.md`, generado
   por `scripts/generar_manual.py` desde los diccionarios del parser.
+- [x] **Overload por voz andando** (13/11): asignado `U` = Overload e
+      `Insert` = Normal en Options. La `U` sola sobrecarga sin tocar la
+      selección. Primero se probó apretando antes el grupo de armas `1` (el
+      manual dice que los botones actúan sobre lo seleccionado), pero con el
+      grupo vacío deseleccionaba todo y desaparecía el panel; se sacó.
 
 ### Falta (todo necesita la Windows) — PRUEBAS #32
 - [x] El circuito completo en vivo (13/11, ver arriba).

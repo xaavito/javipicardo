@@ -632,7 +632,7 @@ TECLA_ARMAS_NORMAL = "insert"   # idem
 # de abajo (una vez por mision: boton "Select All Weapons" y despues Ctrl+1).
 # None en las dos: la orden aprieta solo la tecla, sin seleccionar nada.
 TECLA_SELECCIONAR_TODAS_ARMAS = None
-GRUPO_TODAS_LAS_ARMAS = "1"
+GRUPO_TODAS_LAS_ARMAS = None   # 13/11: la U sola sobrecarga; el 1 deseleccionaba
 
 # NORMAL se chequea antes: "sin sobrecarga" contiene "sobrecarga".
 ARMAS_NORMAL_WORDS = ["sin sobrecarga", "quitar sobrecarga", "sacar sobrecarga",
@@ -713,15 +713,14 @@ if TECLA_ARMAS_NORMAL is not None:
     COMBOS["armas_carga_normal"] = {
         "palabras": ARMAS_NORMAL_WORDS,
         "pasos": _SELECCIONAR_ARMAS + [TECLA_ARMAS_NORMAL],
-        "descripcion": ("Selecciona todas las armas y les saca el overload "
-                        "(carga normal)"),
+        "descripcion": "Saca el overload: armas pesadas en carga normal",
     }
 if TECLA_OVERLOAD is not None:
     COMBOS["sobrecargar_armas"] = {
         "palabras": OVERLOAD_WORDS,
         "pasos": _SELECCIONAR_ARMAS + [TECLA_OVERLOAD],
-        "descripcion": ("Selecciona todas las armas y pone las pesadas en "
-                        "overload: mas daño, alcance maximo 8"),
+        "descripcion": ("Pone las armas pesadas en overload: mas daño, "
+                        "alcance maximo 8"),
     }
 
 
