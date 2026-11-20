@@ -48,6 +48,7 @@ import os
 import sys
 import time
 
+import audio_enviado
 import config
 
 # --- Modelo y voz -----------------------------------------------------------
@@ -434,12 +435,20 @@ async def correr(puente, exigir_nombre, modelo=MODELO, modelo_realtime=None,
 
     async def mandar_audio():
         fuente = bloques if bloques is not None else _microfono()
+        enviado = []
         async for pcm16, rms in fuente:
             if (VOZ_AGENTE == "realtime" and not AURICULARES
                     and not puente.cola_parlante.empty()):
                 continue
             for salida in puente.compuerta.procesar(pcm16, rms):
                 await session.send_audio(salida)
+                enviado.append(salida)
+            # Al cerrar la compuerta, lo que salio en esa apertura va a disco
+            if enviado and not puente.compuerta.abierta:
+                if bloques is None:
+                    audio_enviado.guardar_pcm16(b"".join(enviado),
+                                                SAMPLE_RATE, "agente")
+                enviado = []
 
     async def consumir_eventos():
         async for evento in session:

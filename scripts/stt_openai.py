@@ -45,6 +45,7 @@ import unicodedata
 import soundfile as sf
 from openai import OpenAI
 
+import audio_enviado
 import config
 
 # Modelo de transcripcion de OpenAI.
@@ -204,8 +205,12 @@ def transcribir_openai(audio, sample_rate, language="es", usar_prompt=True):
         if usar_prompt and es_eco_del_prompt(texto):
             print("  [!] La API devolvio el prompt de vocabulario en vez de "
                   "una transcripcion (audio sin voz). Se descarta.")
-            return ""
-        return texto
+            texto = ""
     except Exception as e:
         print(f"  [!] Error transcribiendo con OpenAI: {e}")
-        return ""
+        texto = ""
+    # El calentamiento (usar_prompt=False) es silencio: no se guarda
+    if usar_prompt:
+        audio_enviado.guardar_wav(buffer.getvalue(), audio.size / sample_rate,
+                                  "web", texto)
+    return texto
